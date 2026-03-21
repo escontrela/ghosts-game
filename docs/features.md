@@ -197,3 +197,28 @@ Validación ejecutada contra Tasker (`projectId=6`, `userId=1`) y repositorio lo
 ### Verificación técnica de esta iteración
 
 - Build local validada con `mvn -q -DskipTests compile` (OK).
+
+---
+
+## Iteración PO autónoma — 2026-03-21T04:19:00Z (reposición de backlog fase 1)
+
+Validación ejecutada contra Tasker (`projectId=6`, `userId=1`) y repositorio local en rama `features-nightly-20260321`.
+
+### Estado actual validado
+
+- `DONE`: `GHOST-0001`, `GHOST-0002`, `GHOST-0003`, `GHOST-0004`, `GHOST-0005`, `GHOST-0007`, `GHOST-0008`, `GHOST-0009`, `GHOST-0010`.
+- `IN_PROGRESS` (`WIP=1`): `GHOST-0006`.
+- `BACKLOG` (5): `GHOST-0000`, `GHOST-0011`, `GHOST-0012`, `GHOST-0013`, `GHOST-0014`.
+
+### Tickets nuevos creados en esta iteración
+
+- `GHOST-0011` — Ajuste fino de salto y aterrizaje de Arthur (`BACKLOG`).
+- `GHOST-0012` — Estabilidad visual de pose al agacharse (`BACKLOG`).
+- `GHOST-0013` — Scroll acoplado al avance con suavidad bidireccional (`BACKLOG`).
+- `GHOST-0014` — Rebalanceo de halo de luz y atenuación del fondo (`BACKLOG`).
+
+### Aviso técnico al equipo de desarrollo
+
+- Mantener foco exclusivo de fase 1: movimiento de Arthur, sprite, scroll con 2 fondos y luz de realce.
+- Reutilizar estructura existente y evitar crear muchas clases pequeñas sin responsabilidad clara.
+- Cada entrega debe ser concreta, pequeña y verificable en build jugable.
