@@ -2,6 +2,7 @@ package com.davidpe.ghosts;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
@@ -22,6 +23,17 @@ public class GhostsGame extends ApplicationAdapter {
 
   // Arthur draw size on screen
   private static final float ARTHUR_DRAW_HEIGHT = 120f;
+  private static final float GROUND_Y = 130f;
+  private static final float MOVE_SPEED = 220f;
+  private static final float JUMP_VELOCITY = 520f;
+  private static final float GRAVITY = 1250f;
+
+  private enum MovementState {
+    IDLE,
+    WALK,
+    CROUCH,
+    JUMP
+  }
 
   private SpriteBatch batch;
   private OrthographicCamera camera;
@@ -30,6 +42,10 @@ public class GhostsGame extends ApplicationAdapter {
   private Texture background;
   private Texture arthurSheet;
   private TextureRegion arthurFrame;
+  private MovementState movementState;
+  private float arthurX;
+  private float arthurY;
+  private float arthurVelocityY;
 
   @Override
   public void create() {
@@ -47,11 +63,19 @@ public class GhostsGame extends ApplicationAdapter {
     int frameWidth = arthurSheet.getWidth() / FRAME_COLS;
     int frameHeight = arthurSheet.getHeight() / FRAME_ROWS;
     arthurFrame = new TextureRegion(arthurSheet, 0, 0, frameWidth, frameHeight);
+
+    float aspectRatio = (float) arthurFrame.getRegionWidth() / arthurFrame.getRegionHeight();
+    float drawWidth = ARTHUR_DRAW_HEIGHT * aspectRatio;
+    arthurX = (WORLD_WIDTH - drawWidth) / 2f;
+    arthurY = GROUND_Y;
+    arthurVelocityY = 0f;
+    movementState = MovementState.IDLE;
   }
 
   @Override
   public void render() {
     ScreenUtils.clear(0, 0, 0, 1);
+    updateMovementState(Gdx.graphics.getDeltaTime());
 
     camera.update();
     batch.setProjectionMatrix(camera.combined);
@@ -64,11 +88,61 @@ public class GhostsGame extends ApplicationAdapter {
     // Draw Arthur centered horizontally, positioned on the path
     float aspectRatio = (float) arthurFrame.getRegionWidth() / arthurFrame.getRegionHeight();
     float drawWidth = ARTHUR_DRAW_HEIGHT * aspectRatio;
-    float arthurX = (WORLD_WIDTH - drawWidth) / 2f;
-    float arthurY = 130f; // on the path
     batch.draw(arthurFrame, arthurX, arthurY, drawWidth, ARTHUR_DRAW_HEIGHT);
 
     batch.end();
+  }
+
+  /**
+   * Transition priority:
+   * 1) JUMP while airborne or jump triggered
+   * 2) CROUCH when grounded and down key held
+   * 3) WALK when grounded and horizontal input held
+   * 4) IDLE otherwise
+   */
+  private void updateMovementState(float delta) {
+    boolean leftPressed = Gdx.input.isKeyPressed(Input.Keys.LEFT) || Gdx.input.isKeyPressed(Input.Keys.A);
+    boolean rightPressed = Gdx.input.isKeyPressed(Input.Keys.RIGHT) || Gdx.input.isKeyPressed(Input.Keys.D);
+    boolean downPressed = Gdx.input.isKeyPressed(Input.Keys.DOWN) || Gdx.input.isKeyPressed(Input.Keys.S);
+    boolean jumpPressed =
+        Gdx.input.isKeyJustPressed(Input.Keys.SPACE) || Gdx.input.isKeyJustPressed(Input.Keys.UP);
+    boolean isOnGround = arthurY <= GROUND_Y;
+
+    if (jumpPressed && isOnGround) {
+      arthurVelocityY = JUMP_VELOCITY;
+      movementState = MovementState.JUMP;
+    }
+
+    if (!isOnGround || movementState == MovementState.JUMP) {
+      arthurVelocityY -= GRAVITY * delta;
+      arthurY += arthurVelocityY * delta;
+      if (arthurY <= GROUND_Y) {
+        arthurY = GROUND_Y;
+        arthurVelocityY = 0f;
+      } else {
+        movementState = MovementState.JUMP;
+      }
+    }
+
+    boolean groundedAfterPhysics = arthurY <= GROUND_Y;
+    if (groundedAfterPhysics) {
+      if (downPressed) {
+        movementState = MovementState.CROUCH;
+      } else if (leftPressed ^ rightPressed) {
+        movementState = MovementState.WALK;
+      } else {
+        movementState = MovementState.IDLE;
+      }
+    }
+
+    if (movementState == MovementState.WALK) {
+      float direction = rightPressed ? 1f : -1f;
+      arthurX += direction * MOVE_SPEED * delta;
+
+      float aspectRatio = (float) arthurFrame.getRegionWidth() / arthurFrame.getRegionHeight();
+      float drawWidth = ARTHUR_DRAW_HEIGHT * aspectRatio;
+      arthurX = Math.max(0f, Math.min(arthurX, WORLD_WIDTH - drawWidth));
+    }
   }
 
   @Override

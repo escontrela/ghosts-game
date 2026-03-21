@@ -12,6 +12,14 @@
 
 ## Features implementadas
 
+### 2026-03-21 — GHOST-0002 Máquina de estados mínima de movimiento
+
+- **Estados definidos:** `IDLE`, `WALK`, `CROUCH`, `JUMP` en `GhostsGame`.
+- **Integración en update loop:** La resolución de estado se ejecuta por frame con `delta`.
+- **Prioridad de input:** `JUMP` (cuando está en aire o se dispara salto) > `CROUCH` (si está en suelo y se mantiene abajo) > `WALK` (input horizontal exclusivo) > `IDLE`.
+- **Transiciones válidas:** desde suelo se puede pasar a `WALK`/`CROUCH`/`JUMP`; en aire se mantiene `JUMP` hasta aterrizar; al aterrizar vuelve a estados de suelo según input activo.
+- **Implementación:** reutilización de clase existente sin crear nuevas clases auxiliares.
+
 ### 2026-03-21 — Ventana principal con fondo y Arthur
 
 - **Ventana de juego:** 800×600, título "Ghosts 'n Goblins", VSync 60 FPS.
