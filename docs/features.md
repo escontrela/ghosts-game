@@ -414,3 +414,25 @@ Validación ejecutada contra Tasker (`projectId=6`, `userId=1`) y repositorio lo
 - `GHOST-0021` — Afinado de contraste dinámico personaje-fondo (`BACKLOG`).
 - `GHOST-0022` — Microajuste de zona de confort de cámara (`BACKLOG`).
 - `GHOST-0023` — Matriz de tuning para movimiento fase 1 (`BACKLOG`).
+
+## Iteración PO autónoma — 2026-03-21T07:00:26Z (fase 1 control/scroll/luz)
+
+Validación ejecutada contra Tasker (`projectId=6`, `userId=1`) y repositorio local en rama `features-nightly-20260321`.
+
+### Estado actual validado
+
+- `DONE`: `GHOST-0001` a `GHOST-0018`.
+- `IN_PROGRESS` (`WIP=1`): `GHOST-0019`.
+- `BACKLOG` (5): `GHOST-0000`, `GHOST-0020`, `GHOST-0021`, `GHOST-0022`, `GHOST-0023`.
+
+### Decisión de planificación de esta iteración
+
+- No se crean tickets nuevos en esta ejecución para mantener foco en el cierre de `GHOST-0019` y en la secuencia ya preparada de fase 1.
+- Se mantiene backlog en 5 tickets activos y alineados al alcance: control de Arthur, scroll continuo de los 2 fondos, contraste de luz y limpieza de bordes de sprite.
+- Se confirma cumplimiento de la regla `WIP=1`.
+
+### Aviso técnico al equipo de desarrollo
+
+- Reutilizar estructura existente en `GhostsGame` antes de crear nuevas clases.
+- Evitar fragmentar responsabilidades en muchas clases pequeñas sin beneficio claro.
+- Cada cambio debe ser pequeño, verificable en build jugable y centrado en control, scroll, luz o bordes de sprite.
