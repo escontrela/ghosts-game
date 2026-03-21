@@ -41,3 +41,24 @@
 - [ ] Loop continuo del escenario
 - [ ] Flip automático del personaje según dirección
 - [ ] Parallax (opcional)
+
+---
+
+## Backlog Tasker fase 1 (2026-03-21)
+
+En esta fase se prioriza exclusivamente: control de Arthur (izquierda/derecha/agacharse/salto), scroll continuo con los dos fondos actuales y luz tenue de realce sobre Arthur.
+
+Regla técnica de implementación para el equipo:
+
+- Reutilizar la estructura de código existente antes de crear clases nuevas.
+- Evitar fragmentación en múltiples clases pequeñas sin responsabilidad clara.
+- Mantener tickets pequeños, verticales y verificables en build jugable.
+
+Tickets creados en Tasker (projectId=6):
+
+- `GHOST-0000` (BACKLOG): Bootstrap de fase 1 de control y scroll.
+- `GHOST-0001` (IN_PROGRESS): Control de Arthur (izquierda/derecha/agacharse/salto).
+- `GHOST-0002` (BACKLOG): Máquina de estados mínima de movimiento.
+- `GHOST-0003` (BACKLOG): Animaciones y flip de sprite de Arthur.
+- `GHOST-0004` (BACKLOG): Scroll continuo con dos fondos del escenario.
+- `GHOST-0005` (BACKLOG): Luz tenue sobre Arthur para legibilidad.
