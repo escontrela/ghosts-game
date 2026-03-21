@@ -55,6 +55,11 @@ public class GhostsGame extends ApplicationAdapter {
   private static final float LIGHT_ALPHA_ACTIVE = 0.27f;
   private static final float LIGHT_SIZE_IDLE = 254f;
   private static final float LIGHT_SIZE_ACTIVE = 300f;
+  private static final float LIGHT_TORSO_X = 0.5f;
+  private static final float LIGHT_TORSO_Y_IDLE = 0.52f;
+  private static final float LIGHT_TORSO_Y_WALK = 0.51f;
+  private static final float LIGHT_TORSO_Y_CROUCH = 0.4f;
+  private static final float LIGHT_TORSO_Y_JUMP = 0.56f;
 
   private enum MovementState {
     IDLE,
@@ -347,12 +352,23 @@ public class GhostsGame extends ApplicationAdapter {
   }
 
   private void drawArthurLight() {
-    float lightX = arthurX + (arthurDrawWidth * 0.5f) - (currentLightSize * 0.5f);
-    float lightY = arthurY + (ARTHUR_DRAW_HEIGHT * 0.45f) - (currentLightSize * 0.5f);
+    float torsoAnchorX = arthurX + (arthurDrawWidth * LIGHT_TORSO_X);
+    float torsoAnchorY = arthurY + (ARTHUR_DRAW_HEIGHT * getTorsoAnchorY());
+    float lightX = torsoAnchorX - (currentLightSize * 0.5f);
+    float lightY = torsoAnchorY - (currentLightSize * 0.5f);
     Color previousColor = new Color(batch.getColor());
     batch.setColor(1f, 1f, 1f, currentLightAlpha);
     batch.draw(arthurLightTexture, lightX, lightY, currentLightSize, currentLightSize);
     batch.setColor(previousColor);
+  }
+
+  private float getTorsoAnchorY() {
+    return switch (movementState) {
+      case IDLE -> LIGHT_TORSO_Y_IDLE;
+      case WALK -> LIGHT_TORSO_Y_WALK;
+      case CROUCH -> LIGHT_TORSO_Y_CROUCH;
+      case JUMP -> LIGHT_TORSO_Y_JUMP;
+    };
   }
 
   private void drawArthur(TextureRegion sourceFrame) {

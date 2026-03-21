@@ -222,6 +222,13 @@ Uso operativo:
 - **Base visual estable:** la pose mantiene alineación de suelo al entrar/salir de `CROUCH` sin saltos laterales.
 - **Compatibilidad mantenida:** el cambio no altera la respuesta de salto ni el pipeline actual de movimiento fuera de crouch.
 
+### 2026-03-21 — GHOST-0027 Reanclaje del halo de luz al torso de Arthur
+
+- **Origen del halo por referencia de torso:** la luz toma un ancla estable basada en proporción del sprite (`LIGHT_TORSO_X/Y`) en lugar de un offset vertical único.
+- **Perfil por estado:** `IDLE`, `WALK`, `CROUCH` y `JUMP` usan altura de torso específica para mantener el foco visual centrado en cada pose.
+- **Sin deriva por flip:** el ancla horizontal permanece en el centro del cuerpo y no depende de la dirección (`facingRight`), evitando desplazamientos erráticos al invertir movimiento.
+- **Intensidad conservada:** se mantiene el mismo pipeline y niveles de alpha/tamaño ya calibrados para no sobreexponer la escena.
+
 ### 2026-03-21 — Ventana principal con fondo y Arthur
 
 - **Ventana de juego:** 800×600, título "Ghosts 'n Goblins", VSync 60 FPS.
