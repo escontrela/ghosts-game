@@ -136,6 +136,13 @@ Regla técnica de fase 1 reforzada por checklist:
 - **Trayectoria de salto conservada:** altura y timing vertical se mantienen desacoplados del ajuste horizontal.
 - **Sin nueva arquitectura:** mejoras integradas en `GhostsGame` y estados actuales (`WALK`, `JUMP`, `IDLE`, `CROUCH`).
 
+### 2026-03-21 — GHOST-0017 Calibración de halo por estado de movimiento
+
+- **Perfiles por estado:** `IDLE`, `WALK`, `CROUCH` y `JUMP` usan objetivos específicos de alpha/tamaño de halo y oscurecimiento global.
+- **Transición sin saltos:** la iluminación interpola por frame hacia su objetivo para evitar cambios bruscos al cambiar de estado.
+- **Contraste sostenido:** Arthur mantiene foco visual sobre fondo oscuro sin sobreexponer escena durante desplazamiento y salto.
+- **Pipeline reutilizado:** ajustes realizados sobre el render actual de `GhostsGame`, sin sistema de iluminación nuevo.
+
 ### 2026-03-21 — Ventana principal con fondo y Arthur
 
 - **Ventana de juego:** 800×600, título "Ghosts 'n Goblins", VSync 60 FPS.

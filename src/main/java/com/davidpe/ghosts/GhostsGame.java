@@ -40,12 +40,14 @@ public class GhostsGame extends ApplicationAdapter {
   private static final float LANDING_GRAVITY_SCALE = 0.58f;
   private static final float BACKGROUND_DIM_ALPHA = 0.19f;
   private static final float ARTHUR_LIGHT_ALPHA = 0.24f;
+  private static final float ARTHUR_LIGHT_SIZE = 270f;
   private static final float SCROLL_RESPONSE_RATE = 13f;
   private static final int SPRITE_FRAME_INSET_PX = 1;
   private static final float CAMERA_COMFORT_LEFT = 300f;
   private static final float CAMERA_COMFORT_RIGHT = 500f;
   private static final float LANDING_STABILIZE_DURATION = 0.08f;
   private static final float LANDING_STABILIZE_ACCELERATION = 900f;
+  private static final float LIGHT_RESPONSE_RATE = 7f;
 
   private enum MovementState {
     IDLE,
@@ -78,6 +80,9 @@ public class GhostsGame extends ApplicationAdapter {
   private float worldOffsetX;
   private float scrollVelocityX;
   private float landingStabilizeTimer;
+  private float currentLightAlpha;
+  private float currentLightSize;
+  private float currentBackgroundDimAlpha;
 
   @Override
   public void create() {
@@ -126,6 +131,9 @@ public class GhostsGame extends ApplicationAdapter {
     worldOffsetX = 0f;
     scrollVelocityX = 0f;
     landingStabilizeTimer = 0f;
+    currentLightAlpha = ARTHUR_LIGHT_ALPHA;
+    currentLightSize = ARTHUR_LIGHT_SIZE;
+    currentBackgroundDimAlpha = BACKGROUND_DIM_ALPHA;
   }
 
   @Override
@@ -133,6 +141,7 @@ public class GhostsGame extends ApplicationAdapter {
     ScreenUtils.clear(0, 0, 0, 1);
     float delta = Gdx.graphics.getDeltaTime();
     updateMovementState(delta);
+    updateLighting(delta);
     if (movementState == MovementState.WALK && movingHorizontally) {
       stateTime += delta;
     } else {
@@ -320,20 +329,52 @@ public class GhostsGame extends ApplicationAdapter {
   }
 
   private void drawArthurLight() {
-    float lightSize = 270f;
-    float lightX = arthurX + (arthurDrawWidth * 0.5f) - (lightSize * 0.5f);
-    float lightY = arthurY + (ARTHUR_DRAW_HEIGHT * 0.45f) - (lightSize * 0.5f);
+    float lightX = arthurX + (arthurDrawWidth * 0.5f) - (currentLightSize * 0.5f);
+    float lightY = arthurY + (ARTHUR_DRAW_HEIGHT * 0.45f) - (currentLightSize * 0.5f);
     Color previousColor = new Color(batch.getColor());
-    batch.setColor(1f, 1f, 1f, ARTHUR_LIGHT_ALPHA);
-    batch.draw(arthurLightTexture, lightX, lightY, lightSize, lightSize);
+    batch.setColor(1f, 1f, 1f, currentLightAlpha);
+    batch.draw(arthurLightTexture, lightX, lightY, currentLightSize, currentLightSize);
     batch.setColor(previousColor);
   }
 
   private void drawBackgroundDim() {
     Color previousColor = new Color(batch.getColor());
-    batch.setColor(1f, 1f, 1f, BACKGROUND_DIM_ALPHA);
+    batch.setColor(1f, 1f, 1f, currentBackgroundDimAlpha);
     batch.draw(blackOverlayTexture, 0f, 0f, WORLD_WIDTH, WORLD_HEIGHT);
     batch.setColor(previousColor);
+  }
+
+  private void updateLighting(float delta) {
+    float targetLightAlpha = ARTHUR_LIGHT_ALPHA;
+    float targetLightSize = ARTHUR_LIGHT_SIZE;
+    float targetBackgroundDimAlpha = BACKGROUND_DIM_ALPHA;
+    switch (movementState) {
+      case IDLE -> {
+        targetLightAlpha = 0.23f;
+        targetLightSize = 266f;
+        targetBackgroundDimAlpha = 0.19f;
+      }
+      case WALK -> {
+        targetLightAlpha = 0.25f;
+        targetLightSize = 286f;
+        targetBackgroundDimAlpha = 0.2f;
+      }
+      case CROUCH -> {
+        targetLightAlpha = 0.22f;
+        targetLightSize = 254f;
+        targetBackgroundDimAlpha = 0.18f;
+      }
+      case JUMP -> {
+        targetLightAlpha = 0.24f;
+        targetLightSize = 298f;
+        targetBackgroundDimAlpha = 0.21f;
+      }
+    }
+    float blend = 1f - (float) Math.exp(-LIGHT_RESPONSE_RATE * delta);
+    currentLightAlpha = MathUtils.lerp(currentLightAlpha, targetLightAlpha, blend);
+    currentLightSize = MathUtils.lerp(currentLightSize, targetLightSize, blend);
+    currentBackgroundDimAlpha =
+        MathUtils.lerp(currentBackgroundDimAlpha, targetBackgroundDimAlpha, blend);
   }
 
   private Texture createLightTexture(int size) {
