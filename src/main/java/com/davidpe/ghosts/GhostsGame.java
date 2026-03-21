@@ -31,6 +31,7 @@ public class GhostsGame extends ApplicationAdapter {
   private static final float MOVE_SPEED = 235f;
   private static final float GROUND_ACCELERATION = 1700f;
   private static final float GROUND_DECELERATION = 2200f;
+  private static final float AIR_CONTROL_ACCELERATION = 820f;
   private static final float JUMP_VELOCITY = 520f;
   private static final float JUMP_RISE_GRAVITY = 1180f;
   private static final float JUMP_FALL_GRAVITY = 1030f;
@@ -43,6 +44,8 @@ public class GhostsGame extends ApplicationAdapter {
   private static final int SPRITE_FRAME_INSET_PX = 1;
   private static final float CAMERA_COMFORT_LEFT = 300f;
   private static final float CAMERA_COMFORT_RIGHT = 500f;
+  private static final float LANDING_STABILIZE_DURATION = 0.08f;
+  private static final float LANDING_STABILIZE_ACCELERATION = 900f;
 
   private enum MovementState {
     IDLE,
@@ -74,6 +77,7 @@ public class GhostsGame extends ApplicationAdapter {
   private boolean movingHorizontally;
   private float worldOffsetX;
   private float scrollVelocityX;
+  private float landingStabilizeTimer;
 
   @Override
   public void create() {
@@ -121,6 +125,7 @@ public class GhostsGame extends ApplicationAdapter {
     movingHorizontally = false;
     worldOffsetX = 0f;
     scrollVelocityX = 0f;
+    landingStabilizeTimer = 0f;
   }
 
   @Override
@@ -197,6 +202,7 @@ public class GhostsGame extends ApplicationAdapter {
       facingRight = horizontalInput > 0;
     }
 
+    boolean wasAirborne = !isOnGround || movementState == MovementState.JUMP;
     if (jumpPressed && isOnGround) {
       arthurVelocityY = JUMP_VELOCITY;
       movementState = MovementState.JUMP;
@@ -218,18 +224,34 @@ public class GhostsGame extends ApplicationAdapter {
     }
 
     boolean groundedAfterPhysics = arthurY <= GROUND_Y;
+    if (wasAirborne && groundedAfterPhysics) {
+      landingStabilizeTimer = LANDING_STABILIZE_DURATION;
+    }
+
+    if (!groundedAfterPhysics) {
+      if (horizontalInput != 0) {
+        float airTargetVelocityX = horizontalInput * MOVE_SPEED;
+        arthurVelocityX =
+            moveTowards(arthurVelocityX, airTargetVelocityX, AIR_CONTROL_ACCELERATION * delta);
+      }
+      arthurX += arthurVelocityX * delta;
+    }
+
     if (groundedAfterPhysics) {
       float targetVelocityX = 0f;
+      float groundResponseAcceleration =
+          landingStabilizeTimer > 0f ? LANDING_STABILIZE_ACCELERATION : GROUND_ACCELERATION;
       if (downPressed) {
         arthurVelocityX = 0f;
       } else {
         targetVelocityX = horizontalInput * MOVE_SPEED;
         float maxDelta =
-            (targetVelocityX == 0f ? GROUND_DECELERATION : GROUND_ACCELERATION) * delta;
+            (targetVelocityX == 0f ? GROUND_DECELERATION : groundResponseAcceleration) * delta;
         arthurVelocityX = moveTowards(arthurVelocityX, targetVelocityX, maxDelta);
       }
       arthurX += arthurVelocityX * delta;
     }
+    landingStabilizeTimer = Math.max(0f, landingStabilizeTimer - delta);
 
     if (groundedAfterPhysics) {
       if (downPressed) {

@@ -129,6 +129,13 @@ Regla técnica de fase 1 reforzada por checklist:
 - **Reversa estable:** al invertir dirección, el scroll converge sin saltos bruscos de encuadre.
 - **Cobertura preservada:** se mantiene el pipeline actual de wrap modular y `N+1` segmentos de fondo para cubrir todo el viewport.
 
+### 2026-03-21 — GHOST-0016 Consistencia de salto con inputs rápidos
+
+- **Control aéreo suave:** en `JUMP`, la velocidad horizontal converge gradualmente al input activo para evitar respuestas erráticas en cambios rápidos izquierda/derecha.
+- **Despegue/aterrizaje estables:** al aterrizar se aplica una ventana corta de estabilización para suavizar micro-correcciones de velocidad horizontal.
+- **Trayectoria de salto conservada:** altura y timing vertical se mantienen desacoplados del ajuste horizontal.
+- **Sin nueva arquitectura:** mejoras integradas en `GhostsGame` y estados actuales (`WALK`, `JUMP`, `IDLE`, `CROUCH`).
+
 ### 2026-03-21 — Ventana principal con fondo y Arthur
 
 - **Ventana de juego:** 800×600, título "Ghosts 'n Goblins", VSync 60 FPS.
