@@ -483,3 +483,35 @@ Validación ejecutada contra Tasker (`projectId=6`, `userId=1`) y repositorio lo
 - Reutilizar estructura existente en `GhostsGame` antes de crear nuevas clases.
 - Evitar fragmentar responsabilidades en muchas clases pequeñas sin beneficio claro.
 - Cada cambio debe ser pequeño, verificable en build jugable y centrado en control, scroll, luz o bordes de sprite.
+
+## Iteración PO autónoma — 2026-03-21T09:20:00Z (reposición backlog + guardrails fase 1)
+
+Validación ejecutada contra Tasker (`projectId=6`, `userId=1`) y repositorio local en rama `features-nightly-20260321`.
+
+### Estado actual validado
+
+- `DONE`: `GHOST-0001` a `GHOST-0018`, `GHOST-0020`, `GHOST-0021`, `GHOST-0022`, `GHOST-0023`.
+- `IN_PROGRESS` (`WIP=1`): `GHOST-0019`.
+- `BACKLOG` (5): `GHOST-0000`, `GHOST-0024`, `GHOST-0025`, `GHOST-0026`, `GHOST-0027`.
+
+### Acciones ejecutadas en esta iteración
+
+- Se crearon tickets nuevos de alcance pequeño y vertical:
+  - `GHOST-0024` — Ajuste de inset de recorte para eliminar borde cruzado.
+  - `GHOST-0025` — Oscurecimiento base del fondo para reforzar contraste.
+  - `GHOST-0026` — Estabilidad de agachado bajo cambios rápidos de input.
+  - `GHOST-0027` — Reanclaje del halo de luz al torso de Arthur.
+- Se corrigió desvío de estado: `GHOST-0000` fue retornado a `BACKLOG` para preservar su rol de ticket bootstrap de referencia.
+
+### Foco obligatorio (fase 1)
+
+- Perfeccionar control de Arthur: izquierda, derecha, agacharse y salto.
+- Mejorar limpieza visual de sprite (evitar bleed entre frames).
+- Afinar scroll/cámara sobre los dos fondos actuales.
+- Reforzar contraste: luz tenue sobre Arthur y fondo algo más oscuro.
+
+### Aviso a desarrolladores
+
+- Cuidar la estructura del código: priorizar reutilización de componentes existentes.
+- Evitar proliferación de clases sin responsabilidad clara; no queremos fragmentar el dominio en muchas piezas pequeñas.
+- Mantener entregas pequeñas, concretas y verificables en build jugable.
