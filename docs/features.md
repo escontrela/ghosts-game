@@ -87,6 +87,13 @@ Regla técnica de fase 1 reforzada por checklist:
 - Mantener cambios en la estructura existente (`GhostsGame`) antes de crear nuevas clases.
 - Evitar sobre-ingeniería y validar regresión con este checklist tras cada ajuste visual/control.
 
+### 2026-03-21 — GHOST-0011 Ajuste fino de salto y aterrizaje de Arthur
+
+- **Aterrizaje menos brusco:** el descenso usa suavizado al entrar en una zona cercana al suelo para reducir golpe visual al tocar `GROUND_Y`.
+- **Curva de salto más predecible:** separación de gravedad de subida y bajada para mantener altura/duración consistentes en repeticiones.
+- **Control de caída:** límite de velocidad vertical negativa para evitar picos de caída y mejorar lectura del aterrizaje.
+- **Sin cambios de arquitectura:** ajuste aplicado sobre `GhostsGame` y máquina de estados existente (`IDLE`, `WALK`, `CROUCH`, `JUMP`).
+
 ### 2026-03-21 — Ventana principal con fondo y Arthur
 
 - **Ventana de juego:** 800×600, título "Ghosts 'n Goblins", VSync 60 FPS.
@@ -222,3 +229,38 @@ Validación ejecutada contra Tasker (`projectId=6`, `userId=1`) y repositorio lo
 - Mantener foco exclusivo de fase 1: movimiento de Arthur, sprite, scroll con 2 fondos y luz de realce.
 - Reutilizar estructura existente y evitar crear muchas clases pequeñas sin responsabilidad clara.
 - Cada entrega debe ser concreta, pequeña y verificable en build jugable.
+
+---
+
+## Iteración PO autónoma — 2026-03-21T05:01:53Z (fase 1 control/sprite/scroll/luz)
+
+Validación ejecutada contra Tasker (`projectId=6`, `userId=1`) y repositorio local en rama `features-nightly-20260321`.
+
+### Estado actual validado
+
+- `DONE`: `GHOST-0001`, `GHOST-0002`, `GHOST-0003`, `GHOST-0004`, `GHOST-0005`, `GHOST-0007`, `GHOST-0008`, `GHOST-0009`, `GHOST-0010`.
+- `IN_PROGRESS` (`WIP=1`): `GHOST-0006`.
+- `BACKLOG` (5): `GHOST-0000`, `GHOST-0011`, `GHOST-0012`, `GHOST-0013`, `GHOST-0014`.
+
+### Decisión de planificación
+
+- No se crean tickets nuevos en esta corrida para evitar solapamiento con `GHOST-0006` y mantener granularidad pequeña.
+- Se mantiene backlog mínimo de 5 tickets, todos dentro del alcance de fase 1.
+- Se conserva `WIP=1` sin transiciones adicionales.
+
+### Foco técnico obligatorio para desarrollo
+
+- Priorizar control de Arthur: izquierda, derecha, agacharse y salto con respuesta precisa.
+- Pulir recorte y bordes del sprite para evitar bleed de frames vecinos.
+- Reforzar scroll continuo y estable con los dos fondos actuales.
+- Mejorar contraste visual: luz sobre Arthur más efectiva y fondo moderadamente más oscuro.
+
+### Directriz de arquitectura
+
+- Reutilizar estructura y clases existentes antes de crear nuevas.
+- Evitar proliferación de clases pequeñas sin responsabilidad clara.
+- Mantener entregas concretas, testables y verticales por ticket.
+
+### Verificación técnica de esta iteración
+
+- Build local validada con `mvn -q -DskipTests compile` (OK).
