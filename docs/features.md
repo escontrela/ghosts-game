@@ -69,6 +69,24 @@
 - **Transiciones más limpias:** el estado `WALK` depende de velocidad real, reduciendo parpadeos por cambios rápidos de input.
 - **Salto estable con repetición de input:** se conserva disparo de salto solo en suelo, manteniendo arco y aterrizaje consistentes.
 
+### 2026-03-21 — GHOST-0010 Checklist técnico de regresión (fase 1)
+
+Checklist manual rápido (3-5 minutos) para control, scroll, luz y sprite:
+
+1. **Movimiento horizontal:** mantener `LEFT/RIGHT` (`A/D`) durante 5 segundos por dirección y validar desplazamiento continuo sin bloqueos.
+2. **Cambio de dirección:** alternar izquierda/derecha en pulsaciones cortas y confirmar ausencia de jitter visible en scroll.
+3. **Crouch estable:** en suelo, mantener `DOWN/S`; verificar que Arthur no deriva en X y que transiciona limpio con `IDLE/WALK`.
+4. **Salto repetido:** ejecutar secuencia `jump -> aterrizaje -> jump` varias veces; validar arco consistente y aterrizaje en `GROUND_Y`.
+5. **Cobertura de fondo:** desplazarse en ambos sentidos y confirmar que no aparecen huecos al alternar `main-backgroud-1.png` y `main-background-2.png`.
+6. **Contraste visual:** validar que Arthur destaca sobre el fondo oscuro sin sobreexposición durante `IDLE/WALK/JUMP/CROUCH`.
+7. **Bordes de sprite en animación:** observar contornos de Arthur mientras camina para detectar bleed/halo.
+8. **Bordes de sprite en flip:** invertir dirección de forma repetida y comprobar que no aparecen artefactos en bordes ni deformación del frame.
+
+Regla técnica de fase 1 reforzada por checklist:
+
+- Mantener cambios en la estructura existente (`GhostsGame`) antes de crear nuevas clases.
+- Evitar sobre-ingeniería y validar regresión con este checklist tras cada ajuste visual/control.
+
 ### 2026-03-21 — Ventana principal con fondo y Arthur
 
 - **Ventana de juego:** 800×600, título "Ghosts 'n Goblins", VSync 60 FPS.
