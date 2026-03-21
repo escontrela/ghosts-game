@@ -27,6 +27,13 @@
 - **Flip horizontal:** actualización de dirección (`facingRight`) y `flipX` consistente por frame, sin escalar en negativo ni distorsionar dimensiones.
 - **Reutilización:** se mantiene el pipeline actual de carga/render y se amplía la lógica dentro de `GhostsGame`.
 
+### 2026-03-21 — GHOST-0004 Scroll continuo con dos fondos
+
+- **Fondos usados en secuencia:** `main-backgroud-1.png` + `main-background-2.png`.
+- **Respuesta al avance de Arthur:** `worldOffsetX` se actualiza con el desplazamiento horizontal real de Arthur (`deltaX`).
+- **Reciclado continuo:** wrap modular por ciclo de dos segmentos y redibujado de `N+1` fondos para cubrir viewport sin cortes al recolocar.
+- **Estructura:** implementado en la clase existente con método dedicado `drawScrollingBackgrounds()`.
+
 ### 2026-03-21 — Ventana principal con fondo y Arthur
 
 - **Ventana de juego:** 800×600, título "Ghosts 'n Goblins", VSync 60 FPS.

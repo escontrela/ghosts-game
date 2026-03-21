@@ -40,7 +40,7 @@ public class GhostsGame extends ApplicationAdapter {
   private OrthographicCamera camera;
   private Viewport viewport;
 
-  private Texture background;
+  private Texture[] backgrounds;
   private Texture arthurSheet;
   private TextureRegion idleFrame;
   private TextureRegion crouchFrame;
@@ -53,6 +53,7 @@ public class GhostsGame extends ApplicationAdapter {
   private float arthurVelocityY;
   private boolean facingRight;
   private boolean movingHorizontally;
+  private float worldOffsetX;
 
   @Override
   public void create() {
@@ -63,7 +64,11 @@ public class GhostsGame extends ApplicationAdapter {
 
     batch = new SpriteBatch();
 
-    background = new Texture(Gdx.files.internal("main-backgroud-1.png"));
+    backgrounds =
+        new Texture[] {
+          new Texture(Gdx.files.internal("main-backgroud-1.png")),
+          new Texture(Gdx.files.internal("main-background-2.png"))
+        };
 
     // Load spritesheet, remove black background, and extract first frame
     arthurSheet = loadWithTransparentBlack("sprites_arthur.png");
@@ -90,6 +95,7 @@ public class GhostsGame extends ApplicationAdapter {
     movementState = MovementState.IDLE;
     facingRight = true;
     movingHorizontally = false;
+    worldOffsetX = 0f;
   }
 
   @Override
@@ -108,8 +114,7 @@ public class GhostsGame extends ApplicationAdapter {
 
     batch.begin();
 
-    // Draw background scaled to fill the viewport
-    batch.draw(background, 0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+    drawScrollingBackgrounds();
 
     // Draw Arthur centered horizontally, positioned on the path
     TextureRegion frameToDraw = getFrameForState();
@@ -179,6 +184,9 @@ public class GhostsGame extends ApplicationAdapter {
       float drawWidth = ARTHUR_DRAW_HEIGHT * aspectRatio;
       arthurX = Math.max(0f, Math.min(arthurX, WORLD_WIDTH - drawWidth));
     }
+
+    float arthurDeltaX = arthurX - previousArthurX;
+    worldOffsetX += arthurDeltaX;
   }
 
   private TextureRegion getFrameForState() {
@@ -188,6 +196,20 @@ public class GhostsGame extends ApplicationAdapter {
       case JUMP -> jumpFrame;
       case IDLE -> idleFrame;
     };
+  }
+
+  private void drawScrollingBackgrounds() {
+    float segmentWidth = WORLD_WIDTH;
+    float cycleWidth = segmentWidth * backgrounds.length;
+    float wrappedOffset = ((worldOffsetX % cycleWidth) + cycleWidth) % cycleWidth;
+    int startSegment = (int) (wrappedOffset / segmentWidth);
+    float segmentOffset = wrappedOffset - (startSegment * segmentWidth);
+
+    for (int i = 0; i < backgrounds.length + 1; i++) {
+      int textureIndex = (startSegment + i) % backgrounds.length;
+      float drawX = (i * segmentWidth) - segmentOffset;
+      batch.draw(backgrounds[textureIndex], drawX, 0f, WORLD_WIDTH, WORLD_HEIGHT);
+    }
   }
 
   @Override
@@ -220,7 +242,10 @@ public class GhostsGame extends ApplicationAdapter {
   @Override
   public void dispose() {
     batch.dispose();
-    background.dispose();
+    for (Texture texture : backgrounds) {
+      texture.dispose();
+    }
     arthurSheet.dispose();
   }
 }
+    float previousArthurX = arthurX;
