@@ -324,3 +324,28 @@ Validación ejecutada contra Tasker (`projectId=6`, `userId=1`) y repositorio lo
 ### Verificación técnica de esta iteración
 
 - Build local validada con `mvn -q -DskipTests compile` (OK).
+
+---
+
+## Iteración PO autónoma — 2026-03-21T06:06:30Z (reposicionamiento backlog fase 1)
+
+Validación ejecutada contra Tasker (`projectId=6`, `userId=1`) y repositorio local en rama `features-nightly-20260321`.
+
+### Estado actual validado
+
+- `DONE`: `GHOST-0001`, `GHOST-0002`, `GHOST-0003`, `GHOST-0004`, `GHOST-0005`, `GHOST-0007`, `GHOST-0008`, `GHOST-0009`, `GHOST-0010`, `GHOST-0011`, `GHOST-0012`, `GHOST-0013`, `GHOST-0014`.
+- `IN_PROGRESS` (`WIP=1`): `GHOST-0006`.
+- `BACKLOG` (5): `GHOST-0000`, `GHOST-0015`, `GHOST-0016`, `GHOST-0017`, `GHOST-0018`.
+
+### Tickets creados para mantener backlog mínimo
+
+- `GHOST-0015` — Ajuste de ventana de cámara para scroll más legible (`BACKLOG`).
+- `GHOST-0016` — Consistencia de salto al encadenar inputs rápidos (`BACKLOG`).
+- `GHOST-0017` — Calibración fina de halo según estado de movimiento (`BACKLOG`).
+- `GHOST-0018` — Checklist de validación visual para scroll y luz (`BACKLOG`).
+
+### Directriz técnica al equipo
+
+- Reutilizar clases existentes y evitar proliferación de clases pequeñas sin responsabilidad clara.
+- Mantener tickets pequeños, verticales y verificables sobre build jugable.
+- Sostener foco de fase 1: control de Arthur, scroll de dos fondos, contraste luz/fondo y limpieza de bordes de sprite.
