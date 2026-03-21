@@ -88,6 +88,10 @@ Checklist manual rápido (3-5 minutos) para control, scroll, luz y sprite:
 6. **Contraste visual:** validar que Arthur destaca sobre el fondo oscuro sin sobreexposición durante `IDLE/WALK/JUMP/CROUCH`.
 7. **Bordes de sprite en animación:** observar contornos de Arthur mientras camina para detectar bleed/halo.
 8. **Bordes de sprite en flip:** invertir dirección de forma repetida y comprobar que no aparecen artefactos en bordes ni deformación del frame.
+9. **Estrés de scroll con input rápido:** alternar `LEFT/RIGHT` cada 200-300ms por 10 segundos y validar continuidad sin saltos de encuadre.
+10. **Contraste por estado:** verificar legibilidad Arthur/fondo en `IDLE`, `WALK`, `CROUCH` y `JUMP` de forma explícita.
+11. **Transición de halo entre estados:** ejecutar `WALK -> JUMP -> CROUCH -> IDLE` y confirmar cambios suaves, sin parpadeo ni picos.
+12. **Bleed en movimiento prolongado:** caminar y hacer flip repetido durante 15 segundos para confirmar ausencia de píxeles de frames vecinos.
 
 Regla técnica de fase 1 reforzada por checklist:
 
@@ -142,6 +146,13 @@ Regla técnica de fase 1 reforzada por checklist:
 - **Transición sin saltos:** la iluminación interpola por frame hacia su objetivo para evitar cambios bruscos al cambiar de estado.
 - **Contraste sostenido:** Arthur mantiene foco visual sobre fondo oscuro sin sobreexponer escena durante desplazamiento y salto.
 - **Pipeline reutilizado:** ajustes realizados sobre el render actual de `GhostsGame`, sin sistema de iluminación nuevo.
+
+### 2026-03-21 — GHOST-0018 Checklist visual extendido para scroll y luz
+
+- **Cobertura de scroll en ambos sentidos:** el checklist incorpora pruebas de continuidad con alternancia rápida de dirección.
+- **Validación de contraste por estado:** se añaden verificaciones explícitas en `IDLE`, `WALK`, `CROUCH` y `JUMP`.
+- **Detección de artefactos en bordes:** se agrega criterio específico para bleed durante animación y flip continuo.
+- **Integración documental única:** la extensión se aplica al checklist existente en `docs/features.md` sin crear documentos paralelos.
 
 ### 2026-03-21 — Ventana principal con fondo y Arthur
 
