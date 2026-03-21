@@ -12,6 +12,13 @@
 
 ## Features implementadas
 
+### 2026-03-21 — GHOST-0000 Bootstrap de fase 1 de control y scroll
+
+- **Rama de trabajo validada:** desarrollo ejecutado en `features-nightly-20260321`.
+- **Alcance explícito de fase 1:** izquierda/derecha, agacharse, salto, scroll de dos fondos y luz tenue sobre Arthur.
+- **Regla de implementación documentada:** extender clases existentes (principalmente `GhostsGame`) y evitar proliferación de clases sin responsabilidad clara.
+- **Referencia de alcance:** fase sin enemigos, combate completo, UI de puntuación/vidas ni persistencia de progreso.
+
 ### 2026-03-21 — GHOST-0001 Control de Arthur (izquierda/derecha/agacharse/salto)
 
 - **Movimiento horizontal:** flechas izquierda/derecha y teclas `A/D`.
