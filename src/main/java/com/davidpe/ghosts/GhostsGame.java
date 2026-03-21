@@ -12,6 +12,7 @@ import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.Texture.TextureFilter;
+import com.badlogic.gdx.graphics.Texture.TextureWrap;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
@@ -67,6 +68,7 @@ public class GhostsGame extends ApplicationAdapter {
   private TextureRegion idleFrame;
   private TextureRegion crouchFrame;
   private TextureRegion jumpFrame;
+  private TextureRegion renderFrame;
   private Animation<TextureRegion> walkAnimation;
   private float stateTime;
   private MovementState movementState;
@@ -104,12 +106,14 @@ public class GhostsGame extends ApplicationAdapter {
     // Load spritesheet, remove black background, and extract first frame
     arthurSheet = loadWithTransparentBlack("sprites_arthur.png");
     arthurSheet.setFilter(TextureFilter.Nearest, TextureFilter.Nearest);
+    arthurSheet.setWrap(TextureWrap.ClampToEdge, TextureWrap.ClampToEdge);
     int frameWidth = arthurSheet.getWidth() / FRAME_COLS;
     int frameHeight = arthurSheet.getHeight() / FRAME_ROWS;
     TextureRegion[][] sheetFrames = TextureRegion.split(arthurSheet, frameWidth, frameHeight);
     idleFrame = createSafeRegion(sheetFrames[0][0], SPRITE_FRAME_INSET_PX);
     crouchFrame = createSafeRegion(sheetFrames[1][0], SPRITE_FRAME_INSET_PX);
     jumpFrame = createSafeRegion(sheetFrames[1][1], SPRITE_FRAME_INSET_PX);
+    renderFrame = new TextureRegion();
     walkAnimation =
         new Animation<>(
             0.12f,
@@ -158,17 +162,9 @@ public class GhostsGame extends ApplicationAdapter {
 
     // Draw Arthur centered horizontally, positioned on the path
     TextureRegion frameToDraw = getFrameForState();
-    if (frameToDraw.isFlipX() != !facingRight) {
-      frameToDraw.flip(true, false);
-    }
 
     drawArthurLight();
-    batch.draw(
-        frameToDraw,
-        Math.round(arthurX),
-        Math.round(arthurY),
-        Math.round(arthurDrawWidth),
-        Math.round(ARTHUR_DRAW_HEIGHT));
+    drawArthur(frameToDraw);
 
     batch.end();
   }
@@ -335,6 +331,17 @@ public class GhostsGame extends ApplicationAdapter {
     batch.setColor(1f, 1f, 1f, currentLightAlpha);
     batch.draw(arthurLightTexture, lightX, lightY, currentLightSize, currentLightSize);
     batch.setColor(previousColor);
+  }
+
+  private void drawArthur(TextureRegion sourceFrame) {
+    renderFrame.setRegion(sourceFrame);
+    float drawX = Math.round(arthurX);
+    float drawWidth = Math.round(arthurDrawWidth);
+    if (!facingRight) {
+      drawX += drawWidth;
+      drawWidth = -drawWidth;
+    }
+    batch.draw(renderFrame, drawX, Math.round(arthurY), drawWidth, Math.round(ARTHUR_DRAW_HEIGHT));
   }
 
   private void drawBackgroundDim() {

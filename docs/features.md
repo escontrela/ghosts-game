@@ -154,6 +154,13 @@ Regla técnica de fase 1 reforzada por checklist:
 - **Detección de artefactos en bordes:** se agrega criterio específico para bleed durante animación y flip continuo.
 - **Integración documental única:** la extensión se aplica al checklist existente en `docs/features.md` sin crear documentos paralelos.
 
+### 2026-03-21 — GHOST-0020 Eliminación de bleeding residual en flip de sprite
+
+- **Flip sin mutar frames base:** Arthur se invierte horizontalmente en draw con ancho negativo, evitando alternar `flip()` sobre `TextureRegion` de animación.
+- **Muestreo más robusto del spritesheet:** `sprites_arthur.png` usa `TextureWrap.ClampToEdge` junto a `TextureFilter.Nearest` para reducir fuga visual en bordes.
+- **Cobertura de estados preservada:** `IDLE`, `WALK`, `CROUCH` y `JUMP` reutilizan recorte seguro y mantienen proporciones originales de render.
+- **Sin sobre-ingeniería:** ajuste integrado en `GhostsGame` sin crear clases nuevas.
+
 ### 2026-03-21 — Ventana principal con fondo y Arthur
 
 - **Ventana de juego:** 800×600, título "Ghosts 'n Goblins", VSync 60 FPS.
