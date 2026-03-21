@@ -38,7 +38,7 @@ public class GhostsGame extends ApplicationAdapter {
   private static final float LANDING_GRAVITY_SCALE = 0.58f;
   private static final float BACKGROUND_DIM_ALPHA = 0.16f;
   private static final float ARTHUR_LIGHT_ALPHA = 0.28f;
-  private static final float SCROLL_LERP_ALPHA = 0.18f;
+  private static final float SCROLL_RESPONSE_RATE = 13f;
 
   private enum MovementState {
     IDLE,
@@ -221,8 +221,12 @@ public class GhostsGame extends ApplicationAdapter {
 
     arthurX = Math.max(0f, Math.min(arthurX, WORLD_WIDTH - arthurDrawWidth));
 
-    float targetScrollVelocity = movementState == MovementState.WALK ? arthurVelocityX : 0f;
-    scrollVelocityX = MathUtils.lerp(scrollVelocityX, targetScrollVelocity, SCROLL_LERP_ALPHA);
+    float targetScrollVelocity = arthurVelocityX;
+    float scrollBlend = 1f - (float) Math.exp(-SCROLL_RESPONSE_RATE * delta);
+    scrollVelocityX = MathUtils.lerp(scrollVelocityX, targetScrollVelocity, scrollBlend);
+    if (Math.abs(targetScrollVelocity - scrollVelocityX) < 3f) {
+      scrollVelocityX = targetScrollVelocity;
+    }
     if (Math.abs(scrollVelocityX) < 0.5f) {
       scrollVelocityX = 0f;
     }

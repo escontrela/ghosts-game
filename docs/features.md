@@ -101,6 +101,13 @@ Regla técnica de fase 1 reforzada por checklist:
 - **Sin jitter en alternancia rápida:** cambios izquierda/derecha + agacharse no desplazan el sprite por recalcular ancho por frame.
 - **Sin impacto en input:** se conserva la lógica de control y estados existente sin introducir latencia.
 
+### 2026-03-21 — GHOST-0013 Scroll acoplado al avance con suavidad bidireccional
+
+- **Acople directo al movimiento:** el objetivo de scroll usa velocidad horizontal real de Arthur para mantener seguimiento en avance y retroceso.
+- **Menos latencia perceptible:** interpolación con factor dependiente de `delta` para respuesta estable entre distintos FPS.
+- **Cambio de dirección más limpio:** snap corto al objetivo cuando la diferencia es mínima, eliminando tirones residuales al invertir dirección.
+- **Cobertura preservada:** se mantiene la lógica existente de wrap modular y dibujo de `N+1` fondos.
+
 ### 2026-03-21 — Ventana principal con fondo y Arthur
 
 - **Ventana de juego:** 800×600, título "Ghosts 'n Goblins", VSync 60 FPS.
