@@ -381,3 +381,36 @@ Validación ejecutada contra Tasker (`projectId=6`, `userId=1`) y repositorio lo
 - Reutilizar clases existentes y evitar proliferación de clases pequeñas sin responsabilidad clara.
 - Mantener tickets pequeños, verticales y verificables sobre build jugable.
 - Sostener foco de fase 1: control de Arthur, scroll de dos fondos, contraste luz/fondo y limpieza de bordes de sprite.
+
+---
+
+## Iteración PO autónoma — 2026-03-21T07:11:00Z (fase 1 control/scroll/luz)
+
+Validación ejecutada contra Tasker (`projectId=6`, `userId=1`) y repositorio local en rama `features-nightly-20260321`.
+
+### Estado actual validado
+
+- `DONE`: `GHOST-0001` a `GHOST-0018`.
+- `IN_PROGRESS` (`WIP=1`): `GHOST-0019`.
+- `BACKLOG` (5): `GHOST-0000`, `GHOST-0020`, `GHOST-0021`, `GHOST-0022`, `GHOST-0023`.
+
+### Foco activo obligatorio de fase 1
+
+- Control de Arthur con teclado y salto más preciso (variación corto/largo).
+- Scroll horizontal estable con zona de confort de cámara ajustada.
+- Mayor contraste Arthur/fondo con luz tenue calibrada sin sobreexposición.
+- Eliminación de bleed residual en bordes del sprite al animar y hacer flip.
+
+### Directriz técnica al equipo (obligatoria)
+
+- Reutilizar estructura existente antes de crear clases nuevas.
+- Evitar proliferación de clases pequeñas sin responsabilidad clara.
+- Mantener tickets pequeños, verticales y verificables en build jugable.
+
+### Nuevos tickets de esta iteración
+
+- `GHOST-0019` — Ajuste de salto corto/largo por duración de tecla (`IN_PROGRESS`).
+- `GHOST-0020` — Eliminación de bleeding residual en flip de sprite (`BACKLOG`).
+- `GHOST-0021` — Afinado de contraste dinámico personaje-fondo (`BACKLOG`).
+- `GHOST-0022` — Microajuste de zona de confort de cámara (`BACKLOG`).
+- `GHOST-0023` — Matriz de tuning para movimiento fase 1 (`BACKLOG`).
