@@ -94,6 +94,13 @@ Regla técnica de fase 1 reforzada por checklist:
 - **Control de caída:** límite de velocidad vertical negativa para evitar picos de caída y mejorar lectura del aterrizaje.
 - **Sin cambios de arquitectura:** ajuste aplicado sobre `GhostsGame` y máquina de estados existente (`IDLE`, `WALK`, `CROUCH`, `JUMP`).
 
+### 2026-03-21 — GHOST-0012 Estabilidad visual de pose al agacharse
+
+- **Huella visual estable:** Arthur usa ancho de render fijo en `IDLE`, `WALK`, `CROUCH` y `JUMP`, evitando saltos por diferencias de ancho entre frames.
+- **Base consistente al agacharse:** la pose mantiene alineación de suelo durante transición entrar/salir de `CROUCH`.
+- **Sin jitter en alternancia rápida:** cambios izquierda/derecha + agacharse no desplazan el sprite por recalcular ancho por frame.
+- **Sin impacto en input:** se conserva la lógica de control y estados existente sin introducir latencia.
+
 ### 2026-03-21 — Ventana principal con fondo y Arthur
 
 - **Ventana de juego:** 800×600, título "Ghosts 'n Goblins", VSync 60 FPS.

@@ -63,6 +63,7 @@ public class GhostsGame extends ApplicationAdapter {
   private MovementState movementState;
   private float arthurX;
   private float arthurY;
+  private float arthurDrawWidth;
   private float arthurVelocityX;
   private float arthurVelocityY;
   private boolean facingRight;
@@ -105,8 +106,8 @@ public class GhostsGame extends ApplicationAdapter {
     stateTime = 0f;
 
     float aspectRatio = (float) idleFrame.getRegionWidth() / idleFrame.getRegionHeight();
-    float drawWidth = ARTHUR_DRAW_HEIGHT * aspectRatio;
-    arthurX = (WORLD_WIDTH - drawWidth) / 2f;
+    arthurDrawWidth = ARTHUR_DRAW_HEIGHT * aspectRatio;
+    arthurX = (WORLD_WIDTH - arthurDrawWidth) / 2f;
     arthurY = GROUND_Y;
     arthurVelocityX = 0f;
     arthurVelocityY = 0f;
@@ -142,10 +143,8 @@ public class GhostsGame extends ApplicationAdapter {
       frameToDraw.flip(true, false);
     }
 
-    float aspectRatio = (float) frameToDraw.getRegionWidth() / frameToDraw.getRegionHeight();
-    float drawWidth = ARTHUR_DRAW_HEIGHT * aspectRatio;
-    drawArthurLight(drawWidth);
-    batch.draw(frameToDraw, arthurX, arthurY, drawWidth, ARTHUR_DRAW_HEIGHT);
+    drawArthurLight();
+    batch.draw(frameToDraw, arthurX, arthurY, arthurDrawWidth, ARTHUR_DRAW_HEIGHT);
 
     batch.end();
   }
@@ -220,9 +219,7 @@ public class GhostsGame extends ApplicationAdapter {
       }
     }
 
-    float aspectRatio = (float) idleFrame.getRegionWidth() / idleFrame.getRegionHeight();
-    float drawWidth = ARTHUR_DRAW_HEIGHT * aspectRatio;
-    arthurX = Math.max(0f, Math.min(arthurX, WORLD_WIDTH - drawWidth));
+    arthurX = Math.max(0f, Math.min(arthurX, WORLD_WIDTH - arthurDrawWidth));
 
     float targetScrollVelocity = movementState == MovementState.WALK ? arthurVelocityX : 0f;
     scrollVelocityX = MathUtils.lerp(scrollVelocityX, targetScrollVelocity, SCROLL_LERP_ALPHA);
@@ -262,7 +259,7 @@ public class GhostsGame extends ApplicationAdapter {
     }
   }
 
-  private void drawArthurLight(float arthurDrawWidth) {
+  private void drawArthurLight() {
     float lightSize = 240f;
     float lightX = arthurX + (arthurDrawWidth * 0.5f) - (lightSize * 0.5f);
     float lightY = arthurY + (ARTHUR_DRAW_HEIGHT * 0.45f) - (lightSize * 0.5f);
