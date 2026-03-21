@@ -215,6 +215,13 @@ Uso operativo:
 - **Sin parpadeo:** el valor fijo elimina variaciones por frame en el overlay del fondo.
 - **Reutilización total:** cambio aplicado en el pipeline de render existente (`drawBackgroundDim`) sin nuevas capas ni clases.
 
+### 2026-03-21 — GHOST-0026 Estabilidad de agachado bajo cambios rápidos de input
+
+- **Ancla de crouch en X:** al entrar en `CROUCH`, Arthur fija una posición horizontal de referencia (`crouchAnchorX`) reutilizada mientras se mantiene `DOWN/S`.
+- **Sin desplazamiento fantasma:** durante secuencias rápidas `LEFT/RIGHT + DOWN` se fuerza `arthurVelocityX=0` y se conserva la misma X anclada en estado agachado.
+- **Base visual estable:** la pose mantiene alineación de suelo al entrar/salir de `CROUCH` sin saltos laterales.
+- **Compatibilidad mantenida:** el cambio no altera la respuesta de salto ni el pipeline actual de movimiento fuera de crouch.
+
 ### 2026-03-21 — Ventana principal con fondo y Arthur
 
 - **Ventana de juego:** 800×600, título "Ghosts 'n Goblins", VSync 60 FPS.

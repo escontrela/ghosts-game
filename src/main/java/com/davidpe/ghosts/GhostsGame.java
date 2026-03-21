@@ -88,6 +88,7 @@ public class GhostsGame extends ApplicationAdapter {
   private float worldOffsetX;
   private float scrollVelocityX;
   private float landingStabilizeTimer;
+  private float crouchAnchorX;
   private float currentLightAlpha;
   private float currentLightSize;
 
@@ -140,6 +141,7 @@ public class GhostsGame extends ApplicationAdapter {
     worldOffsetX = 0f;
     scrollVelocityX = 0f;
     landingStabilizeTimer = 0f;
+    crouchAnchorX = arthurX;
     currentLightAlpha = ARTHUR_LIGHT_ALPHA;
     currentLightSize = ARTHUR_LIGHT_SIZE;
   }
@@ -246,12 +248,17 @@ public class GhostsGame extends ApplicationAdapter {
       arthurX += arthurVelocityX * delta;
     }
 
+    boolean crouchRequested = downPressed && groundedAfterPhysics;
     if (groundedAfterPhysics) {
       float targetVelocityX = 0f;
       float groundResponseAcceleration =
           landingStabilizeTimer > 0f ? LANDING_STABILIZE_ACCELERATION : GROUND_ACCELERATION;
-      if (downPressed) {
+      if (crouchRequested) {
+        if (movementState != MovementState.CROUCH) {
+          crouchAnchorX = arthurX;
+        }
         arthurVelocityX = 0f;
+        arthurX = crouchAnchorX;
       } else {
         targetVelocityX = horizontalInput * MOVE_SPEED;
         float maxDelta =
@@ -273,6 +280,9 @@ public class GhostsGame extends ApplicationAdapter {
     }
 
     arthurX = Math.max(0f, Math.min(arthurX, WORLD_WIDTH - arthurDrawWidth));
+    if (crouchRequested) {
+      crouchAnchorX = arthurX;
+    }
 
     float targetScrollVelocity = 0f;
     float comfortMin = CAMERA_COMFORT_LEFT - (arthurDrawWidth * 0.5f);
