@@ -3,12 +3,12 @@ package com.davidpe.ghosts;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.Animation;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
@@ -56,6 +56,7 @@ public class GhostsGame extends ApplicationAdapter {
   private boolean facingRight;
   private boolean movingHorizontally;
   private float worldOffsetX;
+  private float previousArthurX;
 
   @Override
   public void create() {
@@ -134,16 +135,17 @@ public class GhostsGame extends ApplicationAdapter {
   }
 
   /**
-   * Transition priority:
-   * 1) JUMP while airborne or jump triggered
-   * 2) CROUCH when grounded and down key held
-   * 3) WALK when grounded and horizontal input held
-   * 4) IDLE otherwise
+   * Transition priority: 1) JUMP while airborne or jump triggered 2) CROUCH when grounded and down
+   * key held 3) WALK when grounded and horizontal input held 4) IDLE otherwise
    */
   private void updateMovementState(float delta) {
-    boolean leftPressed = Gdx.input.isKeyPressed(Input.Keys.LEFT) || Gdx.input.isKeyPressed(Input.Keys.A);
-    boolean rightPressed = Gdx.input.isKeyPressed(Input.Keys.RIGHT) || Gdx.input.isKeyPressed(Input.Keys.D);
-    boolean downPressed = Gdx.input.isKeyPressed(Input.Keys.DOWN) || Gdx.input.isKeyPressed(Input.Keys.S);
+    previousArthurX = arthurX;
+    boolean leftPressed =
+        Gdx.input.isKeyPressed(Input.Keys.LEFT) || Gdx.input.isKeyPressed(Input.Keys.A);
+    boolean rightPressed =
+        Gdx.input.isKeyPressed(Input.Keys.RIGHT) || Gdx.input.isKeyPressed(Input.Keys.D);
+    boolean downPressed =
+        Gdx.input.isKeyPressed(Input.Keys.DOWN) || Gdx.input.isKeyPressed(Input.Keys.S);
     boolean jumpPressed =
         Gdx.input.isKeyJustPressed(Input.Keys.SPACE)
             || Gdx.input.isKeyJustPressed(Input.Keys.UP)
@@ -286,4 +288,3 @@ public class GhostsGame extends ApplicationAdapter {
     arthurSheet.dispose();
   }
 }
-    float previousArthurX = arthurX;
