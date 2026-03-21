@@ -43,7 +43,7 @@ public class GhostsGame extends ApplicationAdapter {
   private static final float ARTHUR_LIGHT_ALPHA = 0.24f;
   private static final float ARTHUR_LIGHT_SIZE = 270f;
   private static final float SCROLL_RESPONSE_RATE = 13f;
-  private static final int SPRITE_FRAME_INSET_PX = 1;
+  private static final int SPRITE_FRAME_INSET_PX = 2;
   private static final float CAMERA_COMFORT_LEFT = 320f;
   private static final float CAMERA_COMFORT_RIGHT = 480f;
   private static final float CAMERA_SCROLL_OVERFLOW_GAIN = 1.12f;

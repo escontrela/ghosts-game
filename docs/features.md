@@ -201,6 +201,13 @@ Uso operativo:
 - Aplicar esta matriz junto al checklist técnico (ítems 1-13) para cierre de tickets de control/scroll/luz.
 - Si un ajuste sale del rango recomendado, justificarlo en la entrada del ticket correspondiente en este mismo documento.
 
+### 2026-03-21 — GHOST-0024 Ajuste de inset de recorte para eliminar borde cruzado
+
+- **Inset uniforme por estado:** el recorte seguro de Arthur usa `SPRITE_FRAME_INSET_PX=2` en todos los frames de `IDLE`, `WALK`, `CROUCH` y `JUMP`.
+- **Menos bleed entre celdas:** el margen adicional reduce muestreo de píxeles vecinos del spritesheet durante animación continua y flips repetidos.
+- **Alineación preservada:** el tamaño de dibujo y la base de Arthur no se alteran porque el ancho de render se mantiene desacoplado del recorte interno.
+- **Sin cambio arquitectónico:** ajuste integrado sobre `GhostsGame` reutilizando la estructura actual.
+
 ### 2026-03-21 — Ventana principal con fondo y Arthur
 
 - **Ventana de juego:** 800×600, título "Ghosts 'n Goblins", VSync 60 FPS.
