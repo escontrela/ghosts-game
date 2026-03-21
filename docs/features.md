@@ -168,6 +168,13 @@ Regla técnica de fase 1 reforzada por checklist:
 - **Transición continua:** los objetivos de alpha/tamaño siguen interpolación exponencial por frame para evitar cambios bruscos entre reposo, movimiento y salto.
 - **Pipeline reutilizado:** ajuste realizado sobre el sistema de luz/overlay existente en `GhostsGame`, sin postprocesado nuevo.
 
+### 2026-03-21 — GHOST-0022 Microajuste de zona de confort de cámara
+
+- **Ventana recalibrada:** los límites de confort horizontal se ajustan a una banda más estrecha para que el scroll reaccione antes al avance.
+- **Respuesta estable por desborde:** la velocidad objetivo de cámara se calcula con ganancia moderada y tope máximo para evitar tirones al invertir dirección.
+- **Cobertura de viewport preservada:** se mantiene el mismo pipeline de wrap modular y dibujado de `N+1` fondos para no exponer huecos.
+- **Sin cambio arquitectónico:** ajuste aplicado en la lógica existente de `GhostsGame`.
+
 ### 2026-03-21 — Ventana principal con fondo y Arthur
 
 - **Ventana de juego:** 800×600, título "Ghosts 'n Goblins", VSync 60 FPS.

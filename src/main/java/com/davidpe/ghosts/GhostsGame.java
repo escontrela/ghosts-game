@@ -44,8 +44,10 @@ public class GhostsGame extends ApplicationAdapter {
   private static final float ARTHUR_LIGHT_SIZE = 270f;
   private static final float SCROLL_RESPONSE_RATE = 13f;
   private static final int SPRITE_FRAME_INSET_PX = 1;
-  private static final float CAMERA_COMFORT_LEFT = 300f;
-  private static final float CAMERA_COMFORT_RIGHT = 500f;
+  private static final float CAMERA_COMFORT_LEFT = 320f;
+  private static final float CAMERA_COMFORT_RIGHT = 480f;
+  private static final float CAMERA_SCROLL_OVERFLOW_GAIN = 1.12f;
+  private static final float CAMERA_MAX_SCROLL_SPEED = 270f;
   private static final float LANDING_STABILIZE_DURATION = 0.08f;
   private static final float LANDING_STABILIZE_ACCELERATION = 900f;
   private static final float LIGHT_RESPONSE_RATE = 7f;
@@ -282,11 +284,19 @@ public class GhostsGame extends ApplicationAdapter {
     if (arthurX < comfortMin) {
       float overflow = arthurX - comfortMin;
       arthurX = comfortMin;
-      targetScrollVelocity = overflow / Math.max(delta, 0.0001f);
+      targetScrollVelocity =
+          MathUtils.clamp(
+              (overflow / Math.max(delta, 0.0001f)) * CAMERA_SCROLL_OVERFLOW_GAIN,
+              -CAMERA_MAX_SCROLL_SPEED,
+              CAMERA_MAX_SCROLL_SPEED);
     } else if (arthurX > comfortMax) {
       float overflow = arthurX - comfortMax;
       arthurX = comfortMax;
-      targetScrollVelocity = overflow / Math.max(delta, 0.0001f);
+      targetScrollVelocity =
+          MathUtils.clamp(
+              (overflow / Math.max(delta, 0.0001f)) * CAMERA_SCROLL_OVERFLOW_GAIN,
+              -CAMERA_MAX_SCROLL_SPEED,
+              CAMERA_MAX_SCROLL_SPEED);
     }
 
     float scrollBlend = 1f - (float) Math.exp(-SCROLL_RESPONSE_RATE * delta);
