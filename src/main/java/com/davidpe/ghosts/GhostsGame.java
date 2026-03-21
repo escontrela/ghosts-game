@@ -31,7 +31,11 @@ public class GhostsGame extends ApplicationAdapter {
   private static final float GROUND_ACCELERATION = 1700f;
   private static final float GROUND_DECELERATION = 2200f;
   private static final float JUMP_VELOCITY = 520f;
-  private static final float GRAVITY = 1250f;
+  private static final float JUMP_RISE_GRAVITY = 1180f;
+  private static final float JUMP_FALL_GRAVITY = 1030f;
+  private static final float MAX_FALL_SPEED = 620f;
+  private static final float LANDING_SOFT_ZONE = 42f;
+  private static final float LANDING_GRAVITY_SCALE = 0.58f;
   private static final float BACKGROUND_DIM_ALPHA = 0.16f;
   private static final float ARTHUR_LIGHT_ALPHA = 0.28f;
   private static final float SCROLL_LERP_ALPHA = 0.18f;
@@ -178,7 +182,11 @@ public class GhostsGame extends ApplicationAdapter {
     }
 
     if (!isOnGround || movementState == MovementState.JUMP) {
-      arthurVelocityY -= GRAVITY * delta;
+      float gravity = arthurVelocityY > 0f ? JUMP_RISE_GRAVITY : JUMP_FALL_GRAVITY;
+      if (arthurVelocityY < 0f && arthurY - GROUND_Y < LANDING_SOFT_ZONE) {
+        gravity *= LANDING_GRAVITY_SCALE;
+      }
+      arthurVelocityY = Math.max(arthurVelocityY - gravity * delta, -MAX_FALL_SPEED);
       arthurY += arthurVelocityY * delta;
       if (arthurY <= GROUND_Y) {
         arthurY = GROUND_Y;
