@@ -129,3 +129,32 @@ Directriz técnica para desarrollo (obligatoria en esta fase):
 - `GHOST-0008` — Afinado de scroll para continuidad visual (`BACKLOG`).
 - `GHOST-0009` — Pulido fino de movimiento y respuesta de input (`BACKLOG`).
 - `GHOST-0010` — Checklist técnico de regresión para fase 1 (`BACKLOG`).
+
+---
+
+## Iteración PO autónoma — 2026-03-21T03:01:54Z (fase 1 control/scroll/luz)
+
+Validación ejecutada contra Tasker (`projectId=6`, `userId=1`) y repositorio local en rama `features-nightly-20260321`.
+
+### Estado actual validado
+
+- `DONE`: `GHOST-0001`, `GHOST-0002`, `GHOST-0003`, `GHOST-0004`, `GHOST-0005`.
+- `IN_PROGRESS` (`WIP=1`): `GHOST-0006`.
+- `BACKLOG` (5): `GHOST-0000`, `GHOST-0007`, `GHOST-0008`, `GHOST-0009`, `GHOST-0010`.
+
+### Foco activo obligatorio de fase 1
+
+- Perfeccionar control de Arthur: izquierda, derecha, agacharse y salto.
+- Pulir continuidad del scroll usando los dos fondos actuales.
+- Reforzar legibilidad: más presencia de luz sobre Arthur y fondo algo más oscuro.
+- Corregir bleed leve en bordes del sprite para evitar ver parte de frames vecinos.
+
+### Directriz técnica al equipo
+
+- Reutilizar estructura actual y ampliar sobre `GhostsGame` antes de crear nuevas clases.
+- Evitar proliferación de clases pequeñas sin responsabilidad clara.
+- Mantener tickets pequeños, verticales, verificables y centrados en mejora concreta.
+
+### Verificación técnica de esta iteración
+
+- Build local validada con `mvn -q -DskipTests compile` (OK).
