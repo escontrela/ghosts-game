@@ -145,10 +145,12 @@ public class GhostsGame extends ApplicationAdapter {
     boolean rightPressed = Gdx.input.isKeyPressed(Input.Keys.RIGHT) || Gdx.input.isKeyPressed(Input.Keys.D);
     boolean downPressed = Gdx.input.isKeyPressed(Input.Keys.DOWN) || Gdx.input.isKeyPressed(Input.Keys.S);
     boolean jumpPressed =
-        Gdx.input.isKeyJustPressed(Input.Keys.SPACE) || Gdx.input.isKeyJustPressed(Input.Keys.UP);
+        Gdx.input.isKeyJustPressed(Input.Keys.SPACE)
+            || Gdx.input.isKeyJustPressed(Input.Keys.UP)
+            || Gdx.input.isKeyJustPressed(Input.Keys.W);
     boolean isOnGround = arthurY <= GROUND_Y;
 
-    movingHorizontally = leftPressed ^ rightPressed;
+    movingHorizontally = (leftPressed ^ rightPressed) && !downPressed;
     if (movingHorizontally) {
       facingRight = rightPressed;
     }

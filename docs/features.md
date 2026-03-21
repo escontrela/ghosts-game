@@ -12,6 +12,13 @@
 
 ## Features implementadas
 
+### 2026-03-21 — GHOST-0001 Control de Arthur (izquierda/derecha/agacharse/salto)
+
+- **Movimiento horizontal:** flechas izquierda/derecha y teclas `A/D`.
+- **Agacharse:** `abajo` o `S`; bloquea desplazamiento horizontal mientras está activo.
+- **Salto:** `SPACE`, `UP` o `W` disparan arco de salto con gravedad y retorno al suelo.
+- **Integración:** control implementado dentro de la estructura existente (`GhostsGame`) sin clases adicionales.
+
 ### 2026-03-21 — GHOST-0002 Máquina de estados mínima de movimiento
 
 - **Estados definidos:** `IDLE`, `WALK`, `CROUCH`, `JUMP` en `GhostsGame`.
