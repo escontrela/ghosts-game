@@ -108,6 +108,13 @@ Regla técnica de fase 1 reforzada por checklist:
 - **Cambio de dirección más limpio:** snap corto al objetivo cuando la diferencia es mínima, eliminando tirones residuales al invertir dirección.
 - **Cobertura preservada:** se mantiene la lógica existente de wrap modular y dibujo de `N+1` fondos.
 
+### 2026-03-21 — GHOST-0014 Rebalanceo de halo de luz y atenuación del fondo
+
+- **Mayor separación personaje-escena:** incremento moderado de atenuación global del fondo para destacar a Arthur sin apagar el escenario.
+- **Halo más amplio y suave:** aumento del tamaño del halo con menor intensidad pico para evitar sobreexposición.
+- **Caída de luz recalibrada:** ajuste de color y curva radial para conservar detalle de fondo y mantener foco visual en Arthur.
+- **Integración directa:** cambios aplicados en el pipeline actual de `GhostsGame` sin añadir nuevas clases de iluminación.
+
 ### 2026-03-21 — Ventana principal con fondo y Arthur
 
 - **Ventana de juego:** 800×600, título "Ghosts 'n Goblins", VSync 60 FPS.

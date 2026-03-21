@@ -36,8 +36,8 @@ public class GhostsGame extends ApplicationAdapter {
   private static final float MAX_FALL_SPEED = 620f;
   private static final float LANDING_SOFT_ZONE = 42f;
   private static final float LANDING_GRAVITY_SCALE = 0.58f;
-  private static final float BACKGROUND_DIM_ALPHA = 0.16f;
-  private static final float ARTHUR_LIGHT_ALPHA = 0.28f;
+  private static final float BACKGROUND_DIM_ALPHA = 0.19f;
+  private static final float ARTHUR_LIGHT_ALPHA = 0.24f;
   private static final float SCROLL_RESPONSE_RATE = 13f;
 
   private enum MovementState {
@@ -264,7 +264,7 @@ public class GhostsGame extends ApplicationAdapter {
   }
 
   private void drawArthurLight() {
-    float lightSize = 240f;
+    float lightSize = 270f;
     float lightX = arthurX + (arthurDrawWidth * 0.5f) - (lightSize * 0.5f);
     float lightY = arthurY + (ARTHUR_DRAW_HEIGHT * 0.45f) - (lightSize * 0.5f);
     Color previousColor = new Color(batch.getColor());
@@ -291,8 +291,8 @@ public class GhostsGame extends ApplicationAdapter {
         float distance = (float) Math.sqrt(dx * dx + dy * dy);
         float normalized = Math.min(1f, distance / radius);
         float alpha = 1f - normalized;
-        alpha = alpha * alpha;
-        pixmap.setColor(1f, 0.95f, 0.8f, alpha);
+        alpha = alpha * alpha * 0.85f;
+        pixmap.setColor(1f, 0.93f, 0.76f, alpha);
         pixmap.drawPixel(x, y);
       }
     }
