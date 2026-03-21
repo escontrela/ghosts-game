@@ -98,3 +98,34 @@ Tickets creados en Tasker (projectId=6):
 - `GHOST-0003` (BACKLOG): Animaciones y flip de sprite de Arthur.
 - `GHOST-0004` (BACKLOG): Scroll continuo con dos fondos del escenario.
 - `GHOST-0005` (BACKLOG): Luz tenue sobre Arthur para legibilidad.
+
+---
+
+## Iteración de planificación PO — 2026-03-21 (fase 1 enfocada)
+
+Contexto de foco activo para las siguientes entregas:
+
+- Control de Arthur con teclado: izquierda, derecha, agacharse y salto.
+- Scroll continuo con los 2 fondos disponibles.
+- Mejora de legibilidad visual: más contraste personaje/fondo.
+- Pulido de sprite para eliminar bordes con bleed de frames vecinos.
+
+Directriz técnica para desarrollo (obligatoria en esta fase):
+
+- Priorizar reutilización de la estructura actual.
+- Evitar crear muchas clases pequeñas sin responsabilidad clara.
+- Mantener cambios verticales, verificables y de alcance reducido por ticket.
+
+### Estado Tasker validado (projectId=6, userId=1)
+
+- `DONE`: `GHOST-0001`, `GHOST-0002`, `GHOST-0003`, `GHOST-0004`, `GHOST-0005`.
+- `IN_PROGRESS` (WIP=1): `GHOST-0006`.
+- `BACKLOG` (5 tickets): `GHOST-0000`, `GHOST-0007`, `GHOST-0008`, `GHOST-0009`, `GHOST-0010`.
+
+### Nuevos tickets creados para la fase 1
+
+- `GHOST-0006` — Corrección de bordes del sprite de Arthur (`IN_PROGRESS`).
+- `GHOST-0007` — Balance de luz focal y fondo más oscuro (`BACKLOG`).
+- `GHOST-0008` — Afinado de scroll para continuidad visual (`BACKLOG`).
+- `GHOST-0009` — Pulido fino de movimiento y respuesta de input (`BACKLOG`).
+- `GHOST-0010` — Checklist técnico de regresión para fase 1 (`BACKLOG`).
