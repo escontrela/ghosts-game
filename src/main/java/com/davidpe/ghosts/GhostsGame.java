@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
@@ -41,11 +42,17 @@ public class GhostsGame extends ApplicationAdapter {
 
   private Texture background;
   private Texture arthurSheet;
-  private TextureRegion arthurFrame;
+  private TextureRegion idleFrame;
+  private TextureRegion crouchFrame;
+  private TextureRegion jumpFrame;
+  private Animation<TextureRegion> walkAnimation;
+  private float stateTime;
   private MovementState movementState;
   private float arthurX;
   private float arthurY;
   private float arthurVelocityY;
+  private boolean facingRight;
+  private boolean movingHorizontally;
 
   @Override
   public void create() {
@@ -62,20 +69,39 @@ public class GhostsGame extends ApplicationAdapter {
     arthurSheet = loadWithTransparentBlack("sprites_arthur.png");
     int frameWidth = arthurSheet.getWidth() / FRAME_COLS;
     int frameHeight = arthurSheet.getHeight() / FRAME_ROWS;
-    arthurFrame = new TextureRegion(arthurSheet, 0, 0, frameWidth, frameHeight);
+    TextureRegion[][] sheetFrames = TextureRegion.split(arthurSheet, frameWidth, frameHeight);
+    idleFrame = new TextureRegion(sheetFrames[0][0]);
+    crouchFrame = new TextureRegion(sheetFrames[1][0]);
+    jumpFrame = new TextureRegion(sheetFrames[1][1]);
+    walkAnimation =
+        new Animation<>(
+            0.12f,
+            new TextureRegion(sheetFrames[0][1]),
+            new TextureRegion(sheetFrames[0][2]),
+            new TextureRegion(sheetFrames[0][3]),
+            new TextureRegion(sheetFrames[0][4]));
+    stateTime = 0f;
 
-    float aspectRatio = (float) arthurFrame.getRegionWidth() / arthurFrame.getRegionHeight();
+    float aspectRatio = (float) idleFrame.getRegionWidth() / idleFrame.getRegionHeight();
     float drawWidth = ARTHUR_DRAW_HEIGHT * aspectRatio;
     arthurX = (WORLD_WIDTH - drawWidth) / 2f;
     arthurY = GROUND_Y;
     arthurVelocityY = 0f;
     movementState = MovementState.IDLE;
+    facingRight = true;
+    movingHorizontally = false;
   }
 
   @Override
   public void render() {
     ScreenUtils.clear(0, 0, 0, 1);
-    updateMovementState(Gdx.graphics.getDeltaTime());
+    float delta = Gdx.graphics.getDeltaTime();
+    updateMovementState(delta);
+    if (movementState == MovementState.WALK && movingHorizontally) {
+      stateTime += delta;
+    } else {
+      stateTime = 0f;
+    }
 
     camera.update();
     batch.setProjectionMatrix(camera.combined);
@@ -86,9 +112,14 @@ public class GhostsGame extends ApplicationAdapter {
     batch.draw(background, 0, 0, WORLD_WIDTH, WORLD_HEIGHT);
 
     // Draw Arthur centered horizontally, positioned on the path
-    float aspectRatio = (float) arthurFrame.getRegionWidth() / arthurFrame.getRegionHeight();
+    TextureRegion frameToDraw = getFrameForState();
+    if (frameToDraw.isFlipX() != !facingRight) {
+      frameToDraw.flip(true, false);
+    }
+
+    float aspectRatio = (float) frameToDraw.getRegionWidth() / frameToDraw.getRegionHeight();
     float drawWidth = ARTHUR_DRAW_HEIGHT * aspectRatio;
-    batch.draw(arthurFrame, arthurX, arthurY, drawWidth, ARTHUR_DRAW_HEIGHT);
+    batch.draw(frameToDraw, arthurX, arthurY, drawWidth, ARTHUR_DRAW_HEIGHT);
 
     batch.end();
   }
@@ -107,6 +138,11 @@ public class GhostsGame extends ApplicationAdapter {
     boolean jumpPressed =
         Gdx.input.isKeyJustPressed(Input.Keys.SPACE) || Gdx.input.isKeyJustPressed(Input.Keys.UP);
     boolean isOnGround = arthurY <= GROUND_Y;
+
+    movingHorizontally = leftPressed ^ rightPressed;
+    if (movingHorizontally) {
+      facingRight = rightPressed;
+    }
 
     if (jumpPressed && isOnGround) {
       arthurVelocityY = JUMP_VELOCITY;
@@ -128,7 +164,7 @@ public class GhostsGame extends ApplicationAdapter {
     if (groundedAfterPhysics) {
       if (downPressed) {
         movementState = MovementState.CROUCH;
-      } else if (leftPressed ^ rightPressed) {
+      } else if (movingHorizontally) {
         movementState = MovementState.WALK;
       } else {
         movementState = MovementState.IDLE;
@@ -136,13 +172,22 @@ public class GhostsGame extends ApplicationAdapter {
     }
 
     if (movementState == MovementState.WALK) {
-      float direction = rightPressed ? 1f : -1f;
+      float direction = facingRight ? 1f : -1f;
       arthurX += direction * MOVE_SPEED * delta;
 
-      float aspectRatio = (float) arthurFrame.getRegionWidth() / arthurFrame.getRegionHeight();
+      float aspectRatio = (float) idleFrame.getRegionWidth() / idleFrame.getRegionHeight();
       float drawWidth = ARTHUR_DRAW_HEIGHT * aspectRatio;
       arthurX = Math.max(0f, Math.min(arthurX, WORLD_WIDTH - drawWidth));
     }
+  }
+
+  private TextureRegion getFrameForState() {
+    return switch (movementState) {
+      case WALK -> walkAnimation.getKeyFrame(stateTime, true);
+      case CROUCH -> crouchFrame;
+      case JUMP -> jumpFrame;
+      case IDLE -> idleFrame;
+    };
   }
 
   @Override
