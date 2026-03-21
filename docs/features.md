@@ -92,6 +92,7 @@ Checklist manual rápido (3-5 minutos) para control, scroll, luz y sprite:
 10. **Contraste por estado:** verificar legibilidad Arthur/fondo en `IDLE`, `WALK`, `CROUCH` y `JUMP` de forma explícita.
 11. **Transición de halo entre estados:** ejecutar `WALK -> JUMP -> CROUCH -> IDLE` y confirmar cambios suaves, sin parpadeo ni picos.
 12. **Bleed en movimiento prolongado:** caminar y hacer flip repetido durante 15 segundos para confirmar ausencia de píxeles de frames vecinos.
+13. **Validación contra matriz de tuning:** contrastar valores activos con la sección "Matriz de tuning fase 1" antes de cerrar tickets de control/scroll/luz.
 
 Regla técnica de fase 1 reforzada por checklist:
 
@@ -174,6 +175,24 @@ Regla técnica de fase 1 reforzada por checklist:
 - **Respuesta estable por desborde:** la velocidad objetivo de cámara se calcula con ganancia moderada y tope máximo para evitar tirones al invertir dirección.
 - **Cobertura de viewport preservada:** se mantiene el mismo pipeline de wrap modular y dibujado de `N+1` fondos para no exponer huecos.
 - **Sin cambio arquitectónico:** ajuste aplicado en la lógica existente de `GhostsGame`.
+
+### 2026-03-21 — GHOST-0023 Matriz de tuning para movimiento fase 1
+
+Matriz corta de parámetros activos para iterar control/scroll/luz sin regresiones:
+
+| Parámetro activo | Valor actual | Rango recomendado fase 1 | Criterio visual de validación manual |
+|---|---:|---:|---|
+| `GROUND_ACCELERATION` | `1700` | `1500-1900` | Arthur inicia `WALK` con respuesta firme sin salto brusco de velocidad. |
+| `GROUND_DECELERATION` | `2200` | `2000-2600` | Al soltar input en suelo, frena limpio y entra en `IDLE` sin deslizamiento largo. |
+| `JUMP_VELOCITY` | `520` | `480-560` | El arco de salto es legible y repetible al encadenar saltos consecutivos. |
+| `JUMP_RISE_GRAVITY` | `1180` | `1050-1300` | La subida mantiene sensación de peso sin volverse flotante. |
+| `JUMP_FALL_GRAVITY` | `1030` | `950-1200` | La caída regresa al suelo con continuidad, sin aterrizaje abrupto. |
+| `SCROLL_RESPONSE_RATE` | `13` | `10-16` | El scroll sigue avance/reversa sin retraso excesivo ni oscilación visible. |
+
+Uso operativo:
+
+- Aplicar esta matriz junto al checklist técnico (ítems 1-13) para cierre de tickets de control/scroll/luz.
+- Si un ajuste sale del rango recomendado, justificarlo en la entrada del ticket correspondiente en este mismo documento.
 
 ### 2026-03-21 — Ventana principal con fondo y Arthur
 
