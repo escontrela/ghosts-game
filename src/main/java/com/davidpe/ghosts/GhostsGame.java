@@ -27,7 +27,9 @@ public class GhostsGame extends ApplicationAdapter {
   // Arthur draw size on screen
   private static final float ARTHUR_DRAW_HEIGHT = 120f;
   private static final float GROUND_Y = 130f;
-  private static final float MOVE_SPEED = 220f;
+  private static final float MOVE_SPEED = 235f;
+  private static final float GROUND_ACCELERATION = 1700f;
+  private static final float GROUND_DECELERATION = 2200f;
   private static final float JUMP_VELOCITY = 520f;
   private static final float GRAVITY = 1250f;
   private static final float BACKGROUND_DIM_ALPHA = 0.16f;
@@ -57,6 +59,7 @@ public class GhostsGame extends ApplicationAdapter {
   private MovementState movementState;
   private float arthurX;
   private float arthurY;
+  private float arthurVelocityX;
   private float arthurVelocityY;
   private boolean facingRight;
   private boolean movingHorizontally;
@@ -101,6 +104,7 @@ public class GhostsGame extends ApplicationAdapter {
     float drawWidth = ARTHUR_DRAW_HEIGHT * aspectRatio;
     arthurX = (WORLD_WIDTH - drawWidth) / 2f;
     arthurY = GROUND_Y;
+    arthurVelocityX = 0f;
     arthurVelocityY = 0f;
     movementState = MovementState.IDLE;
     facingRight = true;
@@ -159,9 +163,13 @@ public class GhostsGame extends ApplicationAdapter {
             || Gdx.input.isKeyJustPressed(Input.Keys.W);
     boolean isOnGround = arthurY <= GROUND_Y;
 
-    movingHorizontally = (leftPressed ^ rightPressed) && !downPressed;
+    int horizontalInput = 0;
+    if (leftPressed ^ rightPressed) {
+      horizontalInput = rightPressed ? 1 : -1;
+    }
+    movingHorizontally = horizontalInput != 0 && !downPressed;
     if (movingHorizontally) {
-      facingRight = rightPressed;
+      facingRight = horizontalInput > 0;
     }
 
     if (jumpPressed && isOnGround) {
@@ -182,33 +190,45 @@ public class GhostsGame extends ApplicationAdapter {
 
     boolean groundedAfterPhysics = arthurY <= GROUND_Y;
     if (groundedAfterPhysics) {
+      float targetVelocityX = 0f;
+      if (downPressed) {
+        arthurVelocityX = 0f;
+      } else {
+        targetVelocityX = horizontalInput * MOVE_SPEED;
+        float maxDelta =
+            (targetVelocityX == 0f ? GROUND_DECELERATION : GROUND_ACCELERATION) * delta;
+        arthurVelocityX = moveTowards(arthurVelocityX, targetVelocityX, maxDelta);
+      }
+      arthurX += arthurVelocityX * delta;
+    }
+
+    if (groundedAfterPhysics) {
       if (downPressed) {
         movementState = MovementState.CROUCH;
-      } else if (movingHorizontally) {
+      } else if (Math.abs(arthurVelocityX) > 8f) {
         movementState = MovementState.WALK;
       } else {
         movementState = MovementState.IDLE;
       }
     }
 
-    if (movementState == MovementState.WALK) {
-      float direction = facingRight ? 1f : -1f;
-      arthurX += direction * MOVE_SPEED * delta;
+    float aspectRatio = (float) idleFrame.getRegionWidth() / idleFrame.getRegionHeight();
+    float drawWidth = ARTHUR_DRAW_HEIGHT * aspectRatio;
+    arthurX = Math.max(0f, Math.min(arthurX, WORLD_WIDTH - drawWidth));
 
-      float aspectRatio = (float) idleFrame.getRegionWidth() / idleFrame.getRegionHeight();
-      float drawWidth = ARTHUR_DRAW_HEIGHT * aspectRatio;
-      arthurX = Math.max(0f, Math.min(arthurX, WORLD_WIDTH - drawWidth));
-    }
-
-    float targetScrollVelocity = 0f;
-    if (movementState == MovementState.WALK) {
-      targetScrollVelocity = facingRight ? MOVE_SPEED : -MOVE_SPEED;
-    }
+    float targetScrollVelocity = movementState == MovementState.WALK ? arthurVelocityX : 0f;
     scrollVelocityX = MathUtils.lerp(scrollVelocityX, targetScrollVelocity, SCROLL_LERP_ALPHA);
     if (Math.abs(scrollVelocityX) < 0.5f) {
       scrollVelocityX = 0f;
     }
     worldOffsetX += scrollVelocityX * delta;
+  }
+
+  private float moveTowards(float current, float target, float maxDelta) {
+    if (Math.abs(target - current) <= maxDelta) {
+      return target;
+    }
+    return current + Math.signum(target - current) * maxDelta;
   }
 
   private TextureRegion getFrameForState() {
