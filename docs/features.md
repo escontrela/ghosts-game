@@ -55,6 +55,13 @@
 - **Sin sobreexposición:** ajuste conservador en un único paso de render para mantener detalle del escenario.
 - **Reutilización de pipeline:** integración en `GhostsGame` con texturas simples generadas por `Pixmap`, sin nueva arquitectura de iluminación.
 
+### 2026-03-21 — GHOST-0008 Afinado de scroll para continuidad visual
+
+- **Continuidad de alternancia:** se mantiene el wrap modular de dos fondos y el dibujado de `N+1` segmentos para cobertura total del viewport.
+- **Cambio de dirección sin jitter:** el scroll usa velocidad interpolada (`lerp`) hacia la dirección objetivo en lugar de saltos instantáneos.
+- **Estabilidad al frenar:** cuando no hay desplazamiento, la velocidad converge suavemente a cero para evitar microvibraciones.
+- **Implementación incremental:** cambios aplicados sobre la lógica existente de `GhostsGame`, sin nuevas capas ni sistemas de streaming.
+
 ### 2026-03-21 — Ventana principal con fondo y Arthur
 
 - **Ventana de juego:** 800×600, título "Ghosts 'n Goblins", VSync 60 FPS.

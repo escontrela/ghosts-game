@@ -3,6 +3,7 @@ package com.davidpe.ghosts;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Pixmap;
@@ -31,6 +32,7 @@ public class GhostsGame extends ApplicationAdapter {
   private static final float GRAVITY = 1250f;
   private static final float BACKGROUND_DIM_ALPHA = 0.16f;
   private static final float ARTHUR_LIGHT_ALPHA = 0.28f;
+  private static final float SCROLL_LERP_ALPHA = 0.18f;
 
   private enum MovementState {
     IDLE,
@@ -59,7 +61,7 @@ public class GhostsGame extends ApplicationAdapter {
   private boolean facingRight;
   private boolean movingHorizontally;
   private float worldOffsetX;
-  private float previousArthurX;
+  private float scrollVelocityX;
 
   @Override
   public void create() {
@@ -104,6 +106,7 @@ public class GhostsGame extends ApplicationAdapter {
     facingRight = true;
     movingHorizontally = false;
     worldOffsetX = 0f;
+    scrollVelocityX = 0f;
   }
 
   @Override
@@ -144,7 +147,6 @@ public class GhostsGame extends ApplicationAdapter {
    * key held 3) WALK when grounded and horizontal input held 4) IDLE otherwise
    */
   private void updateMovementState(float delta) {
-    previousArthurX = arthurX;
     boolean leftPressed =
         Gdx.input.isKeyPressed(Input.Keys.LEFT) || Gdx.input.isKeyPressed(Input.Keys.A);
     boolean rightPressed =
@@ -198,8 +200,15 @@ public class GhostsGame extends ApplicationAdapter {
       arthurX = Math.max(0f, Math.min(arthurX, WORLD_WIDTH - drawWidth));
     }
 
-    float arthurDeltaX = arthurX - previousArthurX;
-    worldOffsetX += arthurDeltaX;
+    float targetScrollVelocity = 0f;
+    if (movementState == MovementState.WALK) {
+      targetScrollVelocity = facingRight ? MOVE_SPEED : -MOVE_SPEED;
+    }
+    scrollVelocityX = MathUtils.lerp(scrollVelocityX, targetScrollVelocity, SCROLL_LERP_ALPHA);
+    if (Math.abs(scrollVelocityX) < 0.5f) {
+      scrollVelocityX = 0f;
+    }
+    worldOffsetX += scrollVelocityX * delta;
   }
 
   private TextureRegion getFrameForState() {
