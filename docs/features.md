@@ -122,6 +122,13 @@ Regla técnica de fase 1 reforzada por checklist:
 - **Caída de luz recalibrada:** ajuste de color y curva radial para conservar detalle de fondo y mantener foco visual en Arthur.
 - **Integración directa:** cambios aplicados en el pipeline actual de `GhostsGame` sin añadir nuevas clases de iluminación.
 
+### 2026-03-21 — GHOST-0015 Ventana de cámara para scroll más legible
+
+- **Zona horizontal de confort:** Arthur puede moverse dentro de una ventana central antes de desplazar perceptiblemente el mundo.
+- **Seguimiento suave:** al salir de la zona, el scroll usa velocidad objetivo derivada del exceso y se suaviza con la respuesta existente para evitar tirones.
+- **Reversa estable:** al invertir dirección, el scroll converge sin saltos bruscos de encuadre.
+- **Cobertura preservada:** se mantiene el pipeline actual de wrap modular y `N+1` segmentos de fondo para cubrir todo el viewport.
+
 ### 2026-03-21 — Ventana principal con fondo y Arthur
 
 - **Ventana de juego:** 800×600, título "Ghosts 'n Goblins", VSync 60 FPS.

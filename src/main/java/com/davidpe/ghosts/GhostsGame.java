@@ -41,6 +41,8 @@ public class GhostsGame extends ApplicationAdapter {
   private static final float ARTHUR_LIGHT_ALPHA = 0.24f;
   private static final float SCROLL_RESPONSE_RATE = 13f;
   private static final int SPRITE_FRAME_INSET_PX = 1;
+  private static final float CAMERA_COMFORT_LEFT = 300f;
+  private static final float CAMERA_COMFORT_RIGHT = 500f;
 
   private enum MovementState {
     IDLE,
@@ -241,7 +243,19 @@ public class GhostsGame extends ApplicationAdapter {
 
     arthurX = Math.max(0f, Math.min(arthurX, WORLD_WIDTH - arthurDrawWidth));
 
-    float targetScrollVelocity = arthurVelocityX;
+    float targetScrollVelocity = 0f;
+    float comfortMin = CAMERA_COMFORT_LEFT - (arthurDrawWidth * 0.5f);
+    float comfortMax = CAMERA_COMFORT_RIGHT - (arthurDrawWidth * 0.5f);
+    if (arthurX < comfortMin) {
+      float overflow = arthurX - comfortMin;
+      arthurX = comfortMin;
+      targetScrollVelocity = overflow / Math.max(delta, 0.0001f);
+    } else if (arthurX > comfortMax) {
+      float overflow = arthurX - comfortMax;
+      arthurX = comfortMax;
+      targetScrollVelocity = overflow / Math.max(delta, 0.0001f);
+    }
+
     float scrollBlend = 1f - (float) Math.exp(-SCROLL_RESPONSE_RATE * delta);
     scrollVelocityX = MathUtils.lerp(scrollVelocityX, targetScrollVelocity, scrollBlend);
     if (Math.abs(targetScrollVelocity - scrollVelocityX) < 3f) {
