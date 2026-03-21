@@ -34,6 +34,13 @@
 - **Reciclado continuo:** wrap modular por ciclo de dos segmentos y redibujado de `N+1` fondos para cubrir viewport sin cortes al recolocar.
 - **Estructura:** implementado en la clase existente con método dedicado `drawScrollingBackgrounds()`.
 
+### 2026-03-21 — GHOST-0005 Luz tenue sobre Arthur
+
+- **Efecto de legibilidad:** máscara radial suave (`Texture` generada con `Pixmap`) dibujada sobre el entorno y centrada en Arthur.
+- **Seguimiento en tiempo real:** la luz usa la posición actual de Arthur en cada frame.
+- **Intensidad controlada:** alpha moderada (`0.23`) para mejorar contraste sin sobreexponer fondo.
+- **Complejidad mínima:** integración directa en pipeline de render actual sin sistema global de iluminación.
+
 ### 2026-03-21 — Ventana principal con fondo y Arthur
 
 - **Ventana de juego:** 800×600, título "Ghosts 'n Goblins", VSync 60 FPS.

@@ -4,6 +4,7 @@ import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -41,6 +42,7 @@ public class GhostsGame extends ApplicationAdapter {
   private Viewport viewport;
 
   private Texture[] backgrounds;
+  private Texture arthurLightTexture;
   private Texture arthurSheet;
   private TextureRegion idleFrame;
   private TextureRegion crouchFrame;
@@ -69,6 +71,7 @@ public class GhostsGame extends ApplicationAdapter {
           new Texture(Gdx.files.internal("main-backgroud-1.png")),
           new Texture(Gdx.files.internal("main-background-2.png"))
         };
+    arthurLightTexture = createLightTexture(256);
 
     // Load spritesheet, remove black background, and extract first frame
     arthurSheet = loadWithTransparentBlack("sprites_arthur.png");
@@ -124,6 +127,7 @@ public class GhostsGame extends ApplicationAdapter {
 
     float aspectRatio = (float) frameToDraw.getRegionWidth() / frameToDraw.getRegionHeight();
     float drawWidth = ARTHUR_DRAW_HEIGHT * aspectRatio;
+    drawArthurLight(drawWidth);
     batch.draw(frameToDraw, arthurX, arthurY, drawWidth, ARTHUR_DRAW_HEIGHT);
 
     batch.end();
@@ -212,6 +216,37 @@ public class GhostsGame extends ApplicationAdapter {
     }
   }
 
+  private void drawArthurLight(float arthurDrawWidth) {
+    float lightSize = 240f;
+    float lightX = arthurX + (arthurDrawWidth * 0.5f) - (lightSize * 0.5f);
+    float lightY = arthurY + (ARTHUR_DRAW_HEIGHT * 0.45f) - (lightSize * 0.5f);
+    Color previousColor = new Color(batch.getColor());
+    batch.setColor(1f, 1f, 1f, 0.23f);
+    batch.draw(arthurLightTexture, lightX, lightY, lightSize, lightSize);
+    batch.setColor(previousColor);
+  }
+
+  private Texture createLightTexture(int size) {
+    Pixmap pixmap = new Pixmap(size, size, Pixmap.Format.RGBA8888);
+    float center = size / 2f;
+    float radius = size / 2f;
+    for (int y = 0; y < size; y++) {
+      for (int x = 0; x < size; x++) {
+        float dx = x - center;
+        float dy = y - center;
+        float distance = (float) Math.sqrt(dx * dx + dy * dy);
+        float normalized = Math.min(1f, distance / radius);
+        float alpha = 1f - normalized;
+        alpha = alpha * alpha;
+        pixmap.setColor(1f, 0.95f, 0.8f, alpha);
+        pixmap.drawPixel(x, y);
+      }
+    }
+    Texture texture = new Texture(pixmap);
+    pixmap.dispose();
+    return texture;
+  }
+
   @Override
   public void resize(int width, int height) {
     viewport.update(width, height);
@@ -245,6 +280,7 @@ public class GhostsGame extends ApplicationAdapter {
     for (Texture texture : backgrounds) {
       texture.dispose();
     }
+    arthurLightTexture.dispose();
     arthurSheet.dispose();
   }
 }
