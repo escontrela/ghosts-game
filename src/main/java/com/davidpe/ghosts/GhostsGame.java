@@ -29,6 +29,8 @@ public class GhostsGame extends ApplicationAdapter {
   private static final float MOVE_SPEED = 220f;
   private static final float JUMP_VELOCITY = 520f;
   private static final float GRAVITY = 1250f;
+  private static final float BACKGROUND_DIM_ALPHA = 0.16f;
+  private static final float ARTHUR_LIGHT_ALPHA = 0.28f;
 
   private enum MovementState {
     IDLE,
@@ -42,6 +44,7 @@ public class GhostsGame extends ApplicationAdapter {
   private Viewport viewport;
 
   private Texture[] backgrounds;
+  private Texture blackOverlayTexture;
   private Texture arthurLightTexture;
   private Texture arthurSheet;
   private TextureRegion idleFrame;
@@ -72,6 +75,7 @@ public class GhostsGame extends ApplicationAdapter {
           new Texture(Gdx.files.internal("main-backgroud-1.png")),
           new Texture(Gdx.files.internal("main-background-2.png"))
         };
+    blackOverlayTexture = createSolidTexture(1, 1, 0f, 0f, 0f, 1f);
     arthurLightTexture = createLightTexture(256);
 
     // Load spritesheet, remove black background, and extract first frame
@@ -119,6 +123,7 @@ public class GhostsGame extends ApplicationAdapter {
     batch.begin();
 
     drawScrollingBackgrounds();
+    drawBackgroundDim();
 
     // Draw Arthur centered horizontally, positioned on the path
     TextureRegion frameToDraw = getFrameForState();
@@ -225,8 +230,15 @@ public class GhostsGame extends ApplicationAdapter {
     float lightX = arthurX + (arthurDrawWidth * 0.5f) - (lightSize * 0.5f);
     float lightY = arthurY + (ARTHUR_DRAW_HEIGHT * 0.45f) - (lightSize * 0.5f);
     Color previousColor = new Color(batch.getColor());
-    batch.setColor(1f, 1f, 1f, 0.23f);
+    batch.setColor(1f, 1f, 1f, ARTHUR_LIGHT_ALPHA);
     batch.draw(arthurLightTexture, lightX, lightY, lightSize, lightSize);
+    batch.setColor(previousColor);
+  }
+
+  private void drawBackgroundDim() {
+    Color previousColor = new Color(batch.getColor());
+    batch.setColor(1f, 1f, 1f, BACKGROUND_DIM_ALPHA);
+    batch.draw(blackOverlayTexture, 0f, 0f, WORLD_WIDTH, WORLD_HEIGHT);
     batch.setColor(previousColor);
   }
 
@@ -246,6 +258,15 @@ public class GhostsGame extends ApplicationAdapter {
         pixmap.drawPixel(x, y);
       }
     }
+    Texture texture = new Texture(pixmap);
+    pixmap.dispose();
+    return texture;
+  }
+
+  private Texture createSolidTexture(int width, int height, float r, float g, float b, float a) {
+    Pixmap pixmap = new Pixmap(width, height, Pixmap.Format.RGBA8888);
+    pixmap.setColor(r, g, b, a);
+    pixmap.fill();
     Texture texture = new Texture(pixmap);
     pixmap.dispose();
     return texture;
@@ -284,6 +305,7 @@ public class GhostsGame extends ApplicationAdapter {
     for (Texture texture : backgrounds) {
       texture.dispose();
     }
+    blackOverlayTexture.dispose();
     arthurLightTexture.dispose();
     arthurSheet.dispose();
   }

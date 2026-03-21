@@ -48,6 +48,13 @@
 - **Intensidad controlada:** alpha moderada (`0.23`) para mejorar contraste sin sobreexponer fondo.
 - **Complejidad mínima:** integración directa en pipeline de render actual sin sistema global de iluminación.
 
+### 2026-03-21 — GHOST-0007 Balance de luz focal y fondo más oscuro
+
+- **Luz focal más visible:** incremento suave de alpha de luz centrada en Arthur (`0.28`) para mejorar lectura del personaje.
+- **Oscurecimiento moderado del entorno:** overlay negro global con alpha bajo (`0.16`) para separar personaje y fondo nocturno.
+- **Sin sobreexposición:** ajuste conservador en un único paso de render para mantener detalle del escenario.
+- **Reutilización de pipeline:** integración en `GhostsGame` con texturas simples generadas por `Pixmap`, sin nueva arquitectura de iluminación.
+
 ### 2026-03-21 — Ventana principal con fondo y Arthur
 
 - **Ventana de juego:** 800×600, título "Ghosts 'n Goblins", VSync 60 FPS.
