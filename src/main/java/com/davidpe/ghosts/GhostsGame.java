@@ -11,6 +11,7 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.graphics.Texture.TextureFilter;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
@@ -39,6 +40,7 @@ public class GhostsGame extends ApplicationAdapter {
   private static final float BACKGROUND_DIM_ALPHA = 0.19f;
   private static final float ARTHUR_LIGHT_ALPHA = 0.24f;
   private static final float SCROLL_RESPONSE_RATE = 13f;
+  private static final int SPRITE_FRAME_INSET_PX = 1;
 
   private enum MovementState {
     IDLE,
@@ -90,19 +92,20 @@ public class GhostsGame extends ApplicationAdapter {
 
     // Load spritesheet, remove black background, and extract first frame
     arthurSheet = loadWithTransparentBlack("sprites_arthur.png");
+    arthurSheet.setFilter(TextureFilter.Nearest, TextureFilter.Nearest);
     int frameWidth = arthurSheet.getWidth() / FRAME_COLS;
     int frameHeight = arthurSheet.getHeight() / FRAME_ROWS;
     TextureRegion[][] sheetFrames = TextureRegion.split(arthurSheet, frameWidth, frameHeight);
-    idleFrame = new TextureRegion(sheetFrames[0][0]);
-    crouchFrame = new TextureRegion(sheetFrames[1][0]);
-    jumpFrame = new TextureRegion(sheetFrames[1][1]);
+    idleFrame = createSafeRegion(sheetFrames[0][0], SPRITE_FRAME_INSET_PX);
+    crouchFrame = createSafeRegion(sheetFrames[1][0], SPRITE_FRAME_INSET_PX);
+    jumpFrame = createSafeRegion(sheetFrames[1][1], SPRITE_FRAME_INSET_PX);
     walkAnimation =
         new Animation<>(
             0.12f,
-            new TextureRegion(sheetFrames[0][1]),
-            new TextureRegion(sheetFrames[0][2]),
-            new TextureRegion(sheetFrames[0][3]),
-            new TextureRegion(sheetFrames[0][4]));
+            createSafeRegion(sheetFrames[0][1], SPRITE_FRAME_INSET_PX),
+            createSafeRegion(sheetFrames[0][2], SPRITE_FRAME_INSET_PX),
+            createSafeRegion(sheetFrames[0][3], SPRITE_FRAME_INSET_PX),
+            createSafeRegion(sheetFrames[0][4], SPRITE_FRAME_INSET_PX));
     stateTime = 0f;
 
     float aspectRatio = (float) idleFrame.getRegionWidth() / idleFrame.getRegionHeight();
@@ -144,9 +147,26 @@ public class GhostsGame extends ApplicationAdapter {
     }
 
     drawArthurLight();
-    batch.draw(frameToDraw, arthurX, arthurY, arthurDrawWidth, ARTHUR_DRAW_HEIGHT);
+    batch.draw(
+        frameToDraw,
+        Math.round(arthurX),
+        Math.round(arthurY),
+        Math.round(arthurDrawWidth),
+        Math.round(ARTHUR_DRAW_HEIGHT));
 
     batch.end();
+  }
+
+  /** Shrinks region edges slightly to avoid sampling neighboring frame pixels from the sheet. */
+  private TextureRegion createSafeRegion(TextureRegion source, int insetPx) {
+    int safeInsetX = Math.min(insetPx, Math.max(0, (source.getRegionWidth() / 2) - 1));
+    int safeInsetY = Math.min(insetPx, Math.max(0, (source.getRegionHeight() / 2) - 1));
+    return new TextureRegion(
+        source.getTexture(),
+        source.getRegionX() + safeInsetX,
+        source.getRegionY() + safeInsetY,
+        source.getRegionWidth() - (safeInsetX * 2),
+        source.getRegionHeight() - (safeInsetY * 2));
   }
 
   /**

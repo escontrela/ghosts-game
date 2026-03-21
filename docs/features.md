@@ -48,6 +48,13 @@
 - **Intensidad controlada:** alpha moderada (`0.23`) para mejorar contraste sin sobreexponer fondo.
 - **Complejidad mínima:** integración directa en pipeline de render actual sin sistema global de iluminación.
 
+### 2026-03-21 — GHOST-0006 Corrección de bordes del sprite de Arthur
+
+- **Recorte seguro por frame:** cada `TextureRegion` de `IDLE`, `WALK`, `CROUCH` y `JUMP` aplica inset de 1px para evitar muestreo de píxeles vecinos del spritesheet.
+- **Filtro de sprite estable:** `sprites_arthur.png` usa `TextureFilter.Nearest` para mantener bordes limpios en escalado y animación.
+- **Render alineado a píxel:** el dibujado de Arthur se redondea a coordenadas enteras para reducir artefactos en contorno al desplazarse y al hacer flip.
+- **Sin cambios de arquitectura:** ajuste aplicado en `GhostsGame` reutilizando clases actuales.
+
 ### 2026-03-21 — GHOST-0007 Balance de luz focal y fondo más oscuro
 
 - **Luz focal más visible:** incremento suave de alpha de luz centrada en Arthur (`0.28`) para mejorar lectura del personaje.
@@ -225,6 +232,38 @@ Validación ejecutada contra Tasker (`projectId=6`, `userId=1`) y repositorio lo
 ### Verificación técnica de esta iteración
 
 - Build local validada con `mvn -q -DskipTests compile` (OK).
+
+---
+
+## Iteración PO autónoma — 2026-03-21T06:02:13Z (reposición backlog fase 1 tras cierre de 0011-0014)
+
+Validación ejecutada contra Tasker (`projectId=6`, `userId=1`) y repositorio local en rama `features-nightly-20260321`.
+
+### Estado actual validado
+
+- `DONE`: `GHOST-0001`, `GHOST-0002`, `GHOST-0003`, `GHOST-0004`, `GHOST-0005`, `GHOST-0007`, `GHOST-0008`, `GHOST-0009`, `GHOST-0010`, `GHOST-0011`, `GHOST-0012`, `GHOST-0013`, `GHOST-0014`.
+- `IN_PROGRESS` (`WIP=1`): `GHOST-0006`.
+- `BACKLOG` (5): `GHOST-0000`, `GHOST-0015`, `GHOST-0016`, `GHOST-0017`, `GHOST-0018`.
+
+### Tickets nuevos creados en esta iteración
+
+- `GHOST-0015` — Ajuste de ventana de cámara para scroll más legible (`BACKLOG`).
+- `GHOST-0016` — Consistencia de salto al encadenar inputs rápidos (`BACKLOG`).
+- `GHOST-0017` — Calibración fina de halo según estado de movimiento (`BACKLOG`).
+- `GHOST-0018` — Checklist de validación visual para scroll y luz (`BACKLOG`).
+
+### Directriz técnica al equipo
+
+- Reutilizar estructura y clases existentes antes de crear nuevas piezas.
+- Evitar proliferación de clases pequeñas sin responsabilidad clara.
+- Mantener tickets pequeños, verticales y verificables en build jugable.
+
+### Foco activo de desarrollo (fase 1)
+
+- Control de Arthur: izquierda, derecha, agacharse y salto.
+- Scroll continuo estable con los dos fondos actuales.
+- Luz de realce de Arthur y fondo moderadamente oscurecido para contraste.
+- Corrección de bordes de sprite sin bleed de frames vecinos.
 
 ---
 
