@@ -208,6 +208,13 @@ Uso operativo:
 - **Alineación preservada:** el tamaño de dibujo y la base de Arthur no se alteran porque el ancho de render se mantiene desacoplado del recorte interno.
 - **Sin cambio arquitectónico:** ajuste integrado sobre `GhostsGame` reutilizando la estructura actual.
 
+### 2026-03-21 — GHOST-0025 Oscurecimiento base del fondo para reforzar contraste
+
+- **Parámetro único de atenuación:** el render de fondo usa `BACKGROUND_BASE_DIM_ALPHA` como único control de oscurecimiento homogéneo.
+- **Contraste más claro de Arthur:** se incrementa moderadamente la atenuación base para mejorar separación personaje-escena en reposo y movimiento.
+- **Sin parpadeo:** el valor fijo elimina variaciones por frame en el overlay del fondo.
+- **Reutilización total:** cambio aplicado en el pipeline de render existente (`drawBackgroundDim`) sin nuevas capas ni clases.
+
 ### 2026-03-21 — Ventana principal con fondo y Arthur
 
 - **Ventana de juego:** 800×600, título "Ghosts 'n Goblins", VSync 60 FPS.

@@ -39,7 +39,7 @@ public class GhostsGame extends ApplicationAdapter {
   private static final float MAX_FALL_SPEED = 620f;
   private static final float LANDING_SOFT_ZONE = 42f;
   private static final float LANDING_GRAVITY_SCALE = 0.58f;
-  private static final float BACKGROUND_DIM_ALPHA = 0.19f;
+  private static final float BACKGROUND_BASE_DIM_ALPHA = 0.21f;
   private static final float ARTHUR_LIGHT_ALPHA = 0.24f;
   private static final float ARTHUR_LIGHT_SIZE = 270f;
   private static final float SCROLL_RESPONSE_RATE = 13f;
@@ -55,8 +55,6 @@ public class GhostsGame extends ApplicationAdapter {
   private static final float LIGHT_ALPHA_ACTIVE = 0.27f;
   private static final float LIGHT_SIZE_IDLE = 254f;
   private static final float LIGHT_SIZE_ACTIVE = 300f;
-  private static final float DIM_ALPHA_IDLE = 0.18f;
-  private static final float DIM_ALPHA_ACTIVE = 0.22f;
 
   private enum MovementState {
     IDLE,
@@ -92,7 +90,6 @@ public class GhostsGame extends ApplicationAdapter {
   private float landingStabilizeTimer;
   private float currentLightAlpha;
   private float currentLightSize;
-  private float currentBackgroundDimAlpha;
 
   @Override
   public void create() {
@@ -145,7 +142,6 @@ public class GhostsGame extends ApplicationAdapter {
     landingStabilizeTimer = 0f;
     currentLightAlpha = ARTHUR_LIGHT_ALPHA;
     currentLightSize = ARTHUR_LIGHT_SIZE;
-    currentBackgroundDimAlpha = BACKGROUND_DIM_ALPHA;
   }
 
   @Override
@@ -362,7 +358,7 @@ public class GhostsGame extends ApplicationAdapter {
 
   private void drawBackgroundDim() {
     Color previousColor = new Color(batch.getColor());
-    batch.setColor(1f, 1f, 1f, currentBackgroundDimAlpha);
+    batch.setColor(1f, 1f, 1f, BACKGROUND_BASE_DIM_ALPHA);
     batch.draw(blackOverlayTexture, 0f, 0f, WORLD_WIDTH, WORLD_HEIGHT);
     batch.setColor(previousColor);
   }
@@ -376,12 +372,9 @@ public class GhostsGame extends ApplicationAdapter {
     }
     float targetLightAlpha = MathUtils.lerp(LIGHT_ALPHA_IDLE, LIGHT_ALPHA_ACTIVE, activityFactor);
     float targetLightSize = MathUtils.lerp(LIGHT_SIZE_IDLE, LIGHT_SIZE_ACTIVE, activityFactor);
-    float targetBackgroundDimAlpha = MathUtils.lerp(DIM_ALPHA_IDLE, DIM_ALPHA_ACTIVE, activityFactor);
     float blend = 1f - (float) Math.exp(-LIGHT_RESPONSE_RATE * delta);
     currentLightAlpha = MathUtils.lerp(currentLightAlpha, targetLightAlpha, blend);
     currentLightSize = MathUtils.lerp(currentLightSize, targetLightSize, blend);
-    currentBackgroundDimAlpha =
-        MathUtils.lerp(currentBackgroundDimAlpha, targetBackgroundDimAlpha, blend);
   }
 
   private Texture createLightTexture(int size) {
