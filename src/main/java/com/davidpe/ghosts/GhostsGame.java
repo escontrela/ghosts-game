@@ -49,6 +49,12 @@ public class GhostsGame extends ApplicationAdapter {
   private static final float LANDING_STABILIZE_DURATION = 0.08f;
   private static final float LANDING_STABILIZE_ACCELERATION = 900f;
   private static final float LIGHT_RESPONSE_RATE = 7f;
+  private static final float LIGHT_ALPHA_IDLE = 0.22f;
+  private static final float LIGHT_ALPHA_ACTIVE = 0.27f;
+  private static final float LIGHT_SIZE_IDLE = 254f;
+  private static final float LIGHT_SIZE_ACTIVE = 300f;
+  private static final float DIM_ALPHA_IDLE = 0.18f;
+  private static final float DIM_ALPHA_ACTIVE = 0.22f;
 
   private enum MovementState {
     IDLE,
@@ -352,31 +358,15 @@ public class GhostsGame extends ApplicationAdapter {
   }
 
   private void updateLighting(float delta) {
-    float targetLightAlpha = ARTHUR_LIGHT_ALPHA;
-    float targetLightSize = ARTHUR_LIGHT_SIZE;
-    float targetBackgroundDimAlpha = BACKGROUND_DIM_ALPHA;
-    switch (movementState) {
-      case IDLE -> {
-        targetLightAlpha = 0.23f;
-        targetLightSize = 266f;
-        targetBackgroundDimAlpha = 0.19f;
-      }
-      case WALK -> {
-        targetLightAlpha = 0.25f;
-        targetLightSize = 286f;
-        targetBackgroundDimAlpha = 0.2f;
-      }
-      case CROUCH -> {
-        targetLightAlpha = 0.22f;
-        targetLightSize = 254f;
-        targetBackgroundDimAlpha = 0.18f;
-      }
-      case JUMP -> {
-        targetLightAlpha = 0.24f;
-        targetLightSize = 298f;
-        targetBackgroundDimAlpha = 0.21f;
-      }
+    float speedFactor = MathUtils.clamp(Math.abs(arthurVelocityX) / MOVE_SPEED, 0f, 1f);
+    float jumpBoost = movementState == MovementState.JUMP ? 0.25f : 0f;
+    float activityFactor = MathUtils.clamp(Math.max(speedFactor, jumpBoost), 0f, 1f);
+    if (movementState == MovementState.CROUCH) {
+      activityFactor *= 0.4f;
     }
+    float targetLightAlpha = MathUtils.lerp(LIGHT_ALPHA_IDLE, LIGHT_ALPHA_ACTIVE, activityFactor);
+    float targetLightSize = MathUtils.lerp(LIGHT_SIZE_IDLE, LIGHT_SIZE_ACTIVE, activityFactor);
+    float targetBackgroundDimAlpha = MathUtils.lerp(DIM_ALPHA_IDLE, DIM_ALPHA_ACTIVE, activityFactor);
     float blend = 1f - (float) Math.exp(-LIGHT_RESPONSE_RATE * delta);
     currentLightAlpha = MathUtils.lerp(currentLightAlpha, targetLightAlpha, blend);
     currentLightSize = MathUtils.lerp(currentLightSize, targetLightSize, blend);

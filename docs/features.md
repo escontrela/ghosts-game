@@ -161,6 +161,13 @@ Regla técnica de fase 1 reforzada por checklist:
 - **Cobertura de estados preservada:** `IDLE`, `WALK`, `CROUCH` y `JUMP` reutilizan recorte seguro y mantienen proporciones originales de render.
 - **Sin sobre-ingeniería:** ajuste integrado en `GhostsGame` sin crear clases nuevas.
 
+### 2026-03-21 — GHOST-0021 Afinado de contraste dinámico personaje-fondo
+
+- **Contraste por actividad real:** el halo y la atenuación global se calculan con factor continuo basado en velocidad horizontal de Arthur.
+- **Salto más legible sin parpadeo:** `JUMP` aplica un boost de actividad suave y `CROUCH` reduce intensidad para conservar lectura visual.
+- **Transición continua:** los objetivos de alpha/tamaño siguen interpolación exponencial por frame para evitar cambios bruscos entre reposo, movimiento y salto.
+- **Pipeline reutilizado:** ajuste realizado sobre el sistema de luz/overlay existente en `GhostsGame`, sin postprocesado nuevo.
+
 ### 2026-03-21 — Ventana principal con fondo y Arthur
 
 - **Ventana de juego:** 800×600, título "Ghosts 'n Goblins", VSync 60 FPS.
