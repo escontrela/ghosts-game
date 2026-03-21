@@ -7,7 +7,7 @@ public class DesktopLauncher {
 
   public static void main(String[] args) {
     Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
-    config.setTitle("Ghosts 'n Goblins");
+    config.setTitle("Ghosts 'n Goblins Remake");
     config.setWindowedMode((int) GhostsGame.WORLD_WIDTH, (int) GhostsGame.WORLD_HEIGHT);
     config.setResizable(true);
     config.useVsync(true);
