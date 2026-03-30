@@ -1,156 +1,223 @@
-🎮 Prompt: Pantalla inicial tipo Ghosts ’n Goblins con scroll lateral en LibGDX
+# GHOSTS GAME — Arquitectura y Referencia para Agentes
 
-🧠 Contexto
+Referencia técnica para agentes de IA que implementen tickets en este proyecto.
+Lee este documento antes de tocar cualquier clase existente.
 
-Estoy desarrollando un juego 2D en Java usando LibGDX con Maven. Quiero crear una pantalla inicial jugable donde el personaje pueda moverse horizontalmente (izquierda/derecha) mientras el fondo hace scroll continuo.
+---
 
-El estilo visual es tipo Ghosts ’n Goblins:
-	•	ambientación oscura
-	•	cementerio / bosque nocturno
-	•	scroll lateral clásico
+## Stack técnico
 
-⸻
+| Ítem | Valor |
+|---|---|
+| Lenguaje | Java 17 |
+| Framework | LibGDX 1.12.1 |
+| Backend desktop | LWJGL3 (`gdx-backend-lwjgl3`) |
+| Build | Maven 3.x |
+| Resolución virtual | 800 × 600 (`FitViewport` + `OrthographicCamera`) |
+| macOS | Requiere `-XstartOnFirstThread` (configurado en `exec-maven-plugin`) |
+| Comando de build | `mvn compile` |
+| Comando de ejecución | `mvn compile exec:exec` |
 
-🎯 Objetivo
+---
 
-Implementar una escena básica con:
-	1.	Un personaje animado (spritesheet)
-	2.	Movimiento izquierda/derecha con teclado
-	3.	Scroll lateral del fondo
-	4.	Uso de 3 imágenes de fondo consecutivas
-	5.	Loop continuo del escenario
+## Estructura de paquetes
 
-⸻
+```
+com.davidpe.ghosts
+├── DesktopLauncher                    ← main(), configura Lwjgl3Application
+├── application/
+│   ├── GhostsGame                    ← ApplicationAdapter (orquestador de escena)
+│   └── factories/
+│       └── CharacterFactory          ← Crea personajes con dependencias inyectadas
+└── domain/
+    ├── characters/
+    │   ├── Character                 ← Clase base abstracta para todos los personajes
+    │   └── Arthur                    ← Personaje jugador (extiende Character)
+    └── utils/
+        └── AnimationUtils            ← Singleton: carga animaciones desde JSON de bounding boxes
+```
 
-🖼️ Recursos disponibles
+---
 
-Fondos
+## Regla de responsabilidades
 
-Tengo 3 imágenes:
-	•	background1.png
-	•	background2.png
-	•	background3.png
+| Clase | Responsabilidad |
+|---|---|
+| `DesktopLauncher` | Punto de entrada, configura ventana y FPS, instancia `GhostsGame` |
+| `GhostsGame` | Ciclo LibGDX (`create/render/resize/dispose`), camara, viewport, batch, fondos, overlay, orden de dibujado |
+| `CharacterFactory` | Conecta personajes con sus dependencias (inyecta `AnimationUtils`) |
+| `Character` | Estado común: posición, velocidad, dirección, timer de animación, dibujado con flip, disposal de texturas |
+| `Arthur` | Máquina de estados de 6 estados, física de salto/caída, input de teclado, scroll de cámara, luz focal dinámica |
+| `AnimationUtils` | Parsea JSON de bounding boxes, crea `Animation<TextureRegion>` y sub-rangos |
 
-Todas tienen el mismo tamaño y están diseñadas para encajar horizontalmente.
+---
 
-Personaje
+## Clase base `Character`
 
-Spritesheet con:
-	•	animación de caminar
-	•	frames en una fila
-	•	tamaño uniforme
+Todos los personajes extienden `Character`. La clase base provee:
 
-⸻
+- Campos protegidos: `x`, `y`, `velocityX`, `velocityY`, `facingRight`, `drawWidth`, `stateTime`, `worldWidth`, `renderFrame`
+- Lista `ownedTextures` (tipo `List<Texture>`): registrar aquí todas las texturas creadas para que `dispose()` las libere automáticamente
+- `update(float delta)`: llama a `updateBehavior(delta)` y luego avanza `stateTime`
+- `draw(SpriteBatch batch)`: dibuja `getCurrentFrame()` con flip horizontal según `facingRight`
+- `dispose()`: itera `ownedTextures` y libera todas
+- Método utilitario protegido `moveTowards(current, target, maxDelta)`: acelera/frena sin sobrepasar objetivo
+- Método protegido `resetStateTime()`: resetea `stateTime` a 0 al cambiar de estado
 
-⚙️ Requisitos técnicos
+**Hooks abstractos que toda subclase debe implementar:**
 
-Framework
-	•	LibGDX
-	•	Java (17+)
-	•	Maven
+```java
+protected abstract void updateBehavior(float delta);   // input / física / máquina de estados
+protected abstract TextureRegion getCurrentFrame();     // frame actual de animación
+protected abstract float getDrawHeight();               // altura en unidades de mundo
+```
 
-Renderizado
-	•	Usar SpriteBatch
-	•	Dibujar fondos y personaje
+---
 
-⸻
+## Clase `Arthur`
 
-🎮 Comportamiento esperado
+Personaje jugador. Constructor: `Arthur(float worldWidth, AnimationUtils animationUtils)`.
 
-Movimiento del personaje
-	•	Flecha derecha → mueve personaje a la derecha
-	•	Flecha izquierda → mueve personaje a la izquierda
-	•	Animación de caminar activa al moverse
-	•	Personaje centrado (opcional estilo cámara)
+### Máquina de estados (`MovementState` — enum privado interno)
 
-⸻
+| Estado | Descripción | Loop |
+|---|---|---|
+| `IDLE` | Quieto en suelo | sí |
+| `WALK` | Caminando (velocityX > 8) | sí |
+| `CROUCH` | Agachado (manteniendo DOWN/S) | no |
+| `CROUCH_UP` | Animación de levantarse | no |
+| `JUMP` | En el aire | sí |
+| `PUNCH` | Golpe (one-shot, bloquea otros inputs) | no |
 
-Scroll del fondo
-	•	El fondo se mueve en dirección opuesta al movimiento del jugador
-	•	Se usan las 3 imágenes en secuencia horizontal
-	•	Cuando una imagen sale completamente de pantalla → se recicla al final
+### Constantes clave de física
 
-Ejemplo:
+| Constante | Valor | Uso |
+|---|---|---|
+| `GROUND_Y` | 130f | Y mínima (suelo) |
+| `MOVE_SPEED` | 235f | Velocidad máxima horizontal |
+| `JUMP_VELOCITY` | 520f | Impulso vertical inicial del salto |
+| `JUMP_RISE_GRAVITY` | 1180f | Gravedad mientras sube |
+| `JUMP_FALL_GRAVITY` | 1030f | Gravedad mientras baja |
+| `LANDING_SOFT_ZONE` | 42f | Zona cerca del suelo donde se reduce la gravedad |
+| `CAMERA_COMFORT_LEFT` | 320f | Borde izquierdo de la zona de confort de cámara |
+| `CAMERA_COMFORT_RIGHT` | 480f | Borde derecho de la zona de confort de cámara |
 
-[BG1][BG2][BG3] → scroll → [BG2][BG3][BG1]
+### API pública adicional de Arthur
 
+```java
+void drawEffects(SpriteBatch batch)   // dibuja halo de luz focal alrededor del torso
+float getWorldOffsetX()               // offset acumulado del mundo (lo usa GhostsGame para scroll de fondos)
+```
 
-⸻
+### Carga de animaciones
 
-Sistema de coordenadas
-	•	Usar un offset global (worldOffsetX)
-	•	El personaje puede mantenerse fijo en pantalla mientras el mundo se mueve
+Cada estado tiene su propio sprite sheet. Los frames se definen en archivos JSON de bounding boxes bajo `src/main/resources/arthur/`.
 
-⸻
+| Recurso | Archivo |
+|---|---|
+| Sprite idle | `arthur/sprite-sheet-arthur-idle.png` |
+| Sprite walk | `arthur/sprite-sheet-arthur-walk.png` |
+| Sprite jump | `arthur/sprite-sheet-arthur-jump.png` |
+| Sprite punch | `arthur/sprite-sheet-arthur-punch.png` |
+| Sprite crouch | `arthur/sprite-sheet-arthur-crouching.png` |
+| JSON idle | `arthur/bounding-boxes-arthur-idle.json` |
+| JSON walk | `arthur/bouding-boxes-arthur-walk.json` ← typo en nombre de archivo, no corregir |
+| JSON jump | `arthur/bounding-boxes-arthur-jump.json` |
+| JSON punch | `arthur/bounding-boxes-arthur-punch.json` |
+| JSON crouch | `arthur/bounding-boxes-arthur-crouching.json` |
 
-🧱 Estructura sugerida
+El sprite de crouch es un solo sheet partido en dos animaciones:
+- frames 0..19 → `crouchDownAnimation` (agacharse)
+- frames 16..fin → `crouchUpAnimation` (levantarse, con 4 frames de overlap)
 
-Variables principales
+Todos los sheets usan `TextureFilter.Nearest` para bordes nítidos en pixel art.
 
-float worldOffsetX;
-float playerX;
+---
 
-Texture bg1, bg2, bg3;
-float bgWidth;
+## `AnimationUtils` (singleton)
 
-Animation<TextureRegion> walkAnimation;
-float stateTime;
+Obtener la instancia: `AnimationUtils.getInstance()`.
 
+```java
+Animation<TextureRegion> buildAnimationFromBoundingBoxes(Texture sheet, String jsonPath, float frameDuration)
+TextureRegion[] loadFramesFromBoundingBoxes(Texture sheet, String jsonPath)
+Animation<TextureRegion> buildAnimationFromRange(TextureRegion[] allFrames, int from, int to, float frameDuration)
+```
 
-⸻
+Formato del JSON de bounding boxes (array de objetos):
 
-Lógica de update
+```json
+[
+  { "x": 0, "y": 0, "width": 48, "height": 64 },
+  { "x": 48, "y": 0, "width": 48, "height": 64 }
+]
+```
 
-if (RIGHT) worldOffsetX += speed * delta;
-if (LEFT) worldOffsetX -= speed * delta;
+---
 
-stateTime += delta;
+## `CharacterFactory`
 
+Crear un Arthur con sus dependencias ya conectadas:
 
-⸻
+```java
+CharacterFactory factory = new CharacterFactory(AnimationUtils.getInstance());
+Arthur arthur = factory.createArthur(WORLD_WIDTH);
+```
 
-Render de fondos (loop)
+Toda creación de personajes debe pasar por `CharacterFactory`, no instanciar directamente desde `GhostsGame`.
 
-for (int i = 0; i < 3; i++) {
-    batch.draw(backgrounds[i], i * bgWidth - worldOffsetX, 0);
-}
+---
 
-Recolocar fondos cuando salen de pantalla.
+## `GhostsGame` — ciclo de render
 
-⸻
+```java
+// create()
+CharacterFactory factory = new CharacterFactory(AnimationUtils.getInstance());
+arthur = factory.createArthur(WORLD_WIDTH);
 
-🎨 Detalles visuales
-	•	Fondo oscuro (cementerio, árboles, niebla)
-	•	Personaje estilo caballero medieval
-	•	Movimiento fluido
-	•	Escenario continuo sin cortes visibles
+// render() — orden de dibujado obligatorio
+arthur.update(delta);
+batch.begin();
+  drawScrollingBackgrounds();   // usa arthur.getWorldOffsetX()
+  drawBackgroundDim();          // overlay negro semitransparente
+  arthur.drawEffects(batch);    // luz focal (detrás del sprite)
+  arthur.draw(batch);           // sprite del personaje (encima)
+batch.end();
 
-⸻
+// dispose()
+arthur.dispose();               // libera ownedTextures
+```
 
-🚫 No incluir (por ahora)
-	•	Saltos
-	•	Colisiones
-	•	Enemigos
-	•	Física
-	•	UI
+Resolución virtual constante: `WORLD_WIDTH = 800`, `WORLD_HEIGHT = 600` (campos `public static final float`).
 
-⸻
+---
 
-✅ Resultado esperado
-	•	El personaje puede moverse izquierda/derecha
-	•	El fondo hace scroll continuo
-	•	Las 3 imágenes se reutilizan en bucle
-	•	Animación de caminar funcionando
+## Convenciones de código
 
-⸻
+- Todas las constantes de clase son `private static final`.
+- Las texturas creadas dentro de `Arthur` (o cualquier subclase de `Character`) se registran en `ownedTextures` para disposal automático.
+- Al cambiar de estado en `Arthur`, siempre llamar `resetStateTime()` (no `stateTime = 0f` directamente).
+- El `SpriteBatch` jamás se almacena como campo de un personaje; siempre se recibe como parámetro.
+- Si un método modifica el color del batch (`batch.setColor(...)`), debe restaurarlo antes de retornar.
+- Nuevas clases de personaje: extender `Character`, implementar los tres hooks abstractos, registrar texturas en `ownedTextures`, crearse vía `CharacterFactory`.
 
-🚀 Bonus (opcional)
-	•	Parallax (varias capas de fondo con distinta velocidad)
-	•	Flip automático del personaje según dirección
-	•	Cámara centrada en el jugador
+---
 
-⸻
+## Cómo añadir un nuevo personaje (enemy, NPC…)
 
-📌 Instrucción final
+1. Crear `MiPersonaje extends Character` en `com.davidpe.ghosts.domain.characters`.
+2. Implementar `updateBehavior(float delta)`, `getCurrentFrame()`, `getDrawHeight()`.
+3. Registrar todas las texturas en `ownedTextures` durante el constructor.
+4. Añadir `createMiPersonaje(...)` en `CharacterFactory`.
+5. Instanciar desde `GhostsGame.create()` y llamar `update/draw/dispose` en el ciclo.
 
-Genera el código completo en Java usando LibGDX (ApplicationAdapter o Screen), listo para integrarse en un proyecto Maven existente.
+---
+
+## Fondos de scroll
+
+Hay exactamente 2 fondos definidos en `GhostsGame`:
+
+- `main-backgroud-1.png` ← typo en nombre de archivo, no corregir
+- `main-background-2.png`
+
+El scroll usa wrap modular: el offset acumulado (`arthur.getWorldOffsetX()`) se convierte en un índice de segmento y un suboffset. Se dibujan `N+1` repeticiones para garantizar cobertura completa del viewport sin huecos.

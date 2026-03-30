@@ -124,10 +124,51 @@ Tracks evolving functional specifications.
 
 Rules:
 
+`src/AGENTS.md`
+
+**Primary architectural reference.** Contains the current package structure, class responsibilities,
+public APIs, coding conventions, and step-by-step guidance for adding new characters.
+Read this before creating or modifying any Java class.
+
+`docs/`
+
+Contains visual references and captures.
+Use to maintain coherent look and feel.
+
+`docs/features.md`
+
+Tracks evolving functional specifications.
+
+Rules:
+
 - If a ticket introduces new functionality, reflect it in `docs/features.md`.
 - If Product Owner did not update it, you must update it.
 - Never delete existing content; only extend/refine.
 - If missing, create it when required.
+
+`docs/extract-character-pattern.md`
+
+Documents the architectural pattern already applied in this project.
+Consult when adding new character types or extending the character hierarchy.
+
+---
+
+## Architecture Quick Reference
+
+Package root: `com.davidpe.ghosts`
+
+| Package | Class | Role |
+|---|---|---|
+| `com.davidpe.ghosts` | `DesktopLauncher` | Entry point (`main`) |
+| `com.davidpe.ghosts.application` | `GhostsGame` | LibGDX `ApplicationAdapter` (scene orchestrator) |
+| `com.davidpe.ghosts.application.factories` | `CharacterFactory` | Instantiates characters with injected `AnimationUtils` |
+| `com.davidpe.ghosts.domain.characters` | `Character` | Abstract base class (position, velocity, render, dispose) |
+| `com.davidpe.ghosts.domain.characters` | `Arthur` | Player character (6-state FSM, input, physics, light) |
+| `com.davidpe.ghosts.domain.utils` | `AnimationUtils` | Singleton; loads `Animation<TextureRegion>` from bounding-box JSON |
+
+Build command: `mvn compile`
+Run command: `mvn compile exec:exec`
+Main class: `com.davidpe.ghosts.DesktopLauncher`
 
 ---
 

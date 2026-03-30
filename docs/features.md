@@ -529,6 +529,13 @@ Validación ejecutada contra Tasker (`projectId=6`, `userId=1`) y repositorio lo
   - `GHOST-0025` — Oscurecimiento base del fondo para reforzar contraste.
   - `GHOST-0026` — Estabilidad de agachado bajo cambios rápidos de input.
   - `GHOST-0027` — Reanclaje del halo de luz al torso de Arthur.
+
+### Foco obligatorio (fase 1)
+
+
+### Aviso a desarrolladores
+
+  - `GHOST-0027` — Reanclaje del halo de luz al torso de Arthur.
 - Se corrigió desvío de estado: `GHOST-0000` fue retornado a `BACKLOG` para preservar su rol de ticket bootstrap de referencia.
 
 ### Foco obligatorio (fase 1)
@@ -543,3 +550,74 @@ Validación ejecutada contra Tasker (`projectId=6`, `userId=1`) y repositorio lo
 - Cuidar la estructura del código: priorizar reutilización de componentes existentes.
 - Evitar proliferación de clases sin responsabilidad clara; no queremos fragmentar el dominio en muchas piezas pequeñas.
 - Mantener entregas pequeñas, concretas y verificables en build jugable.
+
+---
+
+## Refactorización arquitectónica — 2026-03-31 (post GHOST-0027)
+
+Refactorización completa de la arquitectura de clases aprobada y en producción en rama `features-nightly-20260321`.
+Build validado: `mvn compile exec:exec` (OK).
+
+### Reestructuración de paquetes
+
+La clase monolítica `com.davidpe.ghosts.GhostsGame` fue separada en la siguiente jerarquía de paquetes:
+
+```
+com.davidpe.ghosts
+├── DesktopLauncher
+├── application/
+│   ├── GhostsGame
+│   └── factories/
+│       └── CharacterFactory
+└── domain/
+    ├── characters/
+    │   ├── Character
+    │   └── Arthur
+    └── utils/
+        └── AnimationUtils
+```
+
+### Clase base abstracta `Character`
+
+- Campos protegidos comunes extraídos: `x`, `y`, `velocityX`, `velocityY`, `facingRight`,
+  `drawWidth`, `stateTime`, `worldWidth`, `renderFrame`.
+- `ownedTextures` (`List<Texture>`): patrón de registro centralizado; `dispose()` heredado libera
+  todas las texturas registradas.
+- `resetStateTime()`: sustituye el uso directo de `stateTime = 0f` al transicionar estados.
+- `moveTowards(current, target, maxDelta)`: utilidad de aceleración/frenado movida a base class.
+- Hooks abstractos que toda subclase implementa: `updateBehavior(float delta)`,
+  `getCurrentFrame()`, `getDrawHeight()`.
+
+### `AnimationUtils` (singleton inyectable)
+
+- Nueva clase `com.davidpe.ghosts.domain.utils.AnimationUtils`.
+- Desacopla la lógica de carga de animaciones de la clase `Arthur`.
+- Obtención: `AnimationUtils.getInstance()`.
+- Inyectado en constructores de personajes vía `CharacterFactory` para facilitar testing y
+  reutilización futura.
+
+### `CharacterFactory`
+
+- Nueva clase `com.davidpe.ghosts.application.factories.CharacterFactory`.
+- Recibe `AnimationUtils` en su constructor; expone `createArthur(float worldWidth)`.
+- `GhostsGame` crea todos los personajes exclusivamente a través de la factory.
+
+### Arthur — cambios y nuevos estados
+
+- Constructor actualizado: `Arthur(float worldWidth, AnimationUtils animationUtils)`.
+- Estado **`PUNCH`** añadido: golpe one-shot activado con `SPACE`, bloquea movimiento horizontal
+  durante la animación.
+- Estado **`CROUCH_UP`** añadido: animación de levantarse al soltar DOWN/S antes de volver a
+  `IDLE`. Elimina el corte abrupto previo.
+- `loadSheet(path)`: método privado que carga la textura, aplica `TextureFilter.Nearest` y la
+  registra en `ownedTextures`.
+- Máquina de estados completa (6 estados): `IDLE`, `WALK`, `CROUCH`, `CROUCH_UP`, `JUMP`, `PUNCH`.
+
+### GhostsGame simplificado
+
+- Sin constantes, campos ni métodos específicos de Arthur.
+- Constantes de escena públicas: `WORLD_WIDTH = 800f`, `WORLD_HEIGHT = 600f`.
+- Orden de dibujado por frame: `drawScrollingBackgrounds()` → `drawBackgroundDim()` →
+  `arthur.drawEffects(batch)` → `arthur.draw(batch)`.
+- Overlay negro semitransparente: `Pixmap` 1×1, alpha `0.21f`.
+- Únicamente 2 fondos de scroll: `main-backgroud-1.png` y `main-background-2.png`.
