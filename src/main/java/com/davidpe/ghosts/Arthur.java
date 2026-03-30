@@ -51,6 +51,7 @@ public class Arthur {
   private static final float LIGHT_TORSO_Y_WALK = 0.51f;
   private static final float LIGHT_TORSO_Y_CROUCH = 0.4f;
   private static final float LIGHT_TORSO_Y_JUMP = 0.56f;
+  private static final float LIGHT_TORSO_Y_PUNCH = 0.52f;
 
   // --- Legacy sprite sheet (for states without individual sheets yet) ---
   private static final int LEGACY_FRAME_COLS = 8;
@@ -60,13 +61,16 @@ public class Arthur {
   // --- Animation frame durations per state ---
   private static final float IDLE_FRAME_DURATION = 0.07f;
   private static final float WALK_FRAME_DURATION = 0.035f;
+  private static final float JUMP_FRAME_DURATION = 0.04f;
+  private static final float PUNCH_FRAME_DURATION = 0.035f;
 
   // --- State machine ---
   private enum MovementState {
     IDLE,
     WALK,
     CROUCH,
-    JUMP
+    JUMP,
+    PUNCH
   }
 
   // --- Animations ---
@@ -74,10 +78,13 @@ public class Arthur {
   private Animation<TextureRegion> walkAnimation;
   private Animation<TextureRegion> crouchAnimation;
   private Animation<TextureRegion> jumpAnimation;
+  private Animation<TextureRegion> punchAnimation;
 
   // --- Textures (owned, must dispose) ---
   private Texture idleSheet;
   private Texture walkSheet;
+  private Texture jumpSheet;
+  private Texture punchSheet;
   private Texture legacySheet;
   private Texture lightTexture;
 
@@ -110,6 +117,12 @@ public class Arthur {
     walkSheet = new Texture(Gdx.files.internal("arthur/sprite-sheet-arthur-walk.png"));
     walkSheet.setFilter(TextureFilter.Nearest, TextureFilter.Nearest);
 
+    jumpSheet = new Texture(Gdx.files.internal("arthur/sprite-sheet-arthur-jump.png"));
+    jumpSheet.setFilter(TextureFilter.Nearest, TextureFilter.Nearest);
+
+    punchSheet = new Texture(Gdx.files.internal("arthur/sprite-sheet-arthur-punch.png"));
+    punchSheet.setFilter(TextureFilter.Nearest, TextureFilter.Nearest);
+
     // --- Load legacy sheet for states without individual sheets yet ---
     legacySheet = loadWithTransparentBlack("sprites_arthur.png");
     legacySheet.setFilter(TextureFilter.Nearest, TextureFilter.Nearest);
@@ -121,15 +134,19 @@ public class Arthur {
     walkAnimation =
         buildAnimationFromBoundingBoxes(
             walkSheet, "arthur/bouding-boxes-arthur-walk.json", WALK_FRAME_DURATION);
+    jumpAnimation =
+        buildAnimationFromBoundingBoxes(
+            jumpSheet, "arthur/bounding-boxes-arthur-jump.json", JUMP_FRAME_DURATION);
+    punchAnimation =
+        buildAnimationFromBoundingBoxes(
+            punchSheet, "arthur/bounding-boxes-arthur-punch.json", PUNCH_FRAME_DURATION);
 
-    // --- Legacy grid-based extraction for CROUCH and JUMP ---
+    // --- Legacy grid-based extraction for CROUCH ---
     int frameWidth = legacySheet.getWidth() / LEGACY_FRAME_COLS;
     int frameHeight = legacySheet.getHeight() / LEGACY_FRAME_ROWS;
     TextureRegion[][] legacyFrames = TextureRegion.split(legacySheet, frameWidth, frameHeight);
     crouchAnimation =
         new Animation<>(1f, createSafeRegion(legacyFrames[1][0], LEGACY_SPRITE_INSET_PX));
-    jumpAnimation =
-        new Animation<>(1f, createSafeRegion(legacyFrames[1][1], LEGACY_SPRITE_INSET_PX));
 
     // --- Lighting ---
     lightTexture = createLightTexture(256);
@@ -195,6 +212,8 @@ public class Arthur {
   public void dispose() {
     idleSheet.dispose();
     walkSheet.dispose();
+    jumpSheet.dispose();
+    punchSheet.dispose();
     legacySheet.dispose();
     lightTexture.dispose();
   }
@@ -242,8 +261,10 @@ public class Arthur {
           case WALK -> walkAnimation;
           case CROUCH -> crouchAnimation;
           case JUMP -> jumpAnimation;
+          case PUNCH -> punchAnimation;
         };
-    return anim.getKeyFrame(stateTime, true);
+    boolean looping = movementState != MovementState.PUNCH;
+    return anim.getKeyFrame(stateTime, looping);
   }
 
   // ---------------------------------------------------------------------------
@@ -258,9 +279,8 @@ public class Arthur {
     boolean downPressed =
         Gdx.input.isKeyPressed(Input.Keys.DOWN) || Gdx.input.isKeyPressed(Input.Keys.S);
     boolean jumpPressed =
-        Gdx.input.isKeyJustPressed(Input.Keys.SPACE)
-            || Gdx.input.isKeyJustPressed(Input.Keys.UP)
-            || Gdx.input.isKeyJustPressed(Input.Keys.W);
+        Gdx.input.isKeyJustPressed(Input.Keys.UP) || Gdx.input.isKeyJustPressed(Input.Keys.W);
+    boolean punchPressed = Gdx.input.isKeyJustPressed(Input.Keys.SPACE);
     boolean isOnGround = y <= GROUND_Y;
 
     int horizontalInput = 0;
@@ -270,6 +290,25 @@ public class Arthur {
     movingHorizontally = horizontalInput != 0 && !downPressed;
     if (movingHorizontally) {
       facingRight = horizontalInput > 0;
+    }
+
+    // --- Punch: one-shot animation, blocks other grounded actions ---
+    if (movementState == MovementState.PUNCH) {
+      if (punchAnimation.isAnimationFinished(stateTime)) {
+        movementState = MovementState.IDLE;
+      } else {
+        // Still punching — freeze horizontal movement, but allow gravity if airborne
+        velocityX = 0f;
+        updateScroll(delta);
+        return;
+      }
+    }
+    if (punchPressed && isOnGround) {
+      movementState = MovementState.PUNCH;
+      stateTime = 0f;
+      velocityX = 0f;
+      updateScroll(delta);
+      return;
     }
 
     boolean wasAirborne = !isOnGround || movementState == MovementState.JUMP;
@@ -341,6 +380,10 @@ public class Arthur {
       crouchAnchorX = x;
     }
 
+    updateScroll(delta);
+  }
+
+  private void updateScroll(float delta) {
     float targetScrollVelocity = 0f;
     float comfortMin = CAMERA_COMFORT_LEFT - (drawWidth * 0.5f);
     float comfortMax = CAMERA_COMFORT_RIGHT - (drawWidth * 0.5f);
@@ -390,6 +433,7 @@ public class Arthur {
       case WALK -> LIGHT_TORSO_Y_WALK;
       case CROUCH -> LIGHT_TORSO_Y_CROUCH;
       case JUMP -> LIGHT_TORSO_Y_JUMP;
+      case PUNCH -> LIGHT_TORSO_Y_PUNCH;
     };
   }
 
