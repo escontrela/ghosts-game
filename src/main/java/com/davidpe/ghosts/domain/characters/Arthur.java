@@ -1,4 +1,4 @@
-package com.davidpe.ghosts;
+package com.davidpe.ghosts.domain.characters;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
@@ -10,19 +10,22 @@ import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.MathUtils;
-import com.badlogic.gdx.utils.JsonReader;
-import com.badlogic.gdx.utils.JsonValue;
+import com.davidpe.ghosts.domain.utils.AnimationUtils;
 
 /**
- * The Arthur class represents the player character in the game. It manages Arthur's state,
- * movement, animations, and interactions with the game world. The class handles input for moving
- * left and right, jumping, crouching, and punching, as well as the physics for gravity and landing.
- * It also manages the camera scrolling based on Arthur's position and creates a dynamic light
- * effect that changes based on Arthur's actions. The class loads animations from sprite sheets and
- * bounding box JSON files, and it provides methods for updating Arthur's state and drawing him on
- * the screen.
+ * Player character Arthur. Extends {@link Character} with keyboard-driven input, a six-state
+ * animation machine (IDLE, WALK, CROUCH, CROUCH_UP, JUMP, PUNCH), camera-tracking scroll, and a
+ * dynamic focal light effect. Each state loads its own sprite sheet via bounding-box JSON through
+ * an injected {@link AnimationUtils} instance.
+ *
+ * <p>Arthur-specific public methods beyond the inherited API:
+ *
+ * <ul>
+ *   <li>{@code drawEffects(batch)} — renders the focal light around Arthur
+ *   <li>{@code getWorldOffsetX()} — exposes the horizontal scroll offset for backgrounds
+ * </ul>
  */
-public class Arthur {
+public class Arthur extends Character {
 
   // --- Sprite / draw constants ---
   private static final float DRAW_HEIGHT = 120f;
@@ -91,24 +94,11 @@ public class Arthur {
   private Animation<TextureRegion> jumpAnimation;
   private Animation<TextureRegion> punchAnimation;
 
-  // --- Textures (owned, must dispose) ---
-  private Texture idleSheet;
-  private Texture walkSheet;
-  private Texture jumpSheet;
-  private Texture punchSheet;
-  private Texture crouchSheet;
+  // --- Lighting texture (needed by drawEffects) ---
   private Texture lightTexture;
 
-  // --- Character state ---
-  private final float worldWidth;
+  // --- Arthur-specific state ---
   private MovementState movementState;
-  private float stateTime;
-  private float x;
-  private float y;
-  private float drawWidth;
-  private float velocityX;
-  private float velocityY;
-  private boolean facingRight;
   private boolean movingHorizontally;
   private float worldOffsetX;
   private float scrollVelocityX;
@@ -116,48 +106,40 @@ public class Arthur {
   private float crouchAnchorX;
   private float currentLightAlpha;
   private float currentLightSize;
-  private final TextureRegion renderFrame;
 
-  public Arthur(float worldWidth) {
-    this.worldWidth = worldWidth;
+  public Arthur(float worldWidth, AnimationUtils animationUtils) {
+    super(worldWidth);
 
-    // --- Load individual sprite sheets for IDLE and WALK ---
-    idleSheet = new Texture(Gdx.files.internal("arthur/sprite-sheet-arthur-idle.png"));
-    idleSheet.setFilter(TextureFilter.Nearest, TextureFilter.Nearest);
-
-    walkSheet = new Texture(Gdx.files.internal("arthur/sprite-sheet-arthur-walk.png"));
-    walkSheet.setFilter(TextureFilter.Nearest, TextureFilter.Nearest);
-
-    jumpSheet = new Texture(Gdx.files.internal("arthur/sprite-sheet-arthur-jump.png"));
-    jumpSheet.setFilter(TextureFilter.Nearest, TextureFilter.Nearest);
-
-    punchSheet = new Texture(Gdx.files.internal("arthur/sprite-sheet-arthur-punch.png"));
-    punchSheet.setFilter(TextureFilter.Nearest, TextureFilter.Nearest);
-
-    crouchSheet = new Texture(Gdx.files.internal("arthur/sprite-sheet-arthur-crouching.png"));
-    crouchSheet.setFilter(TextureFilter.Nearest, TextureFilter.Nearest);
+    // --- Load individual sprite sheets (registered for automatic disposal) ---
+    Texture idleSheet = loadSheet("arthur/sprite-sheet-arthur-idle.png");
+    Texture walkSheet = loadSheet("arthur/sprite-sheet-arthur-walk.png");
+    Texture jumpSheet = loadSheet("arthur/sprite-sheet-arthur-jump.png");
+    Texture punchSheet = loadSheet("arthur/sprite-sheet-arthur-punch.png");
+    Texture crouchSheet = loadSheet("arthur/sprite-sheet-arthur-crouching.png");
 
     // --- Build animations from bounding-box JSON ---
     idleAnimation =
-        buildAnimationFromBoundingBoxes(
+        animationUtils.buildAnimationFromBoundingBoxes(
             idleSheet, "arthur/bounding-boxes-arthur-idle.json", IDLE_FRAME_DURATION);
     walkAnimation =
-        buildAnimationFromBoundingBoxes(
+        animationUtils.buildAnimationFromBoundingBoxes(
             walkSheet, "arthur/bouding-boxes-arthur-walk.json", WALK_FRAME_DURATION);
     jumpAnimation =
-        buildAnimationFromBoundingBoxes(
+        animationUtils.buildAnimationFromBoundingBoxes(
             jumpSheet, "arthur/bounding-boxes-arthur-jump.json", JUMP_FRAME_DURATION);
     punchAnimation =
-        buildAnimationFromBoundingBoxes(
+        animationUtils.buildAnimationFromBoundingBoxes(
             punchSheet, "arthur/bounding-boxes-arthur-punch.json", PUNCH_FRAME_DURATION);
 
     // --- Crouch: split into crouch-down (frames 0..19) and stand-up (frames 16..end) ---
     TextureRegion[] allCrouchFrames =
-        loadFramesFromBoundingBoxes(crouchSheet, "arthur/bounding-boxes-arthur-crouching.json");
+        animationUtils.loadFramesFromBoundingBoxes(
+            crouchSheet, "arthur/bounding-boxes-arthur-crouching.json");
     crouchDownAnimation =
-        buildAnimationFromRange(allCrouchFrames, 0, CROUCH_DOWN_END_FRAME, CROUCH_FRAME_DURATION);
+        animationUtils.buildAnimationFromRange(
+            allCrouchFrames, 0, CROUCH_DOWN_END_FRAME, CROUCH_FRAME_DURATION);
     crouchUpAnimation =
-        buildAnimationFromRange(
+        animationUtils.buildAnimationFromRange(
             allCrouchFrames,
             CROUCH_DOWN_END_FRAME - 4,
             allCrouchFrames.length,
@@ -165,6 +147,7 @@ public class Arthur {
 
     // --- Lighting ---
     lightTexture = createLightTexture(256);
+    ownedTextures.add(lightTexture);
 
     // --- Initial state ---
     TextureRegion firstFrame = idleAnimation.getKeyFrame(0f);
@@ -183,31 +166,11 @@ public class Arthur {
     crouchAnchorX = x;
     currentLightAlpha = LIGHT_ALPHA_IDLE;
     currentLightSize = LIGHT_SIZE_IDLE;
-    stateTime = 0f;
-    renderFrame = new TextureRegion();
   }
 
-  public void update(float delta) {
-    MovementState previousState = movementState;
-    updateMovement(delta);
-    updateLighting(delta);
-    if (movementState != previousState) {
-      stateTime = 0f;
-    }
-    stateTime += delta;
-  }
-
-  public void draw(SpriteBatch batch) {
-    TextureRegion frameToDraw = getFrameForState();
-    renderFrame.setRegion(frameToDraw);
-    float drawX = Math.round(x);
-    float dw = Math.round(drawWidth);
-    if (!facingRight) {
-      drawX += dw;
-      dw = -dw;
-    }
-    batch.draw(renderFrame, drawX, Math.round(y), dw, Math.round(DRAW_HEIGHT));
-  }
+  // ---------------------------------------------------------------------------
+  // Arthur-specific public API
+  // ---------------------------------------------------------------------------
 
   public void drawEffects(SpriteBatch batch) {
     float torsoAnchorX = x + (drawWidth * LIGHT_TORSO_X);
@@ -224,62 +187,22 @@ public class Arthur {
     return worldOffsetX;
   }
 
-  public void dispose() {
-    idleSheet.dispose();
-    walkSheet.dispose();
-    jumpSheet.dispose();
-    punchSheet.dispose();
-    crouchSheet.dispose();
-    lightTexture.dispose();
-  }
-
   // ---------------------------------------------------------------------------
-  // Animation loading
+  // Character abstract hooks
   // ---------------------------------------------------------------------------
 
-  private Animation<TextureRegion> buildAnimationFromBoundingBoxes(
-      Texture sheet, String jsonPath, float frameDuration) {
-    JsonReader reader = new JsonReader();
-    JsonValue root = reader.parse(Gdx.files.internal(jsonPath));
-    TextureRegion[] frames = new TextureRegion[root.size];
-    int i = 0;
-    for (JsonValue entry = root.child; entry != null; entry = entry.next) {
-      int fx = entry.getInt("x");
-      int fy = entry.getInt("y");
-      int fw = entry.getInt("width");
-      int fh = entry.getInt("height");
-      frames[i++] = new TextureRegion(sheet, fx, fy, fw, fh);
+  @Override
+  protected void updateBehavior(float delta) {
+    MovementState previousState = movementState;
+    updateMovement(delta);
+    updateLighting(delta);
+    if (movementState != previousState) {
+      resetStateTime();
     }
-    return new Animation<>(frameDuration, frames);
   }
 
-  private TextureRegion[] loadFramesFromBoundingBoxes(Texture sheet, String jsonPath) {
-    JsonReader reader = new JsonReader();
-    JsonValue root = reader.parse(Gdx.files.internal(jsonPath));
-    TextureRegion[] frames = new TextureRegion[root.size];
-    int i = 0;
-    for (JsonValue entry = root.child; entry != null; entry = entry.next) {
-      int fx = entry.getInt("x");
-      int fy = entry.getInt("y");
-      int fw = entry.getInt("width");
-      int fh = entry.getInt("height");
-      frames[i++] = new TextureRegion(sheet, fx, fy, fw, fh);
-    }
-    return frames;
-  }
-
-  private Animation<TextureRegion> buildAnimationFromRange(
-      TextureRegion[] allFrames, int from, int to, float frameDuration) {
-    TextureRegion[] subset = new TextureRegion[to - from];
-    System.arraycopy(allFrames, from, subset, 0, subset.length);
-    return new Animation<>(frameDuration, subset);
-  }
-
-  // ---------------------------------------------------------------------------
-  // State & animation selection
-  // ---------------------------------------------------------------------------
-
-  private TextureRegion getFrameForState() {
+  @Override
+  protected TextureRegion getCurrentFrame() {
     Animation<TextureRegion> anim =
         switch (movementState) {
           case IDLE -> idleAnimation;
@@ -294,6 +217,11 @@ public class Arthur {
             && movementState != MovementState.CROUCH
             && movementState != MovementState.CROUCH_UP;
     return anim.getKeyFrame(stateTime, looping);
+  }
+
+  @Override
+  protected float getDrawHeight() {
+    return DRAW_HEIGHT;
   }
 
   // ---------------------------------------------------------------------------
@@ -333,7 +261,7 @@ public class Arthur {
     }
     if (punchPressed && isOnGround) {
       movementState = MovementState.PUNCH;
-      stateTime = 0f;
+      resetStateTime();
       velocityX = 0f;
       updateScroll(delta);
       return;
@@ -409,9 +337,8 @@ public class Arthur {
       if (downPressed) {
         movementState = MovementState.CROUCH;
       } else if (movementState == MovementState.CROUCH) {
-        // Key just released — start stand-up animation
         movementState = MovementState.CROUCH_UP;
-        stateTime = 0f;
+        resetStateTime();
       } else if (Math.abs(velocityX) > 8f) {
         movementState = MovementState.WALK;
       } else {
@@ -460,13 +387,6 @@ public class Arthur {
     worldOffsetX += scrollVelocityX * delta;
   }
 
-  private float moveTowards(float current, float target, float maxDelta) {
-    if (Math.abs(target - current) <= maxDelta) {
-      return target;
-    }
-    return current + Math.signum(target - current) * maxDelta;
-  }
-
   // ---------------------------------------------------------------------------
   // Lighting
   // ---------------------------------------------------------------------------
@@ -499,6 +419,13 @@ public class Arthur {
   // ---------------------------------------------------------------------------
   // Texture utilities
   // ---------------------------------------------------------------------------
+
+  private Texture loadSheet(String path) {
+    Texture sheet = new Texture(Gdx.files.internal(path));
+    sheet.setFilter(TextureFilter.Nearest, TextureFilter.Nearest);
+    ownedTextures.add(sheet);
+    return sheet;
+  }
 
   private Texture createLightTexture(int size) {
     Pixmap pixmap = new Pixmap(size, size, Pixmap.Format.RGBA8888);

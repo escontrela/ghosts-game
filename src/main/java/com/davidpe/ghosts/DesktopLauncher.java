@@ -2,6 +2,7 @@ package com.davidpe.ghosts;
 
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
+import com.davidpe.ghosts.application.GhostsGame;
 
 /**
  * Launches the desktop (LWJGL3) application. The main method serves as the entry point of the

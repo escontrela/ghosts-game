@@ -1,4 +1,4 @@
-package com.davidpe.ghosts;
+package com.davidpe.ghosts.application;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
@@ -10,13 +10,16 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
+import com.davidpe.ghosts.application.factories.CharacterFactory;
+import com.davidpe.ghosts.domain.characters.Arthur;
+import com.davidpe.ghosts.domain.utils.AnimationUtils;
 
 /**
- * The main game class for "Ghosts 'n Goblins Remake". This class is responsible for initializing
- * the game, managing the game loop, and rendering the game world. It sets up the camera, viewport,
- * and handles the drawing of the scrolling backgrounds, the player character (Arthur), and any
- * visual effects. The game world is defined with a fixed width and height, and the background
- * scrolls based
+ * Main game orchestrator for "Ghosts 'n Goblins Remake". Manages the LibGDX lifecycle ({@code
+ * create}, {@code render}, {@code resize}, {@code dispose}) and owns the shared rendering
+ * infrastructure: camera, viewport, sprite batch, scrolling backgrounds, and the dim overlay.
+ * Character creation is delegated to {@link CharacterFactory}; per-frame logic is delegated to the
+ * character domain objects (currently {@link Arthur}).
  */
 public class GhostsGame extends ApplicationAdapter {
 
@@ -51,7 +54,8 @@ public class GhostsGame extends ApplicationAdapter {
         };
     blackOverlayTexture = createSolidTexture(1, 1, 0f, 0f, 0f, 1f);
 
-    arthur = new Arthur(WORLD_WIDTH);
+    CharacterFactory characterFactory = new CharacterFactory(AnimationUtils.getInstance());
+    arthur = characterFactory.createArthur(WORLD_WIDTH);
   }
 
   @Override
