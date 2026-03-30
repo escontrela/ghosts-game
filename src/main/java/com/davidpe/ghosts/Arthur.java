@@ -13,6 +13,15 @@ import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.JsonReader;
 import com.badlogic.gdx.utils.JsonValue;
 
+/**
+ * The Arthur class represents the player character in the game. It manages Arthur's state,
+ * movement, animations, and interactions with the game world. The class handles input for moving
+ * left and right, jumping, crouching, and punching, as well as the physics for gravity and landing.
+ * It also manages the camera scrolling based on Arthur's position and creates a dynamic light
+ * effect that changes based on Arthur's actions. The class loads animations from sprite sheets and
+ * bounding box JSON files, and it provides methods for updating Arthur's state and drawing him on
+ * the screen.
+ */
 public class Arthur {
 
   // --- Sprite / draw constants ---
@@ -50,25 +59,26 @@ public class Arthur {
   private static final float LIGHT_TORSO_Y_IDLE = 0.52f;
   private static final float LIGHT_TORSO_Y_WALK = 0.51f;
   private static final float LIGHT_TORSO_Y_CROUCH = 0.4f;
+  private static final float LIGHT_TORSO_Y_CROUCH_UP = 0.45f;
   private static final float LIGHT_TORSO_Y_JUMP = 0.56f;
   private static final float LIGHT_TORSO_Y_PUNCH = 0.52f;
 
-  // --- Legacy sprite sheet (for states without individual sheets yet) ---
-  private static final int LEGACY_FRAME_COLS = 8;
-  private static final int LEGACY_FRAME_ROWS = 5;
-  private static final int LEGACY_SPRITE_INSET_PX = 2;
+  // --- Crouch split: rows 0-4 = crouch down (20 frames), rows 4-end = stand up (13 frames) ---
+  private static final int CROUCH_DOWN_END_FRAME = 20;
 
   // --- Animation frame durations per state ---
   private static final float IDLE_FRAME_DURATION = 0.07f;
   private static final float WALK_FRAME_DURATION = 0.035f;
   private static final float JUMP_FRAME_DURATION = 0.04f;
   private static final float PUNCH_FRAME_DURATION = 0.035f;
+  private static final float CROUCH_FRAME_DURATION = 0.035f;
 
   // --- State machine ---
   private enum MovementState {
     IDLE,
     WALK,
     CROUCH,
+    CROUCH_UP,
     JUMP,
     PUNCH
   }
@@ -76,7 +86,8 @@ public class Arthur {
   // --- Animations ---
   private Animation<TextureRegion> idleAnimation;
   private Animation<TextureRegion> walkAnimation;
-  private Animation<TextureRegion> crouchAnimation;
+  private Animation<TextureRegion> crouchDownAnimation;
+  private Animation<TextureRegion> crouchUpAnimation;
   private Animation<TextureRegion> jumpAnimation;
   private Animation<TextureRegion> punchAnimation;
 
@@ -85,7 +96,7 @@ public class Arthur {
   private Texture walkSheet;
   private Texture jumpSheet;
   private Texture punchSheet;
-  private Texture legacySheet;
+  private Texture crouchSheet;
   private Texture lightTexture;
 
   // --- Character state ---
@@ -123,9 +134,8 @@ public class Arthur {
     punchSheet = new Texture(Gdx.files.internal("arthur/sprite-sheet-arthur-punch.png"));
     punchSheet.setFilter(TextureFilter.Nearest, TextureFilter.Nearest);
 
-    // --- Load legacy sheet for states without individual sheets yet ---
-    legacySheet = loadWithTransparentBlack("sprites_arthur.png");
-    legacySheet.setFilter(TextureFilter.Nearest, TextureFilter.Nearest);
+    crouchSheet = new Texture(Gdx.files.internal("arthur/sprite-sheet-arthur-crouching.png"));
+    crouchSheet.setFilter(TextureFilter.Nearest, TextureFilter.Nearest);
 
     // --- Build animations from bounding-box JSON ---
     idleAnimation =
@@ -141,12 +151,17 @@ public class Arthur {
         buildAnimationFromBoundingBoxes(
             punchSheet, "arthur/bounding-boxes-arthur-punch.json", PUNCH_FRAME_DURATION);
 
-    // --- Legacy grid-based extraction for CROUCH ---
-    int frameWidth = legacySheet.getWidth() / LEGACY_FRAME_COLS;
-    int frameHeight = legacySheet.getHeight() / LEGACY_FRAME_ROWS;
-    TextureRegion[][] legacyFrames = TextureRegion.split(legacySheet, frameWidth, frameHeight);
-    crouchAnimation =
-        new Animation<>(1f, createSafeRegion(legacyFrames[1][0], LEGACY_SPRITE_INSET_PX));
+    // --- Crouch: split into crouch-down (frames 0..19) and stand-up (frames 16..end) ---
+    TextureRegion[] allCrouchFrames =
+        loadFramesFromBoundingBoxes(crouchSheet, "arthur/bounding-boxes-arthur-crouching.json");
+    crouchDownAnimation =
+        buildAnimationFromRange(allCrouchFrames, 0, CROUCH_DOWN_END_FRAME, CROUCH_FRAME_DURATION);
+    crouchUpAnimation =
+        buildAnimationFromRange(
+            allCrouchFrames,
+            CROUCH_DOWN_END_FRAME - 4,
+            allCrouchFrames.length,
+            CROUCH_FRAME_DURATION);
 
     // --- Lighting ---
     lightTexture = createLightTexture(256);
@@ -214,7 +229,7 @@ public class Arthur {
     walkSheet.dispose();
     jumpSheet.dispose();
     punchSheet.dispose();
-    legacySheet.dispose();
+    crouchSheet.dispose();
     lightTexture.dispose();
   }
 
@@ -233,21 +248,31 @@ public class Arthur {
       int fy = entry.getInt("y");
       int fw = entry.getInt("width");
       int fh = entry.getInt("height");
-      System.out.println("Loaded frame from JSON: " + fx + "," + fy + " " + fw + "x" + fh);
       frames[i++] = new TextureRegion(sheet, fx, fy, fw, fh);
     }
     return new Animation<>(frameDuration, frames);
   }
 
-  private TextureRegion createSafeRegion(TextureRegion source, int insetPx) {
-    int safeInsetX = Math.min(insetPx, Math.max(0, (source.getRegionWidth() / 2) - 1));
-    int safeInsetY = Math.min(insetPx, Math.max(0, (source.getRegionHeight() / 2) - 1));
-    return new TextureRegion(
-        source.getTexture(),
-        source.getRegionX() + safeInsetX,
-        source.getRegionY() + safeInsetY,
-        source.getRegionWidth() - (safeInsetX * 2),
-        source.getRegionHeight() - (safeInsetY * 2));
+  private TextureRegion[] loadFramesFromBoundingBoxes(Texture sheet, String jsonPath) {
+    JsonReader reader = new JsonReader();
+    JsonValue root = reader.parse(Gdx.files.internal(jsonPath));
+    TextureRegion[] frames = new TextureRegion[root.size];
+    int i = 0;
+    for (JsonValue entry = root.child; entry != null; entry = entry.next) {
+      int fx = entry.getInt("x");
+      int fy = entry.getInt("y");
+      int fw = entry.getInt("width");
+      int fh = entry.getInt("height");
+      frames[i++] = new TextureRegion(sheet, fx, fy, fw, fh);
+    }
+    return frames;
+  }
+
+  private Animation<TextureRegion> buildAnimationFromRange(
+      TextureRegion[] allFrames, int from, int to, float frameDuration) {
+    TextureRegion[] subset = new TextureRegion[to - from];
+    System.arraycopy(allFrames, from, subset, 0, subset.length);
+    return new Animation<>(frameDuration, subset);
   }
 
   // ---------------------------------------------------------------------------
@@ -259,11 +284,15 @@ public class Arthur {
         switch (movementState) {
           case IDLE -> idleAnimation;
           case WALK -> walkAnimation;
-          case CROUCH -> crouchAnimation;
+          case CROUCH -> crouchDownAnimation;
+          case CROUCH_UP -> crouchUpAnimation;
           case JUMP -> jumpAnimation;
           case PUNCH -> punchAnimation;
         };
-    boolean looping = movementState != MovementState.PUNCH;
+    boolean looping =
+        movementState != MovementState.PUNCH
+            && movementState != MovementState.CROUCH
+            && movementState != MovementState.CROUCH_UP;
     return anim.getKeyFrame(stateTime, looping);
   }
 
@@ -297,7 +326,6 @@ public class Arthur {
       if (punchAnimation.isAnimationFinished(stateTime)) {
         movementState = MovementState.IDLE;
       } else {
-        // Still punching — freeze horizontal movement, but allow gravity if airborne
         velocityX = 0f;
         updateScroll(delta);
         return;
@@ -309,6 +337,18 @@ public class Arthur {
       velocityX = 0f;
       updateScroll(delta);
       return;
+    }
+
+    // --- Crouch up: stand-up animation after releasing crouch key ---
+    if (movementState == MovementState.CROUCH_UP) {
+      if (crouchUpAnimation.isAnimationFinished(stateTime)) {
+        movementState = MovementState.IDLE;
+      } else {
+        velocityX = 0f;
+        x = crouchAnchorX;
+        updateScroll(delta);
+        return;
+      }
     }
 
     boolean wasAirborne = !isOnGround || movementState == MovementState.JUMP;
@@ -368,6 +408,10 @@ public class Arthur {
     if (groundedAfterPhysics) {
       if (downPressed) {
         movementState = MovementState.CROUCH;
+      } else if (movementState == MovementState.CROUCH) {
+        // Key just released — start stand-up animation
+        movementState = MovementState.CROUCH_UP;
+        stateTime = 0f;
       } else if (Math.abs(velocityX) > 8f) {
         movementState = MovementState.WALK;
       } else {
@@ -432,6 +476,7 @@ public class Arthur {
       case IDLE -> LIGHT_TORSO_Y_IDLE;
       case WALK -> LIGHT_TORSO_Y_WALK;
       case CROUCH -> LIGHT_TORSO_Y_CROUCH;
+      case CROUCH_UP -> LIGHT_TORSO_Y_CROUCH_UP;
       case JUMP -> LIGHT_TORSO_Y_JUMP;
       case PUNCH -> LIGHT_TORSO_Y_PUNCH;
     };
@@ -441,7 +486,7 @@ public class Arthur {
     float speedFactor = MathUtils.clamp(Math.abs(velocityX) / MOVE_SPEED, 0f, 1f);
     float jumpBoost = movementState == MovementState.JUMP ? 0.25f : 0f;
     float activityFactor = MathUtils.clamp(Math.max(speedFactor, jumpBoost), 0f, 1f);
-    if (movementState == MovementState.CROUCH) {
+    if (movementState == MovementState.CROUCH || movementState == MovementState.CROUCH_UP) {
       activityFactor *= 0.4f;
     }
     float targetLightAlpha = MathUtils.lerp(LIGHT_ALPHA_IDLE, LIGHT_ALPHA_ACTIVE, activityFactor);
@@ -474,25 +519,5 @@ public class Arthur {
     Texture texture = new Texture(pixmap);
     pixmap.dispose();
     return texture;
-  }
-
-  private Texture loadWithTransparentBlack(String path) {
-    Pixmap original = new Pixmap(Gdx.files.internal(path));
-    original.setBlending(Pixmap.Blending.None);
-    int threshold = 30;
-    for (int py = 0; py < original.getHeight(); py++) {
-      for (int px = 0; px < original.getWidth(); px++) {
-        int pixel = original.getPixel(px, py);
-        int r = (pixel >>> 24) & 0xFF;
-        int g = (pixel >>> 16) & 0xFF;
-        int b = (pixel >>> 8) & 0xFF;
-        if (r < threshold && g < threshold && b < threshold) {
-          original.drawPixel(px, py, 0x00000000);
-        }
-      }
-    }
-    Texture tex = new Texture(original);
-    original.dispose();
-    return tex;
   }
 }
