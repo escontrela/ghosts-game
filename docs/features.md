@@ -81,6 +81,13 @@ Checklist manual breve bloque 2 (3-5 minutos):
 - **Restricciones de alcance aplicadas:** en este bloque no entra aún reacción del zombie al golpe de Arthur ni puntuación.
 - **Directriz técnica para devs:** mantener estructura DDD dominio/aplicación actual, reutilizar clases existentes y evitar proliferación innecesaria de clases pequeñas.
 
+### 2026-03-31 — PO Iteración: validación de avance bloque 4 (combate zombie por golpes)
+
+- **Estado Tasker validado:** `WIP=1` se mantiene en `GHOST-0043`; backlog operativo en 5 tickets (`GHOST-0000`, `GHOST-0044..GHOST-0047`).
+- **Comprobación de código local:** el estado `HITTED` del zombie existe, pero el disparo desde el golpe de Arthur aún está conectado por tecla debug (`H`) y no por rango de impacto de `PUNCH`.
+- **Decisión de planificación:** no se crean tickets nuevos ni se transicionan estados hasta cerrar `GHOST-0043` para respetar la secuencia del plan y evitar solapamiento de alcance.
+- **Recordatorio para devs:** preservar estructura DDD actual y reutilizar clases (`GhostsGame`, `Arthur`, `Zombie`) evitando proliferación de clases pequeñas.
+
 ### 2026-03-31 — GHOST-0038 Detección de contacto Zombie-Arthur desacoplada de combate
 
 - **Señal determinista de contacto:** `Zombie` expone `isInContactWith(...)` con chequeo AABB usando posiciones y bounds de ambos personajes.
