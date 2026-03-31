@@ -10,13 +10,15 @@ import com.davidpe.ghosts.domain.utils.AnimationUtils;
 
 public class Zombie extends Character {
 
-  private static final float DRAW_HEIGHT = 145f;
+  private static final float DRAW_HEIGHT = 120f;
   private static final float GROUND_Y = 130f;
   private static final float WALK_SPEED = 70f;
   private static final float TARGET_REACH_EPSILON = 2f;
+  private static final float HITTED_KNOCKBACK_SPEED = 120f;
+  private static final float HITTED_KNOCKBACK_DURATION = 0.18f;
 
   private static final float WALK_FRAME_DURATION = 0.06f;
-  private static final float GROUND_FRAME_DURATION = 0.07f;
+  private static final float GROUND_FRAME_DURATION = 0.16f;
   private static final float HITTED_FRAME_DURATION = 0.05f;
   private static final float DEFAULT_ACTIVE_WALK_DURATION_SECONDS =
       ZombieTuning.ACTIVE_WALK_DURATION_SECONDS;
@@ -145,7 +147,10 @@ public class Zombie extends Character {
         }
       }
       case HITTED -> {
-        velocityX = 0f;
+        if (stateTime < HITTED_KNOCKBACK_DURATION) {
+          float knockbackDir = facingRight ? -1f : 1f;
+          x += knockbackDir * HITTED_KNOCKBACK_SPEED * delta;
+        }
         if (hittedAnimation.isAnimationFinished(stateTime)) {
           hittedRecoveryTimer -= delta;
           if (hittedRecoveryTimer <= 0f && accumulatedHits < DEFEAT_HIT_THRESHOLD) {

@@ -46,6 +46,7 @@ public class GhostsGame extends ApplicationAdapter {
   private static final float ENERGY_HUD_CRITICAL_G = 0.2f;
   private static final float ENERGY_HUD_CRITICAL_B = 0.2f;
   private static final float ENERGY_HUD_CRITICAL_A = 0.9f;
+  private static final float ENERGY_HUD_BLINK_SPEED = 4f;
   private static final float ARTHUR_PUNCH_REACH = 46f;
   private static final float ARTHUR_PUNCH_VERTICAL_REACH = 22f;
 
@@ -66,6 +67,7 @@ public class GhostsGame extends ApplicationAdapter {
   private boolean zombieArthurContactActive;
   private boolean zombieDefeatByHitEventPending;
   private int defeatedZombieCount;
+  private float gameTime;
 
   @Override
   public void create() {
@@ -94,6 +96,7 @@ public class GhostsGame extends ApplicationAdapter {
     zombieArthurContactActive = false;
     zombieDefeatByHitEventPending = false;
     defeatedZombieCount = 0;
+    gameTime = 0f;
     activateZombieCycle(pickSpawnSide());
   }
 
@@ -103,6 +106,7 @@ public class GhostsGame extends ApplicationAdapter {
     ScreenUtils.clear(0, 0, 0, 1);
 
     float delta = Gdx.graphics.getDeltaTime();
+    gameTime += delta;
     handleZombieDebugInput();
     float prevWorldOffset = arthur.getWorldOffsetX();
     arthur.update(delta);
@@ -246,27 +250,28 @@ public class GhostsGame extends ApplicationAdapter {
   private void drawEnergyHud() {
     float energy = arthur.getEnergy();
     String energyText = "Energy: " + Math.round(energy);
-    hudLayout.setText(hudFont, energyText);
-    float textX = WORLD_WIDTH - ENERGY_HUD_MARGIN_RIGHT - hudLayout.width;
-    float textY = ENERGY_HUD_MARGIN_BOTTOM + hudLayout.height;
     if (energy <= 0f) {
+      float blink = (float) Math.abs(Math.sin(gameTime * ENERGY_HUD_BLINK_SPEED * Math.PI));
       hudFont.setColor(
           ENERGY_HUD_CRITICAL_R,
           ENERGY_HUD_CRITICAL_G,
           ENERGY_HUD_CRITICAL_B,
-          ENERGY_HUD_CRITICAL_A);
+          ENERGY_HUD_CRITICAL_A * blink);
     } else {
       hudFont.setColor(ENERGY_HUD_BASE_R, ENERGY_HUD_BASE_G, ENERGY_HUD_BASE_B, ENERGY_HUD_BASE_A);
     }
+    hudLayout.setText(hudFont, energyText);
+    float textX = WORLD_WIDTH - ENERGY_HUD_MARGIN_RIGHT - hudLayout.width;
+    float textY = ENERGY_HUD_MARGIN_BOTTOM + hudLayout.height;
     hudFont.draw(batch, hudLayout, textX, textY);
   }
 
   private void drawScoreHud() {
     String scoreText = "Score: " + defeatedZombieCount;
+    hudFont.setColor(ENERGY_HUD_BASE_R, ENERGY_HUD_BASE_G, ENERGY_HUD_BASE_B, ENERGY_HUD_BASE_A);
     hudLayout.setText(hudFont, scoreText);
     float textX = SCORE_HUD_MARGIN_LEFT;
     float textY = SCORE_HUD_MARGIN_BOTTOM + hudLayout.height;
-    hudFont.setColor(ENERGY_HUD_BASE_R, ENERGY_HUD_BASE_G, ENERGY_HUD_BASE_B, ENERGY_HUD_BASE_A);
     hudFont.draw(batch, hudLayout, textX, textY);
   }
 

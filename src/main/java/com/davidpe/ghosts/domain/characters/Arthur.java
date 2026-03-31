@@ -76,6 +76,7 @@ public class Arthur extends Character {
   private static final float WALK_FRAME_DURATION = 0.035f;
   private static final float JUMP_FRAME_DURATION = 0.04f;
   private static final float PUNCH_FRAME_DURATION = 0.035f;
+  private static final float PUNCH_HIT_WINDOW_RATIO = 0.65f;
   private static final float CROUCH_FRAME_DURATION = 0.035f;
 
   // --- State machine ---
@@ -197,7 +198,8 @@ public class Arthur extends Character {
     return energy;
   }
 
-  public void applyContactEnergyDrain(boolean zombieContactActive, float delta, float drainPerSecond) {
+  public void applyContactEnergyDrain(
+      boolean zombieContactActive, float delta, float drainPerSecond) {
     if (!zombieContactActive || drainPerSecond <= 0f || energy <= 0f || delta <= 0f) {
       return;
     }
@@ -285,6 +287,10 @@ public class Arthur extends Character {
         punchHitWindowPending = false;
         movementState = MovementState.IDLE;
       } else {
+        if (!punchHitWindowPending
+            && stateTime >= punchAnimation.getAnimationDuration() * PUNCH_HIT_WINDOW_RATIO) {
+          punchHitWindowPending = true;
+        }
         velocityX = 0f;
         updateScroll(delta);
         return;
@@ -294,7 +300,7 @@ public class Arthur extends Character {
       movementState = MovementState.PUNCH;
       resetStateTime();
       velocityX = 0f;
-      punchHitWindowPending = true;
+      punchHitWindowPending = false;
       updateScroll(delta);
       return;
     }
