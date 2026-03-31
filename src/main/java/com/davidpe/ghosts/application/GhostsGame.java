@@ -47,6 +47,7 @@ public class GhostsGame extends ApplicationAdapter {
   private Random random;
   private boolean zombieCycleActive;
   private float zombieRespawnTimer;
+  private boolean zombieArthurContactActive;
 
   @Override
   public void create() {
@@ -70,6 +71,7 @@ public class GhostsGame extends ApplicationAdapter {
     zombie = characterFactory.createZombie(WORLD_WIDTH);
     random = new Random();
     zombieRespawnTimer = 0f;
+    zombieArthurContactActive = false;
     activateZombieCycle(pickSpawnSide());
   }
 
@@ -84,6 +86,9 @@ public class GhostsGame extends ApplicationAdapter {
     updateZombieSpawner(delta);
     zombie.setTargetX(arthur.getX());
     zombie.update(delta);
+    zombieArthurContactActive =
+        zombie.isInContactWith(
+            arthur.getX(), arthur.getY(), arthur.getDrawWidth(), arthur.getDrawHeightValue());
 
     camera.update();
     batch.setProjectionMatrix(camera.combined);
@@ -199,6 +204,10 @@ public class GhostsGame extends ApplicationAdapter {
   private float randomRespawnDelay() {
     return ZOMBIE_RESPAWN_DELAY_MIN_SECONDS
         + random.nextFloat() * (ZOMBIE_RESPAWN_DELAY_MAX_SECONDS - ZOMBIE_RESPAWN_DELAY_MIN_SECONDS);
+  }
+
+  public boolean isZombieArthurContactActive() {
+    return zombieArthurContactActive;
   }
 
 }

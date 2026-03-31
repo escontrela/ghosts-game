@@ -96,6 +96,16 @@ public abstract class Character {
     return y;
   }
 
+  /** Returns the character draw width in world units. */
+  public float getDrawWidth() {
+    return drawWidth;
+  }
+
+  /** Returns the character draw height in world units. */
+  public float getDrawHeightValue() {
+    return getDrawHeight();
+  }
+
   /**
    * Resets the animation timer to zero. Call this when the character transitions to a new state.
    */
