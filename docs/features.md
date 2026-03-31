@@ -40,6 +40,20 @@
 - **Ciclo de respawn conservado:** al finalizar `GROUND_HIDE`, el flujo existente (`hideCycleCompleted`) mantiene listo el respawn del zombie.
 - **Sin expansión estructural:** ajuste integrado sobre `Zombie` y lógica existente de `GhostsGame`.
 
+### 2026-03-31 — GHOST-0047 Integración bloque 4 combate Zombie + checklist
+
+- **Flujo de combate integrado:** golpe válido cercano de Arthur activa `HITTED`; con impactos acumulados `< 3` el zombie vuelve a `WALK` tras delay corto; al impacto `3` entra en `GROUND_HIDE`.
+- **Daño detenido tras tercer golpe:** al pasar a `GROUND_HIDE`, el zombie deja de computar contacto dañino y Arthur deja de perder energía por ese enemigo.
+- **Directriz para devs (bloque 4):** priorizar reutilización sobre clases actuales (`GhostsGame`, `Arthur`, `Zombie`) y evitar proliferación innecesaria de clases.
+
+Checklist manual breve bloque 4 (3-5 minutos):
+
+1. **Golpe no letal:** acercar Arthur al zombie, pulsar `SPACE` y validar transición inmediata a `HITTED`.
+2. **Retorno a persecución:** tras terminar `HITTED`, verificar breve pausa y vuelta automática del zombie a `WALK`.
+3. **Acumulación de impactos:** repetir golpes válidos y confirmar que el tercer impacto no vuelve a `HITTED`, sino que dispara `GROUND_HIDE`.
+4. **Corte de daño:** durante `GROUND_HIDE`, mantener proximidad visual y validar que `Energy` deja de decrecer por ese zombie.
+5. **Ciclo listo para respawn:** esperar final de `GROUND_HIDE` y comprobar que el ciclo queda preparado para respawn con la IA existente.
+
 ### 2026-03-31 — GHOST-0000 Bootstrap de fase 1 de control y scroll (validación operativa)
 
 - **Rama de trabajo validada para el ciclo actual:** desarrollo ejecutado en `feature/zombie-enemies` (política activa del repositorio).
