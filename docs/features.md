@@ -12,6 +12,16 @@
 
 ## Features implementadas
 
+### 2026-03-31 — PO Iteración: validación de continuidad zombie hardening (sin cierres artificiales)
+
+- **Estado Tasker verificado:** `WIP=1` se mantiene en `GHOST-0054`; backlog operativo cubierto con 5 tickets (`GHOST-0055..GHOST-0059`).
+- **Evidencia técnica para mantener alcance actual:**
+  - `GhostsGame.handleZombieDebugInput()` mantiene activas teclas debug (`1`, `2`, `H`, `G`) en runtime normal.
+  - `GhostsGame.processArthurPunchHit()` sigue consumiendo `consumePunchHitWindow()` antes de confirmar target elegible (`zombie.isWalking()`).
+- **Sin transiciones en esta iteración:** no se marca `done` ningún ticket de hardening al no existir evidencia completa de cierre en código.
+- **Salud de build (smoke):** `mvn -q -DskipTests compile` ejecutado con resultado **OK** en `feature/zombie-enemies`.
+- **Directriz reiterada a devs:** preservar estructura DDD actual y reutilizar `GhostsGame`/`Arthur`/`Zombie`, evitando proliferación de clases.
+
 ### 2026-03-31 — PO Iteración: backlog repuesto para hardening zombie post-review
 
 - **Lectura de contexto completada:** Tasker quedó con `backlog=0` e `in_progress=0` tras cierre del bloque anterior, por lo que se repone secuencia operativa sin romper el plan de zombies.
