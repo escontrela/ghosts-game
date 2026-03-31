@@ -12,6 +12,18 @@
 
 ## Features implementadas
 
+### 2026-03-31 — PO Iteración: backlog repuesto para hardening zombie post-review
+
+- **Lectura de contexto completada:** Tasker quedó con `backlog=0` e `in_progress=0` tras cierre del bloque anterior, por lo que se repone secuencia operativa sin romper el plan de zombies.
+- **`WIP=1` restablecido:** `GHOST-0054` pasa a `in_progress` como único ticket activo.
+- **Backlog mínimo restituido (5 tickets):**
+  - `GHOST-0055` consistencia de hit de Arthur (consumo de ventana solo con target elegible).
+  - `GHOST-0056` robustez de drenado de energía ante variaciones de `delta`/FPS.
+  - `GHOST-0057` centralización de parámetros de ciclo zombie para tuning controlado.
+  - `GHOST-0058` checklist E2E de 10 ciclos zombie sin intervención debug.
+  - `GHOST-0059` review técnica focalizada en bugs runtime de zombie.
+- **Directriz reforzada para devs:** preservar estructura DDD actual, reutilizar `GhostsGame`/`Arthur`/`Zombie` y evitar proliferación de clases pequeñas sin responsabilidad clara.
+
 ### 2026-03-31 — PO Iteración: planificación bloque score + review tras cierre de combate
 
 - **Verificación de implementación real:** el código actual ya contiene ciclo de combate zombie con golpe cercano de Arthur (`SPACE`), transición a `HITTED`, umbral de 3 impactos, retorno a `GROUND_HIDE` y corte de drenado de energía tras derrota.
