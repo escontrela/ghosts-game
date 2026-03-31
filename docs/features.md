@@ -695,3 +695,38 @@ Validación ejecutada contra Tasker (`projectId=6`, `userId=1`) y repositorio lo
 3. Pulsar `H` y verificar `HITTED` one-shot con retorno a `WALK`.
 4. Pulsar `G` y verificar secuencia `GROUND_HIDE` (one-shot) seguida de `GROUND_RISE` y vuelta a `WALK`.
 5. Repetir `H`/`G` alternados y confirmar estabilidad de animación y ausencia de fugas de texturas al cerrar la app.
+
+## Iteración PO autónoma — 2026-03-31 (plan de zombies, bloque 2/4)
+
+Validación ejecutada contra Tasker (`projectId=6`, `userId=1`) y repositorio local en rama `feature/zombie-enemies`.
+
+### Estado validado antes de planificar
+
+- `DONE`: `GHOST-0028`..`GHOST-0032` completados (character zombie base finalizado).
+- `IN_PROGRESS`: ninguno.
+- `BACKLOG`: ninguno.
+
+### Acciones ejecutadas
+
+- `GHOST-0000` retornado a `BACKLOG` para conservar ticket bootstrap de referencia.
+- Se crearon 5 tickets nuevos del **bloque 2 (spawn/IA/lifetime)**:
+  - `GHOST-0033` — Ciclo de vida temporal del Zombie (`10s` -> `GROUND_HIDE`).
+  - `GHOST-0034` — Spawn relativo a Arthur (delante/detrás) con límites de mundo.
+  - `GHOST-0035` — IA simple de aparición y reaparición aleatoria.
+  - `GHOST-0036` — Persecución hacia Arthur desacoplada del driver de scroll.
+  - `GHOST-0037` — Integración final spawn/IA + checklist manual del bloque 2.
+- `GHOST-0033` pasado a `IN_PROGRESS` para restaurar `WIP=1`.
+
+### Reglas de implementación reafirmadas para devs
+
+- Mantener estructura DDD actual (`application`/`domain`) y reutilizar clases existentes.
+- Evitar proliferación de clases: introducir solo piezas mínimas cuando sea imprescindible.
+- Arthur sigue siendo el driver del scroll; el ciclo de vida del zombie no se reinicia por salir del viewport.
+- En este bloque no hay daño por contacto al cruzarse con Arthur.
+
+### Secuencia obligatoria de rollout (sin saltos)
+
+1. Completar `GHOST-0033`..`GHOST-0037` (spawn + IA + lifecycle estables).
+2. Solo después crear 5 tickets de energía de Arthur (`100 -> 0`, HUD sutil abajo derecha, rojo al llegar a 0, sin muerte).
+3. Solo después crear 5 tickets de combate Arthur->Zombie (`HITTED`, 3 golpes para forzar `GROUND_HIDE`).
+4. Tras cerrar esos bloques, crear ticket único de review para agentes dev orientado a bugs/compilación con cambios mínimos.
