@@ -1066,3 +1066,19 @@ Síntomas de fuga de estado/evento duplicado a registrar explícitamente:
 - Drenado de `Energy` fuera de contacto o durante `GROUND_HIDE`.
 - Zombie sin respawn tras completar `GROUND_HIDE`.
 - Eventos de golpe consumidos con objetivo no elegible (`WALK` no activo).
+
+### 2026-03-31 — GHOST-0059 Review técnico focalizado en bugs runtime de Zombie
+
+- **Enfoque aplicado:** revisión de defectos funcionales/regresión y estabilidad de compilación del bloque zombie; sin refactors cosméticos masivos.
+- **Validación técnica ejecutada:** `mvn -q -DskipTests compile` y `mvn -q test` en rama `feature/zombie-enemies` (resultado: OK).
+
+Hallazgos accionables (priorizados):
+
+1. **Riesgo alto de comportamiento no deseado en runtime normal:** `GhostsGame` mantiene `handleZombieDebugInput()` activo por defecto, permitiendo alterar ciclo/combate/score con `1`, `2`, `H`, `G` fuera de modo desarrollo.
+2. **Riesgo medio en coherencia de combate:** `processArthurPunchHit()` evalúa alcance sin filtro por orientación de Arthur, por lo que un punch puede impactar también por detrás si distancia AABB entra en umbral.
+3. **Riesgo medio en tuning extremo de FPS:** con la protección anti-spike de energía, fps extremadamente bajos pueden subdrenar respecto al ritmo nominal por segundo; conviene monitorizar en checklist de 10 ciclos bajo carga.
+
+Directriz técnica explícita para devs:
+
+- Mantener estructura DDD actual y priorizar cambios puntuales sobre `GhostsGame`, `Arthur`, `Zombie` y factorías existentes.
+- Evitar proliferación de clases auxiliares sin responsabilidad clara.
