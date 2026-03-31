@@ -18,6 +18,7 @@
 - **Alcance ratificado de fase 1:** izquierda/derecha, agacharse, salto, scroll de dos fondos y luz tenue sobre Arthur.
 - **Regla de implementación ratificada:** priorizar extensión de clases existentes y evitar proliferación innecesaria de clases.
 - **Nota de referencia histórica:** la entrada original de 2026-03-21 mantiene el contexto inicial del bootstrap.
+- **Cierre operacional Tasker:** este bootstrap pasa a `done` en Tasker para evitar duplicidad de backlog, conservando su valor documental como referencia de fase.
 
 ### 2026-03-31 — GHOST-0033 Ciclo de vida temporal del Zombie (spawn -> walk -> ground hide)
 
