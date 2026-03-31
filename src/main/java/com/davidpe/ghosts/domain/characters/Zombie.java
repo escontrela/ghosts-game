@@ -17,8 +17,10 @@ public class Zombie extends Character {
   private static final float WALK_FRAME_DURATION = 0.06f;
   private static final float GROUND_FRAME_DURATION = 0.07f;
   private static final float HITTED_FRAME_DURATION = 0.05f;
-  private static final float DEFAULT_ACTIVE_WALK_DURATION_SECONDS = 10f;
-  private static final float DEFAULT_HITTED_RECOVERY_DELAY_SECONDS = 0.18f;
+  private static final float DEFAULT_ACTIVE_WALK_DURATION_SECONDS =
+      ZombieTuning.ACTIVE_WALK_DURATION_SECONDS;
+  private static final float DEFAULT_HITTED_RECOVERY_DELAY_SECONDS =
+      ZombieTuning.HITTED_RECOVERY_DELAY_SECONDS;
   private static final int DEFEAT_HIT_THRESHOLD = 3;
 
   public enum SpawnSide {

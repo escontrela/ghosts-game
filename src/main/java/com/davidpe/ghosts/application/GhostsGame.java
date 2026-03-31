@@ -16,6 +16,7 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 import com.davidpe.ghosts.application.factories.CharacterFactory;
 import com.davidpe.ghosts.domain.characters.Arthur;
 import com.davidpe.ghosts.domain.characters.Zombie;
+import com.davidpe.ghosts.domain.characters.ZombieTuning;
 import com.davidpe.ghosts.domain.utils.AnimationUtils;
 import java.util.Random;
 
@@ -32,10 +33,6 @@ public class GhostsGame extends ApplicationAdapter {
   public static final float WORLD_HEIGHT = 600;
 
   private static final float BACKGROUND_BASE_DIM_ALPHA = 0.21f;
-  private static final float ZOMBIE_SPAWN_AHEAD_DISTANCE = 230f;
-  private static final float ZOMBIE_SPAWN_BEHIND_DISTANCE = 200f;
-  private static final float ZOMBIE_RESPAWN_DELAY_MIN_SECONDS = 1.3f;
-  private static final float ZOMBIE_RESPAWN_DELAY_MAX_SECONDS = 3.4f;
   private static final float ARTHUR_CONTACT_DRAIN_PER_SECOND = 13f;
   private static final float ENERGY_HUD_MARGIN_RIGHT = 18f;
   private static final float ENERGY_HUD_MARGIN_BOTTOM = 14f;
@@ -221,8 +218,8 @@ public class GhostsGame extends ApplicationAdapter {
   private void spawnZombieRelativeToArthur(Zombie.SpawnSide spawnSide) {
     float spawnDistance =
         spawnSide == Zombie.SpawnSide.AHEAD
-            ? ZOMBIE_SPAWN_AHEAD_DISTANCE
-            : ZOMBIE_SPAWN_BEHIND_DISTANCE;
+            ? ZombieTuning.SPAWN_AHEAD_DISTANCE
+            : ZombieTuning.SPAWN_BEHIND_DISTANCE;
     float spawnX = zombie.resolveSpawnX(arthur.getX(), spawnSide, spawnDistance);
     zombie.startGroundRiseAt(spawnX);
   }
@@ -238,8 +235,9 @@ public class GhostsGame extends ApplicationAdapter {
   }
 
   private float randomRespawnDelay() {
-    return ZOMBIE_RESPAWN_DELAY_MIN_SECONDS
-        + random.nextFloat() * (ZOMBIE_RESPAWN_DELAY_MAX_SECONDS - ZOMBIE_RESPAWN_DELAY_MIN_SECONDS);
+    return ZombieTuning.RESPAWN_DELAY_MIN_SECONDS
+        + random.nextFloat()
+            * (ZombieTuning.RESPAWN_DELAY_MAX_SECONDS - ZombieTuning.RESPAWN_DELAY_MIN_SECONDS);
   }
 
   private void drawEnergyHud() {
