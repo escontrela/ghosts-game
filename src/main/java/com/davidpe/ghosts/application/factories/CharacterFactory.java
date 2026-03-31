@@ -12,6 +12,7 @@ import com.davidpe.ghosts.domain.utils.AnimationUtils;
  */
 public class CharacterFactory {
 
+  private static final float ZOMBIE_ACTIVE_WALK_DURATION_SECONDS = 10f;
   private final AnimationUtils animationUtils;
 
   public CharacterFactory(AnimationUtils animationUtils) {
@@ -23,6 +24,6 @@ public class CharacterFactory {
   }
 
   public Zombie createZombie(float worldWidth) {
-    return new Zombie(worldWidth, animationUtils);
+    return new Zombie(worldWidth, animationUtils, ZOMBIE_ACTIVE_WALK_DURATION_SECONDS);
   }
 }

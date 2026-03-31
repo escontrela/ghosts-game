@@ -19,6 +19,13 @@
 - **Regla de implementación ratificada:** priorizar extensión de clases existentes y evitar proliferación innecesaria de clases.
 - **Nota de referencia histórica:** la entrada original de 2026-03-21 mantiene el contexto inicial del bootstrap.
 
+### 2026-03-31 — GHOST-0033 Ciclo de vida temporal del Zombie (spawn -> walk -> ground hide)
+
+- **Duración activa configurable de `WALK`:** `Zombie` incorpora `activeWalkDurationSeconds` con valor inicial de fábrica `10s`.
+- **Transición automática por tiempo:** al agotarse el temporizador de `WALK`, el estado cambia a `GROUND_HIDE` sin intervención externa.
+- **Fin de ciclo utilizable para respawn:** al terminar la animación `GROUND_HIDE`, el zombie se marca como inactivo y publica `hideCycleCompleted`.
+- **Responsabilidad contenida en dominio:** el ciclo temporal vive en `Zombie` y evita nuevas clases para cumplir alcance del ticket.
+
 ### 2026-03-31 — GHOST-0034 Spawn relativo a Arthur (delante/detrás) con límites de mundo
 
 - **Resolución de spawn por modo:** la aparición del zombie se calcula desde la X de Arthur con dos variantes explícitas: `AHEAD` y `BEHIND`.
@@ -42,7 +49,7 @@
 
 ### 2026-03-31 — GHOST-0037 Integración final spawn/IA zombie + checklist manual bloque 2
 
-- **Flujo runtime cerrado del bloque 2:** `GROUND_RISE -> WALK -> GROUND_HIDE -> respawn` con `WALK` finalizado por timeout y reaparición con delay aleatorio.
+- **Flujo runtime cerrado del bloque 2:** `GROUND_RISE -> WALK -> GROUND_HIDE -> respawn` con `WALK` finalizado por timeout configurable (base `10s`) y reaparición con delay aleatorio.
 - **Spawn relativo mantenido en ambos lados:** cada ciclo selecciona `AHEAD/BEHIND` relativo a Arthur y reaplica clamp de límites de mundo.
 - **Sin efecto de contacto en este bloque:** cuando zombie y Arthur se cruzan, no hay daño ni cambios de energía por diseño.
 

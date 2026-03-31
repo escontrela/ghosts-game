@@ -17,6 +17,7 @@ public class Zombie extends Character {
   private static final float WALK_FRAME_DURATION = 0.06f;
   private static final float GROUND_FRAME_DURATION = 0.07f;
   private static final float HITTED_FRAME_DURATION = 0.05f;
+  private static final float DEFAULT_ACTIVE_WALK_DURATION_SECONDS = 10f;
 
   public enum SpawnSide {
     AHEAD,
@@ -36,11 +37,17 @@ public class Zombie extends Character {
   private final Animation<TextureRegion> hittedAnimation;
 
   private MovementState movementState;
+  private final float activeWalkDurationSeconds;
+  private float activeWalkTimer;
   private float targetX;
   private boolean active;
   private boolean hideCycleCompleted;
 
   public Zombie(float worldWidth, AnimationUtils animationUtils) {
+    this(worldWidth, animationUtils, DEFAULT_ACTIVE_WALK_DURATION_SECONDS);
+  }
+
+  public Zombie(float worldWidth, AnimationUtils animationUtils, float activeWalkDurationSeconds) {
     super(worldWidth);
 
     Texture walkSheet = loadSheet("zombie/sprite-sheet-zombie-walk.png");
@@ -72,6 +79,8 @@ public class Zombie extends Character {
     velocityY = 0f;
     facingRight = false;
     movementState = MovementState.GROUND_RISE;
+    this.activeWalkDurationSeconds = Math.max(0.1f, activeWalkDurationSeconds);
+    activeWalkTimer = this.activeWalkDurationSeconds;
     targetX = x;
     active = true;
     hideCycleCompleted = false;
@@ -90,6 +99,7 @@ public class Zombie extends Character {
         }
       }
       case WALK -> {
+        activeWalkTimer -= delta;
         float distanceToTarget = targetX - x;
         if (Math.abs(distanceToTarget) <= TARGET_REACH_EPSILON) {
           velocityX = 0f;
@@ -99,6 +109,9 @@ public class Zombie extends Character {
         }
         x += velocityX * delta;
         x = clampX(x);
+        if (activeWalkTimer <= 0f) {
+          transitionTo(MovementState.GROUND_HIDE);
+        }
       }
       case HITTED -> {
         velocityX = 0f;
@@ -165,6 +178,9 @@ public class Zombie extends Character {
       return;
     }
     movementState = targetState;
+    if (targetState == MovementState.WALK) {
+      activeWalkTimer = activeWalkDurationSeconds;
+    }
     if (targetState == MovementState.WALK && velocityX == 0f) {
       facingRight = !facingRight;
     }
