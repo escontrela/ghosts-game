@@ -33,6 +33,13 @@
 - **Target de Arthur preservado:** al recuperar `WALK`, el zombie continúa persiguiendo la X publicada por `GhostsGame`.
 - **Integración mínima:** sin clases nuevas, todo resuelto dentro del flujo actual de `Zombie`.
 
+### 2026-03-31 — GHOST-0046 Tercer golpe fuerza GROUND_HIDE y corta daño
+
+- **Umbral aplicado en runtime:** al registrar el impacto válido número `3`, el zombie transiciona de forma inmediata a `GROUND_HIDE`.
+- **Corte de contacto dañino garantizado:** la detección de contacto dañino permanece limitada a `WALK`, por lo que tras entrar en `GROUND_HIDE` deja de drenar energía a Arthur.
+- **Ciclo de respawn conservado:** al finalizar `GROUND_HIDE`, el flujo existente (`hideCycleCompleted`) mantiene listo el respawn del zombie.
+- **Sin expansión estructural:** ajuste integrado sobre `Zombie` y lógica existente de `GhostsGame`.
+
 ### 2026-03-31 — GHOST-0000 Bootstrap de fase 1 de control y scroll (validación operativa)
 
 - **Rama de trabajo validada para el ciclo actual:** desarrollo ejecutado en `feature/zombie-enemies` (política activa del repositorio).

@@ -195,7 +195,11 @@ public class Zombie extends Character {
   public boolean registerValidHit() {
     if (movementState == MovementState.WALK) {
       accumulatedHits = Math.min(DEFEAT_HIT_THRESHOLD, accumulatedHits + 1);
-      transitionTo(MovementState.HITTED);
+      if (accumulatedHits >= DEFEAT_HIT_THRESHOLD) {
+        transitionTo(MovementState.GROUND_HIDE);
+      } else {
+        transitionTo(MovementState.HITTED);
+      }
       return true;
     }
     return false;
