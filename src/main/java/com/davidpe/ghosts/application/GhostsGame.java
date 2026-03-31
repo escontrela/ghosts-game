@@ -29,6 +29,8 @@ public class GhostsGame extends ApplicationAdapter {
   public static final float WORLD_HEIGHT = 600;
 
   private static final float BACKGROUND_BASE_DIM_ALPHA = 0.21f;
+  private static final float ZOMBIE_SPAWN_AHEAD_DISTANCE = 230f;
+  private static final float ZOMBIE_SPAWN_BEHIND_DISTANCE = 200f;
 
   private SpriteBatch batch;
   private OrthographicCamera camera;
@@ -60,7 +62,7 @@ public class GhostsGame extends ApplicationAdapter {
     CharacterFactory characterFactory = new CharacterFactory(AnimationUtils.getInstance());
     arthur = characterFactory.createArthur(WORLD_WIDTH);
     zombie = characterFactory.createZombie(WORLD_WIDTH);
-    zombie.setPatrolBounds(110f, WORLD_WIDTH - 170f);
+    spawnZombieRelativeToArthur(Zombie.SpawnSide.AHEAD);
   }
 
   @Override
@@ -127,6 +129,12 @@ public class GhostsGame extends ApplicationAdapter {
   }
 
   private void handleZombieDebugInput() {
+    if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) {
+      spawnZombieRelativeToArthur(Zombie.SpawnSide.BEHIND);
+    }
+    if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) {
+      spawnZombieRelativeToArthur(Zombie.SpawnSide.AHEAD);
+    }
     if (Gdx.input.isKeyJustPressed(Input.Keys.H)) {
       zombie.triggerHitted();
     }
@@ -143,5 +151,14 @@ public class GhostsGame extends ApplicationAdapter {
     Texture texture = new Texture(pixmap);
     pixmap.dispose();
     return texture;
+  }
+
+  private void spawnZombieRelativeToArthur(Zombie.SpawnSide spawnSide) {
+    float spawnDistance =
+        spawnSide == Zombie.SpawnSide.AHEAD
+            ? ZOMBIE_SPAWN_AHEAD_DISTANCE
+            : ZOMBIE_SPAWN_BEHIND_DISTANCE;
+    float spawnX = zombie.resolveSpawnX(arthur.getX(), spawnSide, spawnDistance);
+    zombie.startGroundRiseAt(spawnX);
   }
 }

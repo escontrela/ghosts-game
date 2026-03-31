@@ -18,6 +18,11 @@ public class Zombie extends Character {
   private static final float GROUND_FRAME_DURATION = 0.07f;
   private static final float HITTED_FRAME_DURATION = 0.05f;
 
+  public enum SpawnSide {
+    AHEAD,
+    BEHIND
+  }
+
   private enum MovementState {
     WALK,
     GROUND_RISE,
@@ -165,5 +170,23 @@ public class Zombie extends Character {
       facingRight = !facingRight;
     }
     resetStateTime();
+  }
+
+  public float resolveSpawnX(float arthurX, SpawnSide spawnSide, float spawnDistance) {
+    float rawSpawnX =
+        spawnSide == SpawnSide.AHEAD ? arthurX + spawnDistance : arthurX - spawnDistance;
+    return clampX(rawSpawnX);
+  }
+
+  public void startGroundRiseAt(float spawnX) {
+    x = clampX(spawnX);
+    y = GROUND_Y;
+    velocityX = 0f;
+    velocityY = 0f;
+    transitionTo(MovementState.GROUND_RISE);
+  }
+
+  private float clampX(float candidateX) {
+    return Math.max(0f, Math.min(candidateX, worldWidth - drawWidth));
   }
 }

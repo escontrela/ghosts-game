@@ -19,6 +19,13 @@
 - **Regla de implementación ratificada:** priorizar extensión de clases existentes y evitar proliferación innecesaria de clases.
 - **Nota de referencia histórica:** la entrada original de 2026-03-21 mantiene el contexto inicial del bootstrap.
 
+### 2026-03-31 — GHOST-0034 Spawn relativo a Arthur (delante/detrás) con límites de mundo
+
+- **Resolución de spawn por modo:** la aparición del zombie se calcula desde la X de Arthur con dos variantes explícitas: `AHEAD` y `BEHIND`.
+- **Clamp de mundo aplicado:** la X final del spawn se limita a `0..(WORLD_WIDTH - drawWidth)` para evitar nacimientos fuera del escenario.
+- **Entrada de ciclo garantizada:** cada aparición inicia en `GROUND_RISE` mediante API dedicada de Zombie (`startGroundRiseAt`).
+- **Integración sin romper scroll:** Arthur mantiene el control del offset global de fondo; el spawn del zombie no altera ese contrato.
+
 ### 2026-03-21 — GHOST-0000 Bootstrap de fase 1 de control y scroll
 
 - **Rama de trabajo validada:** desarrollo ejecutado en `features-nightly-20260321`.
