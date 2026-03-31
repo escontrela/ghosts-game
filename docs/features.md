@@ -61,6 +61,18 @@ Checklist manual breve bloque 2 (3-5 minutos):
 4. **Lados de spawn:** iterar varios ciclos y confirmar apariciones por delante y por detrás de Arthur (usar `1/2` para forzar lado en validación dirigida si hace falta).
 5. **Cruce sin impacto:** provocar cruce zombie-Arthur y validar explícitamente que no se aplica daño ni UI de energía en este bloque.
 
+### 2026-03-31 — PO Iteración: planificación bloque 3/4 (energía de Arthur por contacto)
+
+- **Verificación previa completada:** bloque 2 (`GHOST-0033..GHOST-0037`) validado como implementado en código y cerrado en Tasker antes de abrir nueva temática.
+- **Secuencia creada para bloque 3 (energía):**
+  - `GHOST-0038` detección de cruce Zombie-Arthur (WIP activo).
+  - `GHOST-0039` modelo de energía de Arthur (`100 -> 0`) con drenado por contacto.
+  - `GHOST-0040` HUD sutil de energía en esquina inferior derecha.
+  - `GHOST-0041` regla visual de crítico: energía 0 en rojo sin muerte.
+  - `GHOST-0042` integración end-to-end + checklist manual del bloque.
+- **Restricciones de alcance aplicadas:** en este bloque no entra aún reacción del zombie al golpe de Arthur ni puntuación.
+- **Directriz técnica para devs:** mantener estructura DDD dominio/aplicación actual, reutilizar clases existentes y evitar proliferación innecesaria de clases pequeñas.
+
 ### 2026-03-21 — GHOST-0000 Bootstrap de fase 1 de control y scroll
 
 - **Rama de trabajo validada:** desarrollo ejecutado en `features-nightly-20260321`.
