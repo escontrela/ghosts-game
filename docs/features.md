@@ -100,6 +100,20 @@ Checklist manual breve bloque 2 (3-5 minutos):
 - **Loop de control intacto:** Arthur continúa jugable en `0` (movimiento, salto y punch) sin transición de muerte.
 - **Sin consecuencias extra en este bloque:** no se introduce knockback, invulnerabilidad ni game over.
 
+### 2026-03-31 — GHOST-0042 Integración bloque 3 (contacto -> energía -> HUD -> crítico)
+
+- **Flujo integrado validable:** contacto activo Zombie-Arthur reduce energía, separación detiene drenado, HUD refleja el valor por frame.
+- **Comportamiento crítico consolidado:** en `energy == 0` el texto cambia a rojo y Arthur mantiene control completo sin muerte.
+- **Directriz de arquitectura reforzada:** mantener la implementación sobre clases existentes (`GhostsGame`, `Arthur`, `Zombie`) evitando proliferación innecesaria.
+
+Checklist manual breve bloque 3 (3-5 minutos):
+
+1. **Contacto inicia drenado:** acercar Arthur al zombie en `WALK` y comprobar que `Energy` empieza a bajar de forma continua.
+2. **Separación detiene drenado:** alejar Arthur fuera de contacto y validar que el valor deja de decrecer inmediatamente.
+3. **HUD sincronizado:** durante contacto/separación, confirmar que `Energy: <valor>` refleja siempre el valor actual sin latencia visible.
+4. **Estado crítico rojo:** mantener contacto hasta `0` y verificar cambio estable del HUD a rojo.
+5. **Arthur sigue vivo:** con energía `0`, validar que Arthur aún puede moverse, saltar y golpear.
+
 ### 2026-03-21 — GHOST-0000 Bootstrap de fase 1 de control y scroll
 
 - **Rama de trabajo validada:** desarrollo ejecutado en `features-nightly-20260321`.
