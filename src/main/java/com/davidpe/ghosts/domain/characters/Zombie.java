@@ -12,7 +12,7 @@ public class Zombie extends Character {
   private static final float DRAW_HEIGHT = 145f;
   private static final float GROUND_Y = 130f;
   private static final float WALK_SPEED = 70f;
-  private static final float DEFAULT_PATROL_DISTANCE = 180f;
+  private static final float TARGET_REACH_EPSILON = 2f;
 
   private static final float WALK_FRAME_DURATION = 0.06f;
   private static final float GROUND_FRAME_DURATION = 0.07f;
@@ -36,8 +36,7 @@ public class Zombie extends Character {
   private final Animation<TextureRegion> hittedAnimation;
 
   private MovementState movementState;
-  private float minPatrolX;
-  private float maxPatrolX;
+  private float targetX;
   private boolean active;
   private boolean hideCycleCompleted;
 
@@ -73,8 +72,7 @@ public class Zombie extends Character {
     velocityY = 0f;
     facingRight = false;
     movementState = MovementState.GROUND_RISE;
-    minPatrolX = Math.max(0f, x - DEFAULT_PATROL_DISTANCE);
-    maxPatrolX = Math.min(worldWidth - drawWidth, x + DEFAULT_PATROL_DISTANCE);
+    targetX = x;
     active = true;
     hideCycleCompleted = false;
   }
@@ -92,15 +90,15 @@ public class Zombie extends Character {
         }
       }
       case WALK -> {
-        velocityX = facingRight ? WALK_SPEED : -WALK_SPEED;
-        x += velocityX * delta;
-        if (x <= minPatrolX) {
-          x = minPatrolX;
-          facingRight = true;
-        } else if (x >= maxPatrolX) {
-          x = maxPatrolX;
-          facingRight = false;
+        float distanceToTarget = targetX - x;
+        if (Math.abs(distanceToTarget) <= TARGET_REACH_EPSILON) {
+          velocityX = 0f;
+        } else {
+          velocityX = Math.signum(distanceToTarget) * WALK_SPEED;
+          facingRight = velocityX > 0f;
         }
+        x += velocityX * delta;
+        x = clampX(x);
       }
       case HITTED -> {
         velocityX = 0f;
@@ -162,14 +160,6 @@ public class Zombie extends Character {
     }
   }
 
-  public void setPatrolBounds(float minX, float maxX) {
-    float clampedMin = Math.max(0f, Math.min(minX, worldWidth - drawWidth));
-    float clampedMax = Math.max(clampedMin, Math.min(maxX, worldWidth - drawWidth));
-    minPatrolX = clampedMin;
-    maxPatrolX = clampedMax;
-    x = Math.max(minPatrolX, Math.min(x, maxPatrolX));
-  }
-
   private void transitionTo(MovementState targetState) {
     if (movementState == targetState) {
       return;
@@ -195,6 +185,10 @@ public class Zombie extends Character {
     active = true;
     hideCycleCompleted = false;
     transitionTo(MovementState.GROUND_RISE);
+  }
+
+  public void setTargetX(float targetX) {
+    this.targetX = clampX(targetX);
   }
 
   public boolean consumeHideCycleCompleted() {

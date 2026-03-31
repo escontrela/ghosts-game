@@ -33,6 +33,13 @@
 - **Un único enemigo activo:** se mantiene un solo `Zombie` instanciado y controlado por flags de ciclo para evitar multiplicidad.
 - **Separación de responsabilidades:** la orquestación temporal vive en aplicación y el character expone señales de fin de ciclo (`consumeHideCycleCompleted`).
 
+### 2026-03-31 — GHOST-0036 Persecución hacia Arthur desacoplada del driver de scroll
+
+- **Persecución en `WALK`:** Zombie ajusta su dirección horizontal para converger hacia la X objetivo de Arthur.
+- **Objetivo inyectado desde aplicación:** `GhostsGame` publica la X de Arthur al character enemigo mediante `setTargetX(...)`.
+- **Scroll global preservado:** la cámara/fondo siguen usando `arthur.getWorldOffsetX()`; el zombie no modifica el offset de mundo.
+- **Ciclo estable fuera de encuadre:** el update del zombie continúa por estado aunque su sprite no esté visible en viewport.
+
 ### 2026-03-21 — GHOST-0000 Bootstrap de fase 1 de control y scroll
 
 - **Rama de trabajo validada:** desarrollo ejecutado en `features-nightly-20260321`.

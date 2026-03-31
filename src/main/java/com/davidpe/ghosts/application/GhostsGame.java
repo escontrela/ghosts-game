@@ -82,6 +82,7 @@ public class GhostsGame extends ApplicationAdapter {
     handleZombieDebugInput();
     arthur.update(delta);
     updateZombieSpawner(delta);
+    zombie.setTargetX(arthur.getX());
     zombie.update(delta);
 
     camera.update();
