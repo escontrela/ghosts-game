@@ -66,6 +66,7 @@ public class Arthur extends Character {
   private static final float LIGHT_TORSO_Y_JUMP = 0.56f;
   private static final float LIGHT_TORSO_Y_PUNCH = 0.52f;
   private static final float INITIAL_ENERGY = 100f;
+  private static final float MAX_ENERGY_DRAIN_DELTA_SECONDS = 0.1f;
 
   // --- Crouch split: rows 0-4 = crouch down (20 frames), rows 4-end = stand up (13 frames) ---
   private static final int CROUCH_DOWN_END_FRAME = 20;
@@ -197,10 +198,11 @@ public class Arthur extends Character {
   }
 
   public void applyContactEnergyDrain(boolean zombieContactActive, float delta, float drainPerSecond) {
-    if (!zombieContactActive || drainPerSecond <= 0f || energy <= 0f) {
+    if (!zombieContactActive || drainPerSecond <= 0f || energy <= 0f || delta <= 0f) {
       return;
     }
-    energy = Math.max(0f, energy - (drainPerSecond * delta));
+    float stableDelta = Math.min(delta, MAX_ENERGY_DRAIN_DELTA_SECONDS);
+    energy = Math.max(0f, energy - (drainPerSecond * stableDelta));
   }
 
   public boolean consumePunchHitWindow() {
