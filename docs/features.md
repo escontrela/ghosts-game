@@ -12,6 +12,19 @@
 
 ## Features implementadas
 
+### 2026-03-31 — PO Iteración: planificación bloque score + review tras cierre de combate
+
+- **Verificación de implementación real:** el código actual ya contiene ciclo de combate zombie con golpe cercano de Arthur (`SPACE`), transición a `HITTED`, umbral de 3 impactos, retorno a `GROUND_HIDE` y corte de drenado de energía tras derrota.
+- **Normalización de estado Tasker:** `GHOST-0043` se transiciona a `done` para reflejar el estado real implementado y evitar bloqueo artificial de secuencia.
+- **Nuevo `WIP=1` aplicado:** `GHOST-0048` queda en `in_progress` como único ticket activo del bloque de score.
+- **Backlog repuesto (5 mínimo preservado):**
+  - `GHOST-0049` contador de enemigos enviados a ground en sesión.
+  - `GHOST-0050` HUD de score en parte baja opuesta a `Energy`.
+  - `GHOST-0051` integración score+combate con checklist manual.
+  - `GHOST-0052` review técnica para agentes dev (bugs/compilación, no cambios cosméticos masivos).
+  - `GHOST-0053` smoke build/checklist de compilación previa a review.
+- **Directriz explícita para devs en este bloque:** preservar estructura DDD actual, reutilizar `GhostsGame`, `Arthur` y `Zombie`, y evitar proliferación de clases pequeñas sin responsabilidad clara.
+
 ### 2026-03-31 — GHOST-0000 Bootstrap de fase 1 (revalidación operativa en rama activa)
 
 - **Rama activa validada para implementación:** `feature/zombie-enemies` (política vigente del repositorio para este ciclo).
@@ -60,6 +73,13 @@ Checklist manual breve bloque 4 (3-5 minutos):
 3. **Acumulación de impactos:** repetir golpes válidos y confirmar que el tercer impacto no vuelve a `HITTED`, sino que dispara `GROUND_HIDE`.
 4. **Corte de daño:** durante `GROUND_HIDE`, mantener proximidad visual y validar que `Energy` deja de decrecer por ese zombie.
 5. **Ciclo listo para respawn:** esperar final de `GROUND_HIDE` y comprobar que el ciclo queda preparado para respawn con la IA existente.
+
+### 2026-03-31 — GHOST-0048 Evento consumible de derrota por tercer golpe
+
+- **Distinción explícita del motivo de `GROUND_HIDE`:** `Zombie` marca derrota por combate solo cuando entra en `GROUND_HIDE` al alcanzar 3 impactos válidos.
+- **Señal one-shot consumible:** nuevo evento `consumeDefeatByHitEvent()` en `Zombie`, propagado a aplicación mediante `consumeZombieDefeatByHitEvent()` en `GhostsGame`.
+- **Sin falsos positivos por timeout/debug:** transiciones a `GROUND_HIDE` por fin de `WALK` o trigger manual no activan el evento de derrota.
+- **Reset por ciclo garantizado:** al iniciar `startGroundRiseAt(...)` se limpian flag y evento para el siguiente spawn.
 
 ### 2026-03-31 — GHOST-0000 Bootstrap de fase 1 de control y scroll (validación operativa)
 
