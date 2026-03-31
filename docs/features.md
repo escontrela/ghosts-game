@@ -40,6 +40,20 @@
 - **Scroll global preservado:** la cámara/fondo siguen usando `arthur.getWorldOffsetX()`; el zombie no modifica el offset de mundo.
 - **Ciclo estable fuera de encuadre:** el update del zombie continúa por estado aunque su sprite no esté visible en viewport.
 
+### 2026-03-31 — GHOST-0037 Integración final spawn/IA zombie + checklist manual bloque 2
+
+- **Flujo runtime cerrado del bloque 2:** `GROUND_RISE -> WALK -> GROUND_HIDE -> respawn` con `WALK` finalizado por timeout y reaparición con delay aleatorio.
+- **Spawn relativo mantenido en ambos lados:** cada ciclo selecciona `AHEAD/BEHIND` relativo a Arthur y reaplica clamp de límites de mundo.
+- **Sin efecto de contacto en este bloque:** cuando zombie y Arthur se cruzan, no hay daño ni cambios de energía por diseño.
+
+Checklist manual breve bloque 2 (3-5 minutos):
+
+1. **Inicio de ciclo:** arrancar juego y validar que el zombie aparece en `GROUND_RISE`, pasa a `WALK` y orienta su movimiento hacia Arthur.
+2. **Hide por timeout:** sin usar teclas de debug, esperar fin del timeout de `WALK` y confirmar transición automática a `GROUND_HIDE`.
+3. **Respawn aleatorio:** tras terminar `GROUND_HIDE`, verificar que existe una espera variable antes del siguiente spawn.
+4. **Lados de spawn:** iterar varios ciclos y confirmar apariciones por delante y por detrás de Arthur (usar `1/2` para forzar lado en validación dirigida si hace falta).
+5. **Cruce sin impacto:** provocar cruce zombie-Arthur y validar explícitamente que no se aplica daño ni UI de energía en este bloque.
+
 ### 2026-03-21 — GHOST-0000 Bootstrap de fase 1 de control y scroll
 
 - **Rama de trabajo validada:** desarrollo ejecutado en `features-nightly-20260321`.

@@ -34,6 +34,8 @@ public class GhostsGame extends ApplicationAdapter {
   private static final float ZOMBIE_SPAWN_BEHIND_DISTANCE = 200f;
   private static final float ZOMBIE_RESPAWN_DELAY_MIN_SECONDS = 1.3f;
   private static final float ZOMBIE_RESPAWN_DELAY_MAX_SECONDS = 3.4f;
+  private static final float ZOMBIE_WALK_TIMEOUT_MIN_SECONDS = 2.2f;
+  private static final float ZOMBIE_WALK_TIMEOUT_MAX_SECONDS = 4.1f;
 
   private SpriteBatch batch;
   private OrthographicCamera camera;
@@ -47,6 +49,7 @@ public class GhostsGame extends ApplicationAdapter {
   private Random random;
   private boolean zombieCycleActive;
   private float zombieRespawnTimer;
+  private float zombieWalkTimeoutTimer;
 
   @Override
   public void create() {
@@ -70,6 +73,7 @@ public class GhostsGame extends ApplicationAdapter {
     zombie = characterFactory.createZombie(WORLD_WIDTH);
     random = new Random();
     zombieRespawnTimer = 0f;
+    zombieWalkTimeoutTimer = 0f;
     activateZombieCycle(pickSpawnSide());
   }
 
@@ -155,6 +159,13 @@ public class GhostsGame extends ApplicationAdapter {
 
   private void updateZombieSpawner(float delta) {
     if (zombieCycleActive) {
+      if (zombie.isWalking()) {
+        zombieWalkTimeoutTimer -= delta;
+        if (zombieWalkTimeoutTimer <= 0f) {
+          zombie.triggerGroundHide();
+          zombieWalkTimeoutTimer = Float.POSITIVE_INFINITY;
+        }
+      }
       if (zombie.consumeHideCycleCompleted()) {
         zombieCycleActive = false;
         zombieRespawnTimer = randomRespawnDelay();
@@ -190,6 +201,7 @@ public class GhostsGame extends ApplicationAdapter {
     spawnZombieRelativeToArthur(spawnSide);
     zombieCycleActive = true;
     zombieRespawnTimer = 0f;
+    zombieWalkTimeoutTimer = randomWalkTimeout();
   }
 
   private Zombie.SpawnSide pickSpawnSide() {
@@ -199,5 +211,10 @@ public class GhostsGame extends ApplicationAdapter {
   private float randomRespawnDelay() {
     return ZOMBIE_RESPAWN_DELAY_MIN_SECONDS
         + random.nextFloat() * (ZOMBIE_RESPAWN_DELAY_MAX_SECONDS - ZOMBIE_RESPAWN_DELAY_MIN_SECONDS);
+  }
+
+  private float randomWalkTimeout() {
+    return ZOMBIE_WALK_TIMEOUT_MIN_SECONDS
+        + random.nextFloat() * (ZOMBIE_WALK_TIMEOUT_MAX_SECONDS - ZOMBIE_WALK_TIMEOUT_MIN_SECONDS);
   }
 }

@@ -197,6 +197,10 @@ public class Zombie extends Character {
     return completed;
   }
 
+  public boolean isWalking() {
+    return active && movementState == MovementState.WALK;
+  }
+
   private float clampX(float candidateX) {
     return Math.max(0f, Math.min(candidateX, worldWidth - drawWidth));
   }
