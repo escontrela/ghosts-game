@@ -26,6 +26,13 @@
 - **Reset por nuevo ciclo de spawn:** el contador vuelve a `0` al iniciar `startGroundRiseAt(...)`.
 - **Integración sin nuevas capas:** `GhostsGame` registra golpes válidos de `SPACE` cuando el zombie está en rango de golpe de Arthur.
 
+### 2026-03-31 — GHOST-0045 Reanudación de persecución tras HITTED con delay corto
+
+- **Delay configurable tras impacto no letal:** `Zombie` añade `hittedRecoveryDelaySeconds` (base `0.18s`) antes de volver a moverse.
+- **Retorno automático a persecución si impactos < 3:** tras terminar `HITTED` y consumir el delay, la transición vuelve a `WALK`.
+- **Target de Arthur preservado:** al recuperar `WALK`, el zombie continúa persiguiendo la X publicada por `GhostsGame`.
+- **Integración mínima:** sin clases nuevas, todo resuelto dentro del flujo actual de `Zombie`.
+
 ### 2026-03-31 — GHOST-0000 Bootstrap de fase 1 de control y scroll (validación operativa)
 
 - **Rama de trabajo validada para el ciclo actual:** desarrollo ejecutado en `feature/zombie-enemies` (política activa del repositorio).

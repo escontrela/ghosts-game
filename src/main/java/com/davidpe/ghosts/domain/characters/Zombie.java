@@ -18,6 +18,7 @@ public class Zombie extends Character {
   private static final float GROUND_FRAME_DURATION = 0.07f;
   private static final float HITTED_FRAME_DURATION = 0.05f;
   private static final float DEFAULT_ACTIVE_WALK_DURATION_SECONDS = 10f;
+  private static final float DEFAULT_HITTED_RECOVERY_DELAY_SECONDS = 0.18f;
   private static final int DEFEAT_HIT_THRESHOLD = 3;
 
   public enum SpawnSide {
@@ -39,17 +40,35 @@ public class Zombie extends Character {
 
   private MovementState movementState;
   private final float activeWalkDurationSeconds;
+  private final float hittedRecoveryDelaySeconds;
   private float activeWalkTimer;
+  private float hittedRecoveryTimer;
   private float targetX;
   private boolean active;
   private boolean hideCycleCompleted;
   private int accumulatedHits;
 
   public Zombie(float worldWidth, AnimationUtils animationUtils) {
-    this(worldWidth, animationUtils, DEFAULT_ACTIVE_WALK_DURATION_SECONDS);
+    this(
+        worldWidth,
+        animationUtils,
+        DEFAULT_ACTIVE_WALK_DURATION_SECONDS,
+        DEFAULT_HITTED_RECOVERY_DELAY_SECONDS);
   }
 
   public Zombie(float worldWidth, AnimationUtils animationUtils, float activeWalkDurationSeconds) {
+    this(
+        worldWidth,
+        animationUtils,
+        activeWalkDurationSeconds,
+        DEFAULT_HITTED_RECOVERY_DELAY_SECONDS);
+  }
+
+  public Zombie(
+      float worldWidth,
+      AnimationUtils animationUtils,
+      float activeWalkDurationSeconds,
+      float hittedRecoveryDelaySeconds) {
     super(worldWidth);
 
     Texture walkSheet = loadSheet("zombie/sprite-sheet-zombie-walk.png");
@@ -82,7 +101,9 @@ public class Zombie extends Character {
     facingRight = false;
     movementState = MovementState.GROUND_RISE;
     this.activeWalkDurationSeconds = Math.max(0.1f, activeWalkDurationSeconds);
+    this.hittedRecoveryDelaySeconds = Math.max(0f, hittedRecoveryDelaySeconds);
     activeWalkTimer = this.activeWalkDurationSeconds;
+    hittedRecoveryTimer = 0f;
     targetX = x;
     active = true;
     hideCycleCompleted = false;
@@ -119,7 +140,10 @@ public class Zombie extends Character {
       case HITTED -> {
         velocityX = 0f;
         if (hittedAnimation.isAnimationFinished(stateTime)) {
-          transitionTo(MovementState.WALK);
+          hittedRecoveryTimer -= delta;
+          if (hittedRecoveryTimer <= 0f && accumulatedHits < DEFEAT_HIT_THRESHOLD) {
+            transitionTo(MovementState.WALK);
+          }
         }
       }
       case GROUND_HIDE -> {
@@ -190,6 +214,9 @@ public class Zombie extends Character {
     movementState = targetState;
     if (targetState == MovementState.WALK) {
       activeWalkTimer = activeWalkDurationSeconds;
+    }
+    if (targetState == MovementState.HITTED) {
+      hittedRecoveryTimer = hittedRecoveryDelaySeconds;
     }
     if (targetState == MovementState.WALK && velocityX == 0f) {
       facingRight = !facingRight;
