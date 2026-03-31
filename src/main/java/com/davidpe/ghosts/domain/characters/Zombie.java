@@ -18,6 +18,7 @@ public class Zombie extends Character {
   private static final float GROUND_FRAME_DURATION = 0.07f;
   private static final float HITTED_FRAME_DURATION = 0.05f;
   private static final float DEFAULT_ACTIVE_WALK_DURATION_SECONDS = 10f;
+  private static final int DEFEAT_HIT_THRESHOLD = 3;
 
   public enum SpawnSide {
     AHEAD,
@@ -42,6 +43,7 @@ public class Zombie extends Character {
   private float targetX;
   private boolean active;
   private boolean hideCycleCompleted;
+  private int accumulatedHits;
 
   public Zombie(float worldWidth, AnimationUtils animationUtils) {
     this(worldWidth, animationUtils, DEFAULT_ACTIVE_WALK_DURATION_SECONDS);
@@ -84,6 +86,7 @@ public class Zombie extends Character {
     targetX = x;
     active = true;
     hideCycleCompleted = false;
+    accumulatedHits = 0;
   }
 
   @Override
@@ -161,10 +164,17 @@ public class Zombie extends Character {
     return reversed;
   }
 
-  public void triggerHitted() {
+  public boolean triggerHitted() {
+    return registerValidHit();
+  }
+
+  public boolean registerValidHit() {
     if (movementState == MovementState.WALK) {
+      accumulatedHits = Math.min(DEFEAT_HIT_THRESHOLD, accumulatedHits + 1);
       transitionTo(MovementState.HITTED);
+      return true;
     }
+    return false;
   }
 
   public void triggerGroundHide() {
@@ -200,7 +210,16 @@ public class Zombie extends Character {
     velocityY = 0f;
     active = true;
     hideCycleCompleted = false;
+    accumulatedHits = 0;
     transitionTo(MovementState.GROUND_RISE);
+  }
+
+  public int getAccumulatedHits() {
+    return accumulatedHits;
+  }
+
+  public int getDefeatHitThreshold() {
+    return DEFEAT_HIT_THRESHOLD;
   }
 
   public void setTargetX(float targetX) {

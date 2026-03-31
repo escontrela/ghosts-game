@@ -47,6 +47,7 @@ public class GhostsGame extends ApplicationAdapter {
   private static final float ENERGY_HUD_CRITICAL_G = 0.2f;
   private static final float ENERGY_HUD_CRITICAL_B = 0.2f;
   private static final float ENERGY_HUD_CRITICAL_A = 0.9f;
+  private static final float ARTHUR_PUNCH_REACH = 46f;
 
   private SpriteBatch batch;
   private OrthographicCamera camera;
@@ -103,6 +104,7 @@ public class GhostsGame extends ApplicationAdapter {
     updateZombieSpawner(delta);
     zombie.setTargetX(arthur.getX());
     zombie.update(delta);
+    processArthurPunchHit();
     zombieArthurContactActive =
         zombie.isInContactWith(
             arthur.getX(), arthur.getY(), arthur.getDrawWidth(), arthur.getDrawHeightValue());
@@ -247,6 +249,40 @@ public class GhostsGame extends ApplicationAdapter {
 
   public boolean isZombieArthurContactActive() {
     return zombieArthurContactActive;
+  }
+
+  private void processArthurPunchHit() {
+    if (!Gdx.input.isKeyJustPressed(Input.Keys.SPACE) || !zombie.isWalking()) {
+      return;
+    }
+
+    float arthurLeft = arthur.getX();
+    float arthurRight = arthurLeft + arthur.getDrawWidth();
+    float arthurBottom = arthur.getY();
+    float arthurTop = arthurBottom + arthur.getDrawHeightValue();
+
+    float zombieLeft = zombie.getX();
+    float zombieRight = zombieLeft + zombie.getDrawWidth();
+    float zombieBottom = zombie.getY();
+    float zombieTop = zombieBottom + zombie.getDrawHeightValue();
+
+    boolean verticalOverlap = arthurTop > zombieBottom && arthurBottom < zombieTop;
+    if (!verticalOverlap) {
+      return;
+    }
+
+    float horizontalGap;
+    if (zombieLeft >= arthurRight) {
+      horizontalGap = zombieLeft - arthurRight;
+    } else if (arthurLeft >= zombieRight) {
+      horizontalGap = arthurLeft - zombieRight;
+    } else {
+      horizontalGap = 0f;
+    }
+
+    if (horizontalGap <= ARTHUR_PUNCH_REACH) {
+      zombie.registerValidHit();
+    }
   }
 
 }

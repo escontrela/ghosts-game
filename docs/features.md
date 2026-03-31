@@ -19,6 +19,13 @@
 - **Regla de reutilización reafirmada:** extender clases existentes y evitar proliferación innecesaria de clases.
 - **Tratamiento del ticket en Tasker:** cierre en `done` para evitar duplicidad operativa, manteniendo `GHOST-0000` como referencia documental en este log.
 
+### 2026-03-31 — GHOST-0044 Contador de impactos de Zombie con umbral 3
+
+- **Contador acumulado en dominio:** `Zombie` incorpora `accumulatedHits` y suma 1 por cada golpe válido aceptado en estado `WALK`.
+- **Umbral de derrota explícito:** el límite queda fijado en `3` mediante constante de dominio (`DEFEAT_HIT_THRESHOLD`).
+- **Reset por nuevo ciclo de spawn:** el contador vuelve a `0` al iniciar `startGroundRiseAt(...)`.
+- **Integración sin nuevas capas:** `GhostsGame` registra golpes válidos de `SPACE` cuando el zombie está en rango de golpe de Arthur.
+
 ### 2026-03-31 — GHOST-0000 Bootstrap de fase 1 de control y scroll (validación operativa)
 
 - **Rama de trabajo validada para el ciclo actual:** desarrollo ejecutado en `feature/zombie-enemies` (política activa del repositorio).
