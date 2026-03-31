@@ -73,6 +73,13 @@ Checklist manual breve bloque 2 (3-5 minutos):
 - **Restricciones de alcance aplicadas:** en este bloque no entra aún reacción del zombie al golpe de Arthur ni puntuación.
 - **Directriz técnica para devs:** mantener estructura DDD dominio/aplicación actual, reutilizar clases existentes y evitar proliferación innecesaria de clases pequeñas.
 
+### 2026-03-31 — GHOST-0038 Detección de contacto Zombie-Arthur desacoplada de combate
+
+- **Señal determinista de contacto:** `Zombie` expone `isInContactWith(...)` con chequeo AABB usando posiciones y bounds de ambos personajes.
+- **Evaluación restringida a `WALK`:** el contacto solo se considera activo cuando el zombie está caminando, sin depender de cámara ni scroll.
+- **Exposición para capa de aplicación:** `GhostsGame` actualiza `zombieArthurContactActive` por frame para ser consumido por tickets de energía.
+- **Sin efectos de combate en este ticket:** no se alteran estados de `HITTED`, no hay daño ni knockback.
+
 ### 2026-03-21 — GHOST-0000 Bootstrap de fase 1 de control y scroll
 
 - **Rama de trabajo validada:** desarrollo ejecutado en `features-nightly-20260321`.
@@ -784,3 +791,30 @@ Validación ejecutada contra Tasker (`projectId=6`, `userId=1`) y repositorio lo
 2. Solo después crear 5 tickets de energía de Arthur (`100 -> 0`, HUD sutil abajo derecha, rojo al llegar a 0, sin muerte).
 3. Solo después crear 5 tickets de combate Arthur->Zombie (`HITTED`, 3 golpes para forzar `GROUND_HIDE`).
 4. Tras cerrar esos bloques, crear ticket único de review para agentes dev orientado a bugs/compilación con cambios mínimos.
+
+## Iteración PO autónoma — 2026-03-31 (seguimiento bloque 3/4 energía)
+
+Validación ejecutada contra Tasker (`projectId=6`, `userId=1`) y repositorio local en rama `feature/zombie-enemies`.
+
+### Estado Tasker validado
+
+- `IN_PROGRESS (WIP=1)`: `GHOST-0038`.
+- `BACKLOG (5)`: `GHOST-0000`, `GHOST-0039`, `GHOST-0040`, `GHOST-0041`, `GHOST-0042`.
+- `DONE`: mantiene histórico completo de bloques 1 y 2 (`GHOST-0028..GHOST-0037` cerrados).
+
+### Validación de implementación en repositorio
+
+- Compilación verificada: `mvn -q -DskipTests compile` (OK).
+- Bloque 2 sigue operativo en código (`spawn/lifecycle/IA` de zombie ya integrado).
+- Bloque 3 todavía no está implementado en código: no existe aún modelo de energía de Arthur, ni HUD inferior derecho, ni regla visual de energía 0 en rojo.
+
+### Decisión de planificación
+
+- No se crean tickets del bloque 4 (combate Arthur->Zombie) porque la secuencia obligatoria exige cerrar antes `GHOST-0038..GHOST-0042`.
+- Se mantiene `WIP=1` y backlog en 5 tickets sin alterar scope de tickets existentes.
+
+### Aviso a desarrolladores
+
+- Priorizar cierre vertical de `GHOST-0038..GHOST-0042` antes de abrir nuevas líneas funcionales.
+- Mantener estructura DDD actual y reutilizar clases existentes; evitar proliferación innecesaria de clases.
+- Hacer cambios pequeños y compilables por ticket.
