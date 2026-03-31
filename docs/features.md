@@ -26,6 +26,13 @@
 - **Entrada de ciclo garantizada:** cada aparición inicia en `GROUND_RISE` mediante API dedicada de Zombie (`startGroundRiseAt`).
 - **Integración sin romper scroll:** Arthur mantiene el control del offset global de fondo; el spawn del zombie no altera ese contrato.
 
+### 2026-03-31 — GHOST-0035 IA simple de aparición y reaparición aleatoria del Zombie
+
+- **Controlador de ciclo en aplicación:** `GhostsGame` incorpora un orquestador mínimo que activa/desactiva el ciclo de spawn del zombie.
+- **Reaparición con rango configurable:** al completar `GROUND_HIDE`, el siguiente spawn se agenda con delay aleatorio entre `ZOMBIE_RESPAWN_DELAY_MIN_SECONDS` y `ZOMBIE_RESPAWN_DELAY_MAX_SECONDS`.
+- **Un único enemigo activo:** se mantiene un solo `Zombie` instanciado y controlado por flags de ciclo para evitar multiplicidad.
+- **Separación de responsabilidades:** la orquestación temporal vive en aplicación y el character expone señales de fin de ciclo (`consumeHideCycleCompleted`).
+
 ### 2026-03-21 — GHOST-0000 Bootstrap de fase 1 de control y scroll
 
 - **Rama de trabajo validada:** desarrollo ejecutado en `features-nightly-20260321`.

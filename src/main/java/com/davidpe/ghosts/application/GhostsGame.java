@@ -15,6 +15,7 @@ import com.davidpe.ghosts.application.factories.CharacterFactory;
 import com.davidpe.ghosts.domain.characters.Arthur;
 import com.davidpe.ghosts.domain.characters.Zombie;
 import com.davidpe.ghosts.domain.utils.AnimationUtils;
+import java.util.Random;
 
 /**
  * Main game orchestrator for "Ghosts 'n Goblins Remake". Manages the LibGDX lifecycle ({@code
@@ -31,6 +32,8 @@ public class GhostsGame extends ApplicationAdapter {
   private static final float BACKGROUND_BASE_DIM_ALPHA = 0.21f;
   private static final float ZOMBIE_SPAWN_AHEAD_DISTANCE = 230f;
   private static final float ZOMBIE_SPAWN_BEHIND_DISTANCE = 200f;
+  private static final float ZOMBIE_RESPAWN_DELAY_MIN_SECONDS = 1.3f;
+  private static final float ZOMBIE_RESPAWN_DELAY_MAX_SECONDS = 3.4f;
 
   private SpriteBatch batch;
   private OrthographicCamera camera;
@@ -41,6 +44,9 @@ public class GhostsGame extends ApplicationAdapter {
 
   private Arthur arthur;
   private Zombie zombie;
+  private Random random;
+  private boolean zombieCycleActive;
+  private float zombieRespawnTimer;
 
   @Override
   public void create() {
@@ -62,7 +68,9 @@ public class GhostsGame extends ApplicationAdapter {
     CharacterFactory characterFactory = new CharacterFactory(AnimationUtils.getInstance());
     arthur = characterFactory.createArthur(WORLD_WIDTH);
     zombie = characterFactory.createZombie(WORLD_WIDTH);
-    spawnZombieRelativeToArthur(Zombie.SpawnSide.AHEAD);
+    random = new Random();
+    zombieRespawnTimer = 0f;
+    activateZombieCycle(pickSpawnSide());
   }
 
   @Override
@@ -73,6 +81,7 @@ public class GhostsGame extends ApplicationAdapter {
     float delta = Gdx.graphics.getDeltaTime();
     handleZombieDebugInput();
     arthur.update(delta);
+    updateZombieSpawner(delta);
     zombie.update(delta);
 
     camera.update();
@@ -143,6 +152,20 @@ public class GhostsGame extends ApplicationAdapter {
     }
   }
 
+  private void updateZombieSpawner(float delta) {
+    if (zombieCycleActive) {
+      if (zombie.consumeHideCycleCompleted()) {
+        zombieCycleActive = false;
+        zombieRespawnTimer = randomRespawnDelay();
+      }
+      return;
+    }
+    zombieRespawnTimer -= delta;
+    if (zombieRespawnTimer <= 0f) {
+      activateZombieCycle(pickSpawnSide());
+    }
+  }
+
   private Texture createSolidTexture(int width, int height, float r, float g, float b, float a) {
 
     Pixmap pixmap = new Pixmap(width, height, Pixmap.Format.RGBA8888);
@@ -160,5 +183,20 @@ public class GhostsGame extends ApplicationAdapter {
             : ZOMBIE_SPAWN_BEHIND_DISTANCE;
     float spawnX = zombie.resolveSpawnX(arthur.getX(), spawnSide, spawnDistance);
     zombie.startGroundRiseAt(spawnX);
+  }
+
+  private void activateZombieCycle(Zombie.SpawnSide spawnSide) {
+    spawnZombieRelativeToArthur(spawnSide);
+    zombieCycleActive = true;
+    zombieRespawnTimer = 0f;
+  }
+
+  private Zombie.SpawnSide pickSpawnSide() {
+    return random.nextBoolean() ? Zombie.SpawnSide.AHEAD : Zombie.SpawnSide.BEHIND;
+  }
+
+  private float randomRespawnDelay() {
+    return ZOMBIE_RESPAWN_DELAY_MIN_SECONDS
+        + random.nextFloat() * (ZOMBIE_RESPAWN_DELAY_MAX_SECONDS - ZOMBIE_RESPAWN_DELAY_MIN_SECONDS);
   }
 }

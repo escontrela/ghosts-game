@@ -38,6 +38,8 @@ public class Zombie extends Character {
   private MovementState movementState;
   private float minPatrolX;
   private float maxPatrolX;
+  private boolean active;
+  private boolean hideCycleCompleted;
 
   public Zombie(float worldWidth, AnimationUtils animationUtils) {
     super(worldWidth);
@@ -73,10 +75,16 @@ public class Zombie extends Character {
     movementState = MovementState.GROUND_RISE;
     minPatrolX = Math.max(0f, x - DEFAULT_PATROL_DISTANCE);
     maxPatrolX = Math.min(worldWidth - drawWidth, x + DEFAULT_PATROL_DISTANCE);
+    active = true;
+    hideCycleCompleted = false;
   }
 
   @Override
   protected void updateBehavior(float delta) {
+    if (!active) {
+      velocityX = 0f;
+      return;
+    }
     switch (movementState) {
       case GROUND_RISE -> {
         if (groundRiseAnimation.isAnimationFinished(stateTime)) {
@@ -103,7 +111,8 @@ public class Zombie extends Character {
       case GROUND_HIDE -> {
         velocityX = 0f;
         if (groundHideAnimation.isAnimationFinished(stateTime)) {
-          transitionTo(MovementState.GROUND_RISE);
+          active = false;
+          hideCycleCompleted = true;
         }
       }
     }
@@ -183,7 +192,15 @@ public class Zombie extends Character {
     y = GROUND_Y;
     velocityX = 0f;
     velocityY = 0f;
+    active = true;
+    hideCycleCompleted = false;
     transitionTo(MovementState.GROUND_RISE);
+  }
+
+  public boolean consumeHideCycleCompleted() {
+    boolean completed = hideCycleCompleted;
+    hideCycleCompleted = false;
+    return completed;
   }
 
   private float clampX(float candidateX) {
