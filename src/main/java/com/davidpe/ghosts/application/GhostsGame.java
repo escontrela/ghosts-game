@@ -104,7 +104,10 @@ public class GhostsGame extends ApplicationAdapter {
 
     float delta = Gdx.graphics.getDeltaTime();
     handleZombieDebugInput();
+    float prevWorldOffset = arthur.getWorldOffsetX();
     arthur.update(delta);
+    float scrollDelta = arthur.getWorldOffsetX() - prevWorldOffset;
+    zombie.applyWorldScroll(scrollDelta);
     updateZombieSpawner(delta);
     zombie.setTargetX(arthur.getX());
     zombie.update(delta);
@@ -308,7 +311,8 @@ public class GhostsGame extends ApplicationAdapter {
     }
   }
 
-  private float distanceBetweenSegments(float firstMin, float firstMax, float secondMin, float secondMax) {
+  private float distanceBetweenSegments(
+      float firstMin, float firstMax, float secondMin, float secondMax) {
     if (secondMin >= firstMax) {
       return secondMin - firstMax;
     }
@@ -317,5 +321,4 @@ public class GhostsGame extends ApplicationAdapter {
     }
     return 0f;
   }
-
 }

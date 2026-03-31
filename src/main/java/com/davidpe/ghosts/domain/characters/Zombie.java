@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.Texture.TextureFilter;
 import com.badlogic.gdx.graphics.g2d.Animation;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.davidpe.ghosts.domain.utils.AnimationUtils;
 
@@ -138,7 +139,6 @@ public class Zombie extends Character {
           facingRight = velocityX > 0f;
         }
         x += velocityX * delta;
-        x = clampX(x);
         if (activeWalkTimer <= 0f) {
           defeatedByHit = false;
           transitionTo(MovementState.GROUND_HIDE);
@@ -178,6 +178,14 @@ public class Zombie extends Character {
   @Override
   protected float getDrawHeight() {
     return DRAW_HEIGHT;
+  }
+
+  @Override
+  public void draw(SpriteBatch batch) {
+    if (!active) {
+      return;
+    }
+    super.draw(batch);
   }
 
   private Texture loadSheet(String path) {
@@ -279,6 +287,10 @@ public class Zombie extends Character {
     this.targetX = clampX(targetX);
   }
 
+  public void applyWorldScroll(float scrollDelta) {
+    x -= scrollDelta;
+  }
+
   public boolean consumeHideCycleCompleted() {
     boolean completed = hideCycleCompleted;
     hideCycleCompleted = false;
@@ -289,8 +301,7 @@ public class Zombie extends Character {
     return active && movementState == MovementState.WALK;
   }
 
-  public boolean isInContactWith(
-      float otherX, float otherY, float otherWidth, float otherHeight) {
+  public boolean isInContactWith(float otherX, float otherY, float otherWidth, float otherHeight) {
     if (!isWalking()) {
       return false;
     }
@@ -304,10 +315,7 @@ public class Zombie extends Character {
     float otherBottom = otherY;
     float otherTop = otherY + otherHeight;
 
-    return right > otherLeft
-        && left < otherRight
-        && top > otherBottom
-        && bottom < otherTop;
+    return right > otherLeft && left < otherRight && top > otherBottom && bottom < otherTop;
   }
 
   private float clampX(float candidateX) {
