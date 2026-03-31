@@ -621,3 +621,37 @@ com.davidpe.ghosts
   `arthur.drawEffects(batch)` → `arthur.draw(batch)`.
 - Overlay negro semitransparente: `Pixmap` 1×1, alpha `0.21f`.
 - Únicamente 2 fondos de scroll: `main-backgroud-1.png` y `main-background-2.png`.
+
+## Iteración PO autónoma — 2026-03-31 (plan de zombies, bloque 1/4)
+
+Validación ejecutada contra Tasker (`projectId=6`, `userId=1`) y repositorio local en rama `feature/zombie-enemies`.
+
+### Estado validado antes de planificar
+
+- `DONE`: tickets históricos `GHOST-0001` a `GHOST-0027`.
+- `IN_PROGRESS`: ninguno.
+- `BACKLOG`: ninguno.
+
+### Acciones ejecutadas
+
+- `GHOST-0000` retornado a `BACKLOG` (ticket bootstrap debe permanecer de referencia).
+- Se crearon 5 tickets nuevos de **Character Zombie** (sin lógica global de gameplay):
+  - `GHOST-0028` — Esqueleto de Zombie y estados base de animación.
+  - `GHOST-0029` — Carga de animaciones Zombie desde `resources/zombie`.
+  - `GHOST-0030` — Máquina de estados del Zombie y transiciones cerradas.
+  - `GHOST-0031` — Render y movimiento base del Zombie en escena.
+  - `GHOST-0032` — Integración de fábrica y checklist de validación de Zombie Character.
+
+### Secuencia obligatoria de rollout (sin saltos)
+
+1. Completar `GHOST-0028`..`GHOST-0032` (character zombie listo: `WALK`, `GROUND_RISE`, `GROUND_HIDE`, `HITTED`).
+2. Solo después crear 5 tickets de spawn/IA/lifetime (`10s`, hide posterior, respawn aleatorio, Arthur como driver de scroll).
+3. Solo después crear 5 tickets de energía de Arthur (100→0, HUD sutil abajo derecha, rojo al llegar a 0, sin muerte aún).
+4. Solo después crear 5 tickets de combate Arthur→Zombie (animación `HITTED`, 3 golpes para forzar `GROUND_HIDE`, si no llega a 3 vuelve a perseguir).
+5. Al finalizar todo el bloque, crear ticket único de code review orientado a bugs/compilación, pidiendo cambios mínimos y alta reutilización estructural.
+
+### Aviso a desarrolladores
+
+- Mantener estructura DDD actual (`application`/`domain`) y evitar proliferación de clases.
+- Reutilizar utilidades/factorías existentes antes de abrir nuevas abstracciones.
+- Tickets pequeños, verticales y verificables en build jugable.
