@@ -87,6 +87,13 @@ Checklist manual breve bloque 2 (3-5 minutos):
 - **Sin contacto, sin drenado:** la energía deja de bajar inmediatamente al desaparecer la señal de contacto.
 - **Sin muerte en este bloque:** al llegar a `0`, Arthur mantiene su loop jugable sin estado de game over.
 
+### 2026-03-31 — GHOST-0040 HUD sutil de energía en esquina inferior derecha
+
+- **HUD textual mínimo:** `GhostsGame` renderiza `Energy: <valor>` con `BitmapFont` sin introducir sistema UI adicional.
+- **Posición fija en viewport:** texto anclado a la esquina inferior derecha usando márgenes y medición de `GlyphLayout`.
+- **Actualización en tiempo real:** el valor mostrado se calcula por frame desde `arthur.getEnergy()`.
+- **Estilo sobrio para fondo oscuro:** color de baja intensidad/alfa para mantener legibilidad sin dominar la escena.
+
 ### 2026-03-21 — GHOST-0000 Bootstrap de fase 1 de control y scroll
 
 - **Rama de trabajo validada:** desarrollo ejecutado en `features-nightly-20260321`.

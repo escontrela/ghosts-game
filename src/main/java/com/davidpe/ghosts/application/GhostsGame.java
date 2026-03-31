@@ -7,6 +7,8 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
@@ -35,6 +37,8 @@ public class GhostsGame extends ApplicationAdapter {
   private static final float ZOMBIE_RESPAWN_DELAY_MIN_SECONDS = 1.3f;
   private static final float ZOMBIE_RESPAWN_DELAY_MAX_SECONDS = 3.4f;
   private static final float ARTHUR_CONTACT_DRAIN_PER_SECOND = 13f;
+  private static final float ENERGY_HUD_MARGIN_RIGHT = 18f;
+  private static final float ENERGY_HUD_MARGIN_BOTTOM = 14f;
 
   private SpriteBatch batch;
   private OrthographicCamera camera;
@@ -42,6 +46,8 @@ public class GhostsGame extends ApplicationAdapter {
 
   private Texture[] backgrounds;
   private Texture blackOverlayTexture;
+  private BitmapFont hudFont;
+  private GlyphLayout hudLayout;
 
   private Arthur arthur;
   private Zombie zombie;
@@ -66,6 +72,8 @@ public class GhostsGame extends ApplicationAdapter {
           new Texture(Gdx.files.internal("main-background-2.png"))
         };
     blackOverlayTexture = createSolidTexture(1, 1, 0f, 0f, 0f, 1f);
+    hudFont = new BitmapFont();
+    hudLayout = new GlyphLayout();
 
     CharacterFactory characterFactory = new CharacterFactory(AnimationUtils.getInstance());
     arthur = characterFactory.createArthur(WORLD_WIDTH);
@@ -103,6 +111,7 @@ public class GhostsGame extends ApplicationAdapter {
     zombie.draw(batch);
     arthur.drawEffects(batch);
     arthur.draw(batch);
+    drawEnergyHud();
 
     batch.end();
   }
@@ -119,6 +128,7 @@ public class GhostsGame extends ApplicationAdapter {
       texture.dispose();
     }
     blackOverlayTexture.dispose();
+    hudFont.dispose();
     arthur.dispose();
     zombie.dispose();
   }
@@ -207,6 +217,15 @@ public class GhostsGame extends ApplicationAdapter {
   private float randomRespawnDelay() {
     return ZOMBIE_RESPAWN_DELAY_MIN_SECONDS
         + random.nextFloat() * (ZOMBIE_RESPAWN_DELAY_MAX_SECONDS - ZOMBIE_RESPAWN_DELAY_MIN_SECONDS);
+  }
+
+  private void drawEnergyHud() {
+    String energyText = "Energy: " + Math.round(arthur.getEnergy());
+    hudLayout.setText(hudFont, energyText);
+    float textX = WORLD_WIDTH - ENERGY_HUD_MARGIN_RIGHT - hudLayout.width;
+    float textY = ENERGY_HUD_MARGIN_BOTTOM + hudLayout.height;
+    hudFont.setColor(0.86f, 0.84f, 0.79f, 0.78f);
+    hudFont.draw(batch, hudLayout, textX, textY);
   }
 
   public boolean isZombieArthurContactActive() {
