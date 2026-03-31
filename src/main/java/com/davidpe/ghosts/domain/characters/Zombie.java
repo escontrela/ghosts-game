@@ -66,7 +66,26 @@ public class Zombie extends Character {
 
   @Override
   protected void updateBehavior(float delta) {
-    // Intentionally minimal for the animation-loading ticket.
+    switch (movementState) {
+      case GROUND_RISE -> {
+        if (groundRiseAnimation.isAnimationFinished(stateTime)) {
+          transitionTo(MovementState.WALK);
+        }
+      }
+      case WALK -> {
+        // Looping idle movement state. No automatic transition.
+      }
+      case HITTED -> {
+        if (hittedAnimation.isAnimationFinished(stateTime)) {
+          transitionTo(MovementState.WALK);
+        }
+      }
+      case GROUND_HIDE -> {
+        if (groundHideAnimation.isAnimationFinished(stateTime)) {
+          transitionTo(MovementState.GROUND_RISE);
+        }
+      }
+    }
   }
 
   @Override
@@ -99,5 +118,25 @@ public class Zombie extends Character {
       reversed[i] = frames[frames.length - 1 - i];
     }
     return reversed;
+  }
+
+  public void triggerHitted() {
+    if (movementState == MovementState.WALK) {
+      transitionTo(MovementState.HITTED);
+    }
+  }
+
+  public void triggerGroundHide() {
+    if (movementState == MovementState.WALK || movementState == MovementState.HITTED) {
+      transitionTo(MovementState.GROUND_HIDE);
+    }
+  }
+
+  private void transitionTo(MovementState targetState) {
+    if (movementState == targetState) {
+      return;
+    }
+    movementState = targetState;
+    resetStateTime();
   }
 }
