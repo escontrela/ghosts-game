@@ -34,6 +34,7 @@ public class GhostsGame extends ApplicationAdapter {
   private static final float ZOMBIE_SPAWN_BEHIND_DISTANCE = 200f;
   private static final float ZOMBIE_RESPAWN_DELAY_MIN_SECONDS = 1.3f;
   private static final float ZOMBIE_RESPAWN_DELAY_MAX_SECONDS = 3.4f;
+  private static final float ARTHUR_CONTACT_DRAIN_PER_SECOND = 13f;
 
   private SpriteBatch batch;
   private OrthographicCamera camera;
@@ -89,6 +90,8 @@ public class GhostsGame extends ApplicationAdapter {
     zombieArthurContactActive =
         zombie.isInContactWith(
             arthur.getX(), arthur.getY(), arthur.getDrawWidth(), arthur.getDrawHeightValue());
+    arthur.applyContactEnergyDrain(
+        zombieArthurContactActive, delta, ARTHUR_CONTACT_DRAIN_PER_SECOND);
 
     camera.update();
     batch.setProjectionMatrix(camera.combined);

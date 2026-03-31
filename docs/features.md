@@ -80,6 +80,13 @@ Checklist manual breve bloque 2 (3-5 minutos):
 - **Exposición para capa de aplicación:** `GhostsGame` actualiza `zombieArthurContactActive` por frame para ser consumido por tickets de energía.
 - **Sin efectos de combate en este ticket:** no se alteran estados de `HITTED`, no hay daño ni knockback.
 
+### 2026-03-31 — GHOST-0039 Energía de Arthur (100 -> 0) con drenado por contacto
+
+- **Modelo base de energía:** `Arthur` expone energía numérica con valor inicial `100` y clamp inferior `0`.
+- **Drenado configurable por segundo:** `GhostsGame` aplica drenado con constante `ARTHUR_CONTACT_DRAIN_PER_SECOND` únicamente cuando el contacto está activo.
+- **Sin contacto, sin drenado:** la energía deja de bajar inmediatamente al desaparecer la señal de contacto.
+- **Sin muerte en este bloque:** al llegar a `0`, Arthur mantiene su loop jugable sin estado de game over.
+
 ### 2026-03-21 — GHOST-0000 Bootstrap de fase 1 de control y scroll
 
 - **Rama de trabajo validada:** desarrollo ejecutado en `features-nightly-20260321`.

@@ -65,6 +65,7 @@ public class Arthur extends Character {
   private static final float LIGHT_TORSO_Y_CROUCH_UP = 0.45f;
   private static final float LIGHT_TORSO_Y_JUMP = 0.56f;
   private static final float LIGHT_TORSO_Y_PUNCH = 0.52f;
+  private static final float INITIAL_ENERGY = 100f;
 
   // --- Crouch split: rows 0-4 = crouch down (20 frames), rows 4-end = stand up (13 frames) ---
   private static final int CROUCH_DOWN_END_FRAME = 20;
@@ -106,6 +107,7 @@ public class Arthur extends Character {
   private float crouchAnchorX;
   private float currentLightAlpha;
   private float currentLightSize;
+  private float energy;
 
   public Arthur(float worldWidth, AnimationUtils animationUtils) {
     super(worldWidth);
@@ -166,6 +168,7 @@ public class Arthur extends Character {
     crouchAnchorX = x;
     currentLightAlpha = LIGHT_ALPHA_IDLE;
     currentLightSize = LIGHT_SIZE_IDLE;
+    energy = INITIAL_ENERGY;
   }
 
   // ---------------------------------------------------------------------------
@@ -185,6 +188,17 @@ public class Arthur extends Character {
 
   public float getWorldOffsetX() {
     return worldOffsetX;
+  }
+
+  public float getEnergy() {
+    return energy;
+  }
+
+  public void applyContactEnergyDrain(boolean zombieContactActive, float delta, float drainPerSecond) {
+    if (!zombieContactActive || drainPerSecond <= 0f || energy <= 0f) {
+      return;
+    }
+    energy = Math.max(0f, energy - (drainPerSecond * delta));
   }
 
   // ---------------------------------------------------------------------------
