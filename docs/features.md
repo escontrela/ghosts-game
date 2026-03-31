@@ -12,6 +12,13 @@
 
 ## Features implementadas
 
+### 2026-03-31 — GHOST-0000 Bootstrap de fase 1 de control y scroll (validación operativa)
+
+- **Rama de trabajo validada para el ciclo actual:** desarrollo ejecutado en `feature/zombie-enemies` (política activa del repositorio).
+- **Alcance ratificado de fase 1:** izquierda/derecha, agacharse, salto, scroll de dos fondos y luz tenue sobre Arthur.
+- **Regla de implementación ratificada:** priorizar extensión de clases existentes y evitar proliferación innecesaria de clases.
+- **Nota de referencia histórica:** la entrada original de 2026-03-21 mantiene el contexto inicial del bootstrap.
+
 ### 2026-03-21 — GHOST-0000 Bootstrap de fase 1 de control y scroll
 
 - **Rama de trabajo validada:** desarrollo ejecutado en `features-nightly-20260321`.
