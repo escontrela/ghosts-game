@@ -88,6 +88,13 @@ Checklist manual breve bloque 4 (3-5 minutos):
 - **Sin incremento por timeout:** `GROUND_HIDE` por fin de `WALK` no genera evento de derrota y no altera el contador.
 - **Exposición mínima para HUD/aplicación:** `getDefeatedZombieCount()` publica el valor actual sin añadir capas extra.
 
+### 2026-03-31 — GHOST-0050 HUD de score en esquina inferior izquierda
+
+- **Nuevo texto HUD opuesto a energía:** `GhostsGame` renderiza `Score: <valor>` en la parte baja izquierda del viewport.
+- **Lectura en tiempo real del contador:** el valor mostrado usa `defeatedZombieCount` actualizado por derrotas válidas del zombie.
+- **Estilo visual coherente:** usa `BitmapFont` y paleta base sutil del HUD actual para mantener consistencia con `Energy`.
+- **Sin sistema UI paralelo:** implementación integrada en el pipeline HUD existente (`drawScoreHud()` + `drawEnergyHud()`).
+
 ### 2026-03-31 — GHOST-0000 Bootstrap de fase 1 de control y scroll (validación operativa)
 
 - **Rama de trabajo validada para el ciclo actual:** desarrollo ejecutado en `feature/zombie-enemies` (política activa del repositorio).

@@ -39,6 +39,8 @@ public class GhostsGame extends ApplicationAdapter {
   private static final float ARTHUR_CONTACT_DRAIN_PER_SECOND = 13f;
   private static final float ENERGY_HUD_MARGIN_RIGHT = 18f;
   private static final float ENERGY_HUD_MARGIN_BOTTOM = 14f;
+  private static final float SCORE_HUD_MARGIN_LEFT = 18f;
+  private static final float SCORE_HUD_MARGIN_BOTTOM = 14f;
   private static final float ENERGY_HUD_BASE_R = 0.86f;
   private static final float ENERGY_HUD_BASE_G = 0.84f;
   private static final float ENERGY_HUD_BASE_B = 0.79f;
@@ -131,6 +133,7 @@ public class GhostsGame extends ApplicationAdapter {
     zombie.draw(batch);
     arthur.drawEffects(batch);
     arthur.draw(batch);
+    drawScoreHud();
     drawEnergyHud();
 
     batch.end();
@@ -254,6 +257,15 @@ public class GhostsGame extends ApplicationAdapter {
     } else {
       hudFont.setColor(ENERGY_HUD_BASE_R, ENERGY_HUD_BASE_G, ENERGY_HUD_BASE_B, ENERGY_HUD_BASE_A);
     }
+    hudFont.draw(batch, hudLayout, textX, textY);
+  }
+
+  private void drawScoreHud() {
+    String scoreText = "Score: " + defeatedZombieCount;
+    hudLayout.setText(hudFont, scoreText);
+    float textX = SCORE_HUD_MARGIN_LEFT;
+    float textY = SCORE_HUD_MARGIN_BOTTOM + hudLayout.height;
+    hudFont.setColor(ENERGY_HUD_BASE_R, ENERGY_HUD_BASE_G, ENERGY_HUD_BASE_B, ENERGY_HUD_BASE_A);
     hudFont.draw(batch, hudLayout, textX, textY);
   }
 
