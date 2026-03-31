@@ -39,6 +39,14 @@ public class GhostsGame extends ApplicationAdapter {
   private static final float ARTHUR_CONTACT_DRAIN_PER_SECOND = 13f;
   private static final float ENERGY_HUD_MARGIN_RIGHT = 18f;
   private static final float ENERGY_HUD_MARGIN_BOTTOM = 14f;
+  private static final float ENERGY_HUD_BASE_R = 0.86f;
+  private static final float ENERGY_HUD_BASE_G = 0.84f;
+  private static final float ENERGY_HUD_BASE_B = 0.79f;
+  private static final float ENERGY_HUD_BASE_A = 0.78f;
+  private static final float ENERGY_HUD_CRITICAL_R = 0.93f;
+  private static final float ENERGY_HUD_CRITICAL_G = 0.2f;
+  private static final float ENERGY_HUD_CRITICAL_B = 0.2f;
+  private static final float ENERGY_HUD_CRITICAL_A = 0.9f;
 
   private SpriteBatch batch;
   private OrthographicCamera camera;
@@ -220,11 +228,20 @@ public class GhostsGame extends ApplicationAdapter {
   }
 
   private void drawEnergyHud() {
-    String energyText = "Energy: " + Math.round(arthur.getEnergy());
+    float energy = arthur.getEnergy();
+    String energyText = "Energy: " + Math.round(energy);
     hudLayout.setText(hudFont, energyText);
     float textX = WORLD_WIDTH - ENERGY_HUD_MARGIN_RIGHT - hudLayout.width;
     float textY = ENERGY_HUD_MARGIN_BOTTOM + hudLayout.height;
-    hudFont.setColor(0.86f, 0.84f, 0.79f, 0.78f);
+    if (energy <= 0f) {
+      hudFont.setColor(
+          ENERGY_HUD_CRITICAL_R,
+          ENERGY_HUD_CRITICAL_G,
+          ENERGY_HUD_CRITICAL_B,
+          ENERGY_HUD_CRITICAL_A);
+    } else {
+      hudFont.setColor(ENERGY_HUD_BASE_R, ENERGY_HUD_BASE_G, ENERGY_HUD_BASE_B, ENERGY_HUD_BASE_A);
+    }
     hudFont.draw(batch, hudLayout, textX, textY);
   }
 

@@ -94,6 +94,12 @@ Checklist manual breve bloque 2 (3-5 minutos):
 - **Actualización en tiempo real:** el valor mostrado se calcula por frame desde `arthur.getEnergy()`.
 - **Estilo sobrio para fondo oscuro:** color de baja intensidad/alfa para mantener legibilidad sin dominar la escena.
 
+### 2026-03-31 — GHOST-0041 Estado crítico visual en energía 0 (sin muerte)
+
+- **Regla de color crítica:** el HUD mantiene color base mientras `energy > 0` y cambia a rojo estable cuando `energy == 0`.
+- **Loop de control intacto:** Arthur continúa jugable en `0` (movimiento, salto y punch) sin transición de muerte.
+- **Sin consecuencias extra en este bloque:** no se introduce knockback, invulnerabilidad ni game over.
+
 ### 2026-03-21 — GHOST-0000 Bootstrap de fase 1 de control y scroll
 
 - **Rama de trabajo validada:** desarrollo ejecutado en `features-nightly-20260321`.
