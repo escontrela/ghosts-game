@@ -1036,3 +1036,33 @@ Validación ejecutada contra Tasker (`projectId=6`, `userId=1`) y repositorio lo
 
 - Mantener arquitectura DDD actual (dominio/aplicación) y reutilizar clases existentes.
 - Evitar proliferación de clases; priorizar extensión puntual en `GhostsGame`, `Arthur`, `Zombie` y factorías actuales.
+
+### 2026-03-31 — GHOST-0058 Checklist E2E de 10 ciclos Zombie sin debug
+
+- **Objetivo de estabilidad prolongada:** validar 10 ciclos completos consecutivos del zombie sin usar teclas debug (`1`, `2`, `H`, `G`).
+- **Secuencia esperada por ciclo:** `GROUND_RISE -> WALK -> GROUND_HIDE -> RESPAWN`.
+- **Criterios funcionales a vigilar durante cada ciclo:**
+  - `Energy` solo disminuye cuando existe contacto activo con zombie en `WALK`.
+  - `Score` solo incrementa cuando el zombie entra en `GROUND_HIDE` por tercer golpe válido de Arthur.
+  - `GROUND_HIDE` por timeout de `WALK` no incrementa `Score`.
+
+Checklist manual 10 ciclos (sin debug):
+
+1. Iniciar partida y confirmar estado base `Score: 0` con `Energy: 100`.
+2. Observar ciclo 1 completo sin pulsar teclas debug y confirmar retorno a respawn.
+3. Repetir observación de ciclo completo hasta alcanzar 10 ciclos consecutivos.
+4. En al menos 3 ciclos, forzar contacto zombie-Arthur y validar drenado continuo solo mientras haya solape.
+5. En al menos 2 ciclos, ejecutar derrota por tercer golpe y validar incremento unitario de `Score` (`+1` exacto por derrota).
+6. En al menos 2 ciclos, dejar timeout de `WALK` sin tercer golpe y validar `Score` inalterado.
+7. Confirmar que tras cada `GROUND_HIDE` el zombie reaparece con delay dentro de rango de tuning actual.
+8. Verificar que no aparecen dobles incrementos de `Score` en un mismo ciclo.
+9. Verificar que `Energy` nunca baja de `0` ni muestra saltos extremos por un único frame.
+10. Cerrar ejecución con resumen rápido: ciclos completados, score final, anomalías observadas.
+
+Síntomas de fuga de estado/evento duplicado a registrar explícitamente:
+
+- Incremento de `Score` sin tercer golpe.
+- Incremento múltiple de `Score` para una única derrota.
+- Drenado de `Energy` fuera de contacto o durante `GROUND_HIDE`.
+- Zombie sin respawn tras completar `GROUND_HIDE`.
+- Eventos de golpe consumidos con objetivo no elegible (`WALK` no activo).
