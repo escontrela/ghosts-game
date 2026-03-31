@@ -109,6 +109,14 @@ Checklist manual breve bloque score (3-5 minutos):
 4. **No sumar por timeout:** dejar un zombie en `WALK` hasta auto-hide por tiempo y confirmar que `Score` no cambia.
 5. **Ciclo repetido:** repetir otro ciclo de 3 golpes y comprobar incremento acumulado monotónico (`0 -> 1 -> 2`).
 
+### 2026-03-31 — GHOST-0052 Review técnico breve (zombie/energía/score)
+
+- **Enfoque de review aplicado:** bugs potenciales, riesgos de regresión y estabilidad de compilación; sin refactors cosméticos amplios.
+- **Hallazgo 1 (riesgo funcional):** `GhostsGame.render()` mantiene `handleZombieDebugInput()` activo, por lo que teclas debug (`1`, `2`, `H`, `G`) pueden alterar ciclo/score en runtime normal.
+- **Hallazgo 2 (riesgo de timing):** `processArthurPunchHit()` consume la ventana de golpe antes de confirmar que el zombie está en `WALK`; en borde de transición de estado puede perderse un impacto esperado.
+- **Acciones propuestas (breve):** aislar debug keys detrás de flag de desarrollo y evaluar consumo de ventana de punch solo cuando el target sea elegible para impacto.
+- **Regla técnica reforzada:** aplicar fixes sobre `GhostsGame`/`Arthur`/`Zombie` reutilizando estructura existente.
+
 ### 2026-03-31 — GHOST-0000 Bootstrap de fase 1 de control y scroll (validación operativa)
 
 - **Rama de trabajo validada para el ciclo actual:** desarrollo ejecutado en `feature/zombie-enemies` (política activa del repositorio).
