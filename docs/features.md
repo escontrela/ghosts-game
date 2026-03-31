@@ -853,3 +853,35 @@ Validación ejecutada contra Tasker (`projectId=6`, `userId=1`) y repositorio lo
 - Priorizar cierre vertical de `GHOST-0038..GHOST-0042` antes de abrir nuevas líneas funcionales.
 - Mantener estructura DDD actual y reutilizar clases existentes; evitar proliferación innecesaria de clases.
 - Hacer cambios pequeños y compilables por ticket.
+
+## Iteración PO autónoma — 2026-03-31 (plan de zombies, bloque 4/4)
+
+Validación ejecutada contra Tasker (`projectId=6`, `userId=1`) y repositorio local en rama `feature/zombie-enemies`.
+
+### Estado validado antes de planificar
+
+- `DONE`: `GHOST-0038`..`GHOST-0042` (bloque de energía de Arthur por contacto completado en Tasker).
+- Se corrigió deriva de estado: `GHOST-0000` volvió a `BACKLOG` (ticket bootstrap de referencia).
+- Revisión de código confirmada en `GhostsGame`, `Arthur` y `Zombie`:
+  - Contacto Zombie-Arthur activo y drenado de energía `100 -> 0` implementado.
+  - HUD `Energy` visible en esquina inferior derecha, con cambio a rojo en `0`.
+  - Arthur permanece jugable en energía `0` (sin muerte), como exige el alcance.
+
+### Nuevos tickets creados (bloque 4: combate Arthur -> Zombie)
+
+- `GHOST-0043` — Golpe de Arthur dispara estado `HITTED` del Zombie. (`IN_PROGRESS`)
+- `GHOST-0044` — Contador de impactos al Zombie con umbral de 3 golpes.
+- `GHOST-0045` — Reanudación de persecución tras `HITTED` con breve delay.
+- `GHOST-0046` — Tercer golpe fuerza `GROUND_HIDE` y corta daño a Arthur.
+- `GHOST-0047` — Integración bloque 4 combate Zombie + checklist manual.
+
+### Reglas activas de orquestación
+
+- `WIP=1` respetado: solo `GHOST-0043` en `IN_PROGRESS`.
+- Backlog mínimo garantizado: `GHOST-0000` + `GHOST-0044`..`GHOST-0047`.
+- No se abre todavía ticket de puntuación ni ticket de review final: quedan explícitamente bloqueados hasta completar `GHOST-0043`..`GHOST-0047`.
+
+### Directriz para agentes dev
+
+- Mantener arquitectura DDD actual (dominio/aplicación) y reutilizar clases existentes.
+- Evitar proliferación de clases; priorizar extensión puntual en `GhostsGame`, `Arthur`, `Zombie` y factorías actuales.
