@@ -655,3 +655,10 @@ Validación ejecutada contra Tasker (`projectId=6`, `userId=1`) y repositorio lo
 - Mantener estructura DDD actual (`application`/`domain`) y evitar proliferación de clases.
 - Reutilizar utilidades/factorías existentes antes de abrir nuevas abstracciones.
 - Tickets pequeños, verticales y verificables en build jugable.
+
+## 2026-03-31 — GHOST-0000 Bootstrap operativo vigente
+
+- Rama de implementación validada para esta ejecución: `feature/zombie-enemies`.
+- El ticket se usa como referencia de alcance y reglas de trabajo incremental.
+- Foco documentado de esta iteración: bloque de Zombie Character (`GHOST-0028` a `GHOST-0032`).
+- Regla de arquitectura reafirmada: priorizar extensión de estructura existente (`application`/`domain`) y evitar proliferación de clases.
