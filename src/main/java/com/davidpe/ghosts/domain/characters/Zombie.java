@@ -46,6 +46,8 @@ public class Zombie extends Character {
   private float targetX;
   private boolean active;
   private boolean hideCycleCompleted;
+  private boolean defeatedByHit;
+  private boolean defeatByHitEventPending;
   private int accumulatedHits;
 
   public Zombie(float worldWidth, AnimationUtils animationUtils) {
@@ -107,6 +109,8 @@ public class Zombie extends Character {
     targetX = x;
     active = true;
     hideCycleCompleted = false;
+    defeatedByHit = false;
+    defeatByHitEventPending = false;
     accumulatedHits = 0;
   }
 
@@ -134,6 +138,7 @@ public class Zombie extends Character {
         x += velocityX * delta;
         x = clampX(x);
         if (activeWalkTimer <= 0f) {
+          defeatedByHit = false;
           transitionTo(MovementState.GROUND_HIDE);
         }
       }
@@ -196,6 +201,8 @@ public class Zombie extends Character {
     if (movementState == MovementState.WALK) {
       accumulatedHits = Math.min(DEFEAT_HIT_THRESHOLD, accumulatedHits + 1);
       if (accumulatedHits >= DEFEAT_HIT_THRESHOLD) {
+        defeatedByHit = true;
+        defeatByHitEventPending = true;
         transitionTo(MovementState.GROUND_HIDE);
       } else {
         transitionTo(MovementState.HITTED);
@@ -207,6 +214,7 @@ public class Zombie extends Character {
 
   public void triggerGroundHide() {
     if (movementState == MovementState.WALK || movementState == MovementState.HITTED) {
+      defeatedByHit = false;
       transitionTo(MovementState.GROUND_HIDE);
     }
   }
@@ -241,6 +249,8 @@ public class Zombie extends Character {
     velocityY = 0f;
     active = true;
     hideCycleCompleted = false;
+    defeatedByHit = false;
+    defeatByHitEventPending = false;
     accumulatedHits = 0;
     transitionTo(MovementState.GROUND_RISE);
   }
@@ -251,6 +261,16 @@ public class Zombie extends Character {
 
   public int getDefeatHitThreshold() {
     return DEFEAT_HIT_THRESHOLD;
+  }
+
+  public boolean isDefeatedByHit() {
+    return defeatedByHit;
+  }
+
+  public boolean consumeDefeatByHitEvent() {
+    boolean event = defeatByHitEventPending;
+    defeatByHitEventPending = false;
+    return event;
   }
 
   public void setTargetX(float targetX) {
