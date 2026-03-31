@@ -81,6 +81,13 @@ Checklist manual breve bloque 4 (3-5 minutos):
 - **Sin falsos positivos por timeout/debug:** transiciones a `GROUND_HIDE` por fin de `WALK` o trigger manual no activan el evento de derrota.
 - **Reset por ciclo garantizado:** al iniciar `startGroundRiseAt(...)` se limpian flag y evento para el siguiente spawn.
 
+### 2026-03-31 — GHOST-0049 Contador de enemigos derrotados en sesión
+
+- **Contador de sesión inicializado a 0:** `GhostsGame` añade `defeatedZombieCount` y lo resetea al crear la partida.
+- **Incremento solo por derrota válida:** el contador suma `+1` exclusivamente cuando llega el evento one-shot `consumeDefeatByHitEvent()`.
+- **Sin incremento por timeout:** `GROUND_HIDE` por fin de `WALK` no genera evento de derrota y no altera el contador.
+- **Exposición mínima para HUD/aplicación:** `getDefeatedZombieCount()` publica el valor actual sin añadir capas extra.
+
 ### 2026-03-31 — GHOST-0000 Bootstrap de fase 1 de control y scroll (validación operativa)
 
 - **Rama de trabajo validada para el ciclo actual:** desarrollo ejecutado en `feature/zombie-enemies` (política activa del repositorio).

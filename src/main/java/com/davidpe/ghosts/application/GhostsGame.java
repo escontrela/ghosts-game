@@ -66,6 +66,7 @@ public class GhostsGame extends ApplicationAdapter {
   private float zombieRespawnTimer;
   private boolean zombieArthurContactActive;
   private boolean zombieDefeatByHitEventPending;
+  private int defeatedZombieCount;
 
   @Override
   public void create() {
@@ -93,6 +94,7 @@ public class GhostsGame extends ApplicationAdapter {
     zombieRespawnTimer = 0f;
     zombieArthurContactActive = false;
     zombieDefeatByHitEventPending = false;
+    defeatedZombieCount = 0;
     activateZombieCycle(pickSpawnSide());
   }
 
@@ -107,7 +109,11 @@ public class GhostsGame extends ApplicationAdapter {
     updateZombieSpawner(delta);
     zombie.setTargetX(arthur.getX());
     zombie.update(delta);
-    zombieDefeatByHitEventPending = zombieDefeatByHitEventPending || zombie.consumeDefeatByHitEvent();
+    boolean defeatedByHitEvent = zombie.consumeDefeatByHitEvent();
+    if (defeatedByHitEvent) {
+      defeatedZombieCount += 1;
+    }
+    zombieDefeatByHitEventPending = zombieDefeatByHitEventPending || defeatedByHitEvent;
     processArthurPunchHit();
     zombieArthurContactActive =
         zombie.isInContactWith(
@@ -259,6 +265,10 @@ public class GhostsGame extends ApplicationAdapter {
     boolean event = zombieDefeatByHitEventPending;
     zombieDefeatByHitEventPending = false;
     return event;
+  }
+
+  public int getDefeatedZombieCount() {
+    return defeatedZombieCount;
   }
 
   private void processArthurPunchHit() {
