@@ -19,6 +19,13 @@
 - **Regla de reutilización reafirmada:** extender clases existentes y evitar proliferación innecesaria de clases.
 - **Tratamiento del ticket en Tasker:** cierre en `done` para evitar duplicidad operativa, manteniendo `GHOST-0000` como referencia documental en este log.
 
+### 2026-03-31 — GHOST-0043 Golpe de Arthur dispara `HITTED` por ventana de punch
+
+- **Trigger por ventana de golpe:** `Arthur` expone `consumePunchHitWindow()` para evaluar impacto una sola vez por cada entrada en estado `PUNCH`.
+- **Alcance configurable en dos ejes:** `GhostsGame` aplica umbrales explícitos de proximidad horizontal (`ARTHUR_PUNCH_REACH`) y vertical (`ARTHUR_PUNCH_VERTICAL_REACH`) antes de registrar golpe válido.
+- **Gate de estado del enemigo preservado:** solo zombies en `WALK` aceptan golpe y transicionan a `HITTED`.
+- **Sin alcance válido, sin impacto:** si la separación horizontal o vertical supera los umbrales configurados, no se dispara `registerValidHit()`.
+
 ### 2026-03-31 — GHOST-0044 Contador de impactos de Zombie con umbral 3
 
 - **Contador acumulado en dominio:** `Zombie` incorpora `accumulatedHits` y suma 1 por cada golpe válido aceptado en estado `WALK`.

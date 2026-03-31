@@ -108,6 +108,7 @@ public class Arthur extends Character {
   private float currentLightAlpha;
   private float currentLightSize;
   private float energy;
+  private boolean punchHitWindowPending;
 
   public Arthur(float worldWidth, AnimationUtils animationUtils) {
     super(worldWidth);
@@ -169,6 +170,7 @@ public class Arthur extends Character {
     currentLightAlpha = LIGHT_ALPHA_IDLE;
     currentLightSize = LIGHT_SIZE_IDLE;
     energy = INITIAL_ENERGY;
+    punchHitWindowPending = false;
   }
 
   // ---------------------------------------------------------------------------
@@ -199,6 +201,14 @@ public class Arthur extends Character {
       return;
     }
     energy = Math.max(0f, energy - (drainPerSecond * delta));
+  }
+
+  public boolean consumePunchHitWindow() {
+    if (!punchHitWindowPending) {
+      return false;
+    }
+    punchHitWindowPending = false;
+    return true;
   }
 
   // ---------------------------------------------------------------------------
@@ -277,6 +287,7 @@ public class Arthur extends Character {
       movementState = MovementState.PUNCH;
       resetStateTime();
       velocityX = 0f;
+      punchHitWindowPending = true;
       updateScroll(delta);
       return;
     }

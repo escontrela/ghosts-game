@@ -48,6 +48,7 @@ public class GhostsGame extends ApplicationAdapter {
   private static final float ENERGY_HUD_CRITICAL_B = 0.2f;
   private static final float ENERGY_HUD_CRITICAL_A = 0.9f;
   private static final float ARTHUR_PUNCH_REACH = 46f;
+  private static final float ARTHUR_PUNCH_VERTICAL_REACH = 22f;
 
   private SpriteBatch batch;
   private OrthographicCamera camera;
@@ -252,7 +253,7 @@ public class GhostsGame extends ApplicationAdapter {
   }
 
   private void processArthurPunchHit() {
-    if (!Gdx.input.isKeyJustPressed(Input.Keys.SPACE) || !zombie.isWalking()) {
+    if (!arthur.consumePunchHitWindow() || !zombie.isWalking()) {
       return;
     }
 
@@ -266,23 +267,26 @@ public class GhostsGame extends ApplicationAdapter {
     float zombieBottom = zombie.getY();
     float zombieTop = zombieBottom + zombie.getDrawHeightValue();
 
-    boolean verticalOverlap = arthurTop > zombieBottom && arthurBottom < zombieTop;
-    if (!verticalOverlap) {
+    float verticalGap = distanceBetweenSegments(arthurBottom, arthurTop, zombieBottom, zombieTop);
+    if (verticalGap > ARTHUR_PUNCH_VERTICAL_REACH) {
       return;
     }
 
-    float horizontalGap;
-    if (zombieLeft >= arthurRight) {
-      horizontalGap = zombieLeft - arthurRight;
-    } else if (arthurLeft >= zombieRight) {
-      horizontalGap = arthurLeft - zombieRight;
-    } else {
-      horizontalGap = 0f;
-    }
+    float horizontalGap = distanceBetweenSegments(arthurLeft, arthurRight, zombieLeft, zombieRight);
 
     if (horizontalGap <= ARTHUR_PUNCH_REACH) {
       zombie.registerValidHit();
     }
+  }
+
+  private float distanceBetweenSegments(float firstMin, float firstMax, float secondMin, float secondMax) {
+    if (secondMin >= firstMax) {
+      return secondMin - firstMax;
+    }
+    if (firstMin >= secondMax) {
+      return firstMin - secondMax;
+    }
+    return 0f;
   }
 
 }
