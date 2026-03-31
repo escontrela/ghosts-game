@@ -1,6 +1,7 @@
 package com.davidpe.ghosts.application.factories;
 
 import com.davidpe.ghosts.domain.characters.Arthur;
+import com.davidpe.ghosts.domain.characters.Zombie;
 import com.davidpe.ghosts.domain.utils.AnimationUtils;
 
 /**
@@ -19,5 +20,9 @@ public class CharacterFactory {
 
   public Arthur createArthur(float worldWidth) {
     return new Arthur(worldWidth, animationUtils);
+  }
+
+  public Zombie createZombie(float worldWidth) {
+    return new Zombie(worldWidth, animationUtils);
   }
 }

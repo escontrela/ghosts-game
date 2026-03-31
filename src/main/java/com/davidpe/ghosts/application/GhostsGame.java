@@ -2,6 +2,7 @@ package com.davidpe.ghosts.application;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Pixmap;
@@ -58,7 +59,7 @@ public class GhostsGame extends ApplicationAdapter {
 
     CharacterFactory characterFactory = new CharacterFactory(AnimationUtils.getInstance());
     arthur = characterFactory.createArthur(WORLD_WIDTH);
-    zombie = new Zombie(WORLD_WIDTH, AnimationUtils.getInstance());
+    zombie = characterFactory.createZombie(WORLD_WIDTH);
     zombie.setPatrolBounds(110f, WORLD_WIDTH - 170f);
   }
 
@@ -68,6 +69,7 @@ public class GhostsGame extends ApplicationAdapter {
     ScreenUtils.clear(0, 0, 0, 1);
 
     float delta = Gdx.graphics.getDeltaTime();
+    handleZombieDebugInput();
     arthur.update(delta);
     zombie.update(delta);
 
@@ -122,6 +124,15 @@ public class GhostsGame extends ApplicationAdapter {
     batch.setColor(1f, 1f, 1f, BACKGROUND_BASE_DIM_ALPHA);
     batch.draw(blackOverlayTexture, 0f, 0f, WORLD_WIDTH, WORLD_HEIGHT);
     batch.setColor(previousColor);
+  }
+
+  private void handleZombieDebugInput() {
+    if (Gdx.input.isKeyJustPressed(Input.Keys.H)) {
+      zombie.triggerHitted();
+    }
+    if (Gdx.input.isKeyJustPressed(Input.Keys.G)) {
+      zombie.triggerGroundHide();
+    }
   }
 
   private Texture createSolidTexture(int width, int height, float r, float g, float b, float a) {

@@ -662,3 +662,29 @@ Validación ejecutada contra Tasker (`projectId=6`, `userId=1`) y repositorio lo
 - El ticket se usa como referencia de alcance y reglas de trabajo incremental.
 - Foco documentado de esta iteración: bloque de Zombie Character (`GHOST-0028` a `GHOST-0032`).
 - Regla de arquitectura reafirmada: priorizar extensión de estructura existente (`application`/`domain`) y evitar proliferación de clases.
+
+## 2026-03-31 — GHOST-0028..GHOST-0032 Zombie Character base
+
+- Nuevo character de dominio: `Zombie extends Character` con estados `WALK`, `GROUND_RISE`, `GROUND_HIDE`, `HITTED`.
+- Carga de animaciones con `AnimationUtils` desde:
+  - `zombie/sprite-sheet-zombie-walk.png` + `bounding-boxes-zombie-walk.json`
+  - `zombie/sprite-sheet-zombie-ground.png` + `bounding-boxes-zombie-ground.json`
+  - `zombie/sprite-sheet-zombie-hitted.png` + `bounding-boxes-zombie-hitted.json`
+- `GROUND_HIDE` reutiliza los mismos frames de `GROUND` en orden inverso (sin assets duplicados).
+- Transiciones internas cerradas del Zombie:
+  - `GROUND_RISE` (one-shot) -> `WALK`
+  - `WALK` (loop)
+  - `HITTED` (one-shot) -> `WALK`
+  - `GROUND_HIDE` (one-shot) -> `GROUND_RISE`
+- Integración en `GhostsGame`:
+  - `update()` + `draw()` del Zombie activos en escena.
+  - Movimiento horizontal base por patrulla local (Arthur sigue siendo driver del scroll global por `worldOffsetX`).
+  - Instanciación vía `CharacterFactory#createZombie(...)`.
+
+### Checklist manual corto Zombie Character
+
+1. Ejecutar el juego y validar que Zombie arranca con `GROUND_RISE` y pasa automáticamente a `WALK`.
+2. Observar patrulla horizontal: el sprite invierte orientación en límites sin jitter visible.
+3. Pulsar `H` y verificar `HITTED` one-shot con retorno a `WALK`.
+4. Pulsar `G` y verificar secuencia `GROUND_HIDE` (one-shot) seguida de `GROUND_RISE` y vuelta a `WALK`.
+5. Repetir `H`/`G` alternados y confirmar estabilidad de animación y ausencia de fugas de texturas al cerrar la app.
