@@ -12,6 +12,7 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.davidpe.ghosts.application.factories.CharacterFactory;
 import com.davidpe.ghosts.domain.characters.Arthur;
+import com.davidpe.ghosts.domain.characters.Zombie;
 import com.davidpe.ghosts.domain.utils.AnimationUtils;
 
 /**
@@ -36,6 +37,7 @@ public class GhostsGame extends ApplicationAdapter {
   private Texture blackOverlayTexture;
 
   private Arthur arthur;
+  private Zombie zombie;
 
   @Override
   public void create() {
@@ -56,6 +58,8 @@ public class GhostsGame extends ApplicationAdapter {
 
     CharacterFactory characterFactory = new CharacterFactory(AnimationUtils.getInstance());
     arthur = characterFactory.createArthur(WORLD_WIDTH);
+    zombie = new Zombie(WORLD_WIDTH, AnimationUtils.getInstance());
+    zombie.setPatrolBounds(110f, WORLD_WIDTH - 170f);
   }
 
   @Override
@@ -65,6 +69,7 @@ public class GhostsGame extends ApplicationAdapter {
 
     float delta = Gdx.graphics.getDeltaTime();
     arthur.update(delta);
+    zombie.update(delta);
 
     camera.update();
     batch.setProjectionMatrix(camera.combined);
@@ -73,6 +78,7 @@ public class GhostsGame extends ApplicationAdapter {
 
     drawScrollingBackgrounds();
     drawBackgroundDim();
+    zombie.draw(batch);
     arthur.drawEffects(batch);
     arthur.draw(batch);
 
@@ -92,6 +98,7 @@ public class GhostsGame extends ApplicationAdapter {
     }
     blackOverlayTexture.dispose();
     arthur.dispose();
+    zombie.dispose();
   }
 
   private void drawScrollingBackgrounds() {
