@@ -211,6 +211,10 @@ public class Arthur extends Character {
     return true;
   }
 
+  public boolean isPunchHitWindowPending() {
+    return punchHitWindowPending && movementState == MovementState.PUNCH;
+  }
+
   // ---------------------------------------------------------------------------
   // Character abstract hooks
   // ---------------------------------------------------------------------------
@@ -276,6 +280,7 @@ public class Arthur extends Character {
     // --- Punch: one-shot animation, blocks other grounded actions ---
     if (movementState == MovementState.PUNCH) {
       if (punchAnimation.isAnimationFinished(stateTime)) {
+        punchHitWindowPending = false;
         movementState = MovementState.IDLE;
       } else {
         velocityX = 0f;

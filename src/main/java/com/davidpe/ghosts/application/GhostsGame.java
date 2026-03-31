@@ -284,7 +284,7 @@ public class GhostsGame extends ApplicationAdapter {
   }
 
   private void processArthurPunchHit() {
-    if (!arthur.consumePunchHitWindow() || !zombie.isWalking()) {
+    if (!arthur.isPunchHitWindowPending() || !zombie.isWalking()) {
       return;
     }
 
@@ -305,7 +305,7 @@ public class GhostsGame extends ApplicationAdapter {
 
     float horizontalGap = distanceBetweenSegments(arthurLeft, arthurRight, zombieLeft, zombieRight);
 
-    if (horizontalGap <= ARTHUR_PUNCH_REACH) {
+    if (horizontalGap <= ARTHUR_PUNCH_REACH && arthur.consumePunchHitWindow()) {
       zombie.registerValidHit();
     }
   }
