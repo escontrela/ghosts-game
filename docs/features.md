@@ -95,6 +95,20 @@ Checklist manual breve bloque 4 (3-5 minutos):
 - **Estilo visual coherente:** usa `BitmapFont` y paleta base sutil del HUD actual para mantener consistencia con `Energy`.
 - **Sin sistema UI paralelo:** implementación integrada en el pipeline HUD existente (`drawScoreHud()` + `drawEnergyHud()`).
 
+### 2026-03-31 — GHOST-0051 Integración score + combate zombie con checklist manual
+
+- **Flujo E2E validable:** golpe válido cercano en `PUNCH` activa progresión de impactos hasta que el tercer golpe dispara `GROUND_HIDE` y `Score +1`.
+- **Regla anti-falso-positivo verificada:** `GROUND_HIDE` por timeout del `WALK` no genera evento de derrota y no incrementa score.
+- **Directriz técnica reiterada:** mantener implementación sobre `GhostsGame`/`Arthur`/`Zombie` y evitar proliferación de clases pequeñas.
+
+Checklist manual breve bloque score (3-5 minutos):
+
+1. **Base inicial:** iniciar partida y confirmar `Score: 0` en esquina inferior izquierda.
+2. **No sumar por golpes parciales:** conectar 1er y 2do golpe válidos; validar transición `HITTED` y confirmar que `Score` sigue igual.
+3. **Suma en tercer golpe:** aplicar 3er golpe válido y validar transición inmediata a `GROUND_HIDE` con incremento exacto `Score +1`.
+4. **No sumar por timeout:** dejar un zombie en `WALK` hasta auto-hide por tiempo y confirmar que `Score` no cambia.
+5. **Ciclo repetido:** repetir otro ciclo de 3 golpes y comprobar incremento acumulado monotónico (`0 -> 1 -> 2`).
+
 ### 2026-03-31 — GHOST-0000 Bootstrap de fase 1 de control y scroll (validación operativa)
 
 - **Rama de trabajo validada para el ciclo actual:** desarrollo ejecutado en `feature/zombie-enemies` (política activa del repositorio).
