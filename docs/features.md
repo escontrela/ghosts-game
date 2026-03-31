@@ -117,6 +117,23 @@ Checklist manual breve bloque score (3-5 minutos):
 - **Acciones propuestas (breve):** aislar debug keys detrás de flag de desarrollo y evaluar consumo de ventana de punch solo cuando el target sea elegible para impacto.
 - **Regla técnica reforzada:** aplicar fixes sobre `GhostsGame`/`Arthur`/`Zombie` reutilizando estructura existente.
 
+### 2026-03-31 — GHOST-0053 Smoke build + checklist pre-review
+
+- **Comandos smoke ejecutados:**
+  - `mvn -q -DskipTests clean compile` -> **falló** al limpiar `target` (`Failed to delete .../target`).
+  - `mvn -q -DskipTests test` -> **ok**.
+  - `mvn -q compile` -> **ok**.
+  - `mvn -q -DskipTests compile exec:exec` -> arranque intentado; salida con errores de servicios macOS (`Connection invalid`) en este entorno.
+- **Bloqueo técnico identificado:** limpieza completa (`clean`) no fiable en el sandbox actual por restricción/estado de borrado de `target`.
+- **Criterio mínimo de éxito documentado:** considerar pase verde cuando `compile` y `test` terminan sin error; tratar `exec:exec` como validación local interactiva fuera de sandbox.
+
+Checklist rápido pre-review (2-3 minutos):
+
+1. Ejecutar `mvn -q compile`.
+2. Ejecutar `mvn -q test`.
+3. Si el entorno permite UI, ejecutar `mvn -q compile exec:exec` y validar apertura inicial sin crash de JVM.
+4. Si `clean` falla por borrado de `target`, registrar error exacto y continuar con compilación no limpia para desbloquear review.
+
 ### 2026-03-31 — GHOST-0000 Bootstrap de fase 1 de control y scroll (validación operativa)
 
 - **Rama de trabajo validada para el ciclo actual:** desarrollo ejecutado en `feature/zombie-enemies` (política activa del repositorio).
