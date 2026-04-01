@@ -13,6 +13,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
+import com.davidpe.ghosts.application.audio.GameAudio;
 import com.davidpe.ghosts.application.factories.CharacterFactory;
 import com.davidpe.ghosts.domain.characters.Arthur;
 import com.davidpe.ghosts.domain.characters.Zombie;
@@ -58,6 +59,7 @@ public class GhostsGame extends ApplicationAdapter {
   private Texture blackOverlayTexture;
   private BitmapFont hudFont;
   private GlyphLayout hudLayout;
+  private GameAudio gameAudio;
 
   private Arthur arthur;
   private Zombie zombie;
@@ -87,6 +89,8 @@ public class GhostsGame extends ApplicationAdapter {
     blackOverlayTexture = createSolidTexture(1, 1, 0f, 0f, 0f, 1f);
     hudFont = new BitmapFont();
     hudLayout = new GlyphLayout();
+    gameAudio = new GameAudio();
+    gameAudio.loadAll();
 
     CharacterFactory characterFactory = new CharacterFactory(AnimationUtils.getInstance());
     arthur = characterFactory.createArthur(WORLD_WIDTH);
@@ -156,6 +160,7 @@ public class GhostsGame extends ApplicationAdapter {
     }
     blackOverlayTexture.dispose();
     hudFont.dispose();
+    gameAudio.dispose();
     arthur.dispose();
     zombie.dispose();
   }

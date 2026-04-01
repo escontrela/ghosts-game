@@ -12,6 +12,16 @@
 
 ## Features implementadas
 
+### 2026-04-02 — GHOST-0060 Infraestructura centralizada de audio WAV
+
+- **Componente único de audio:** se añade `GameAudio` en capa de aplicación para centralizar carga, reproducción y `dispose` de sonidos LibGDX (`Sound`).
+- **Registro único de assets + lifecycle:** todas las rutas WAV se registran en `GameAudio.Cue`; `GhostsGame.create()` ejecuta `loadAll()` y `GhostsGame.dispose()` libera recursos con `gameAudio.dispose()`.
+- **Ruteo por dominio/categoría:** cada cue declara categoría (`GAME_GENERAL`, `ARTHUR`, `ENEMY_COMMON`, `ENEMY_ZOMBIE`) para soportar eventos de juego general, Arthur, enemigo común y enemigo específico sin acoplar render/UI.
+- **Patrón de disparo recomendado por DDD actual:**
+  - `GhostsGame`: reproduce cues globales y de orquestación (`GAME_START`, `GAME_OVER`, `ENEMY_HIT`, `ENEMY_DEATH`, `ZOMBIE_SPAWN`).
+  - `Arthur` y `Zombie`: exponen eventos de dominio one-shot (sin tocar audio directo) para que `GhostsGame` decida cuándo reproducir.
+- **Scope controlado:** no se añade mezcla avanzada ni subsistema paralelo; se reutiliza la arquitectura existente.
+
 ### 2026-04-02 — Estado DEATH del Zombie: animación de muerte y parpadeo (corrección de GHOST-0046)
 
 - **Transición a `DEATH` en tercer golpe (no `GROUND_HIDE`):** al acumular 3 impactos válidos, `Zombie.registerValidHit()` transiciona directamente al estado `DEATH`; la documentación anterior de `GHOST-0046` indicaba `GROUND_HIDE` como destino, que ya no es correcto.
