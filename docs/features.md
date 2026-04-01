@@ -12,6 +12,13 @@
 
 ## Features implementadas
 
+### 2026-04-02 — GHOST-0062 Sonido de spawn de Zombie
+
+- **Trigger en inicio de `GROUND_RISE`:** `GhostsGame.spawnZombieRelativeToArthur(...)` reproduce `GameAudio.Cue.ZOMBIE_SPAWN` inmediatamente después de `zombie.startGroundRiseAt(spawnX)`.
+- **Una vez por ciclo:** el sonido queda ligado al punto de arranque del ciclo de spawn, evitando repeticiones durante `WALK` y `GROUND_HIDE`.
+- **Comportamiento consistente por lado de spawn:** tanto `AHEAD` como `BEHIND` usan la misma ruta de activación y por tanto el mismo cue.
+- **Sin impacto en ciclo existente:** se conserva `GROUND_RISE -> WALK -> GROUND_HIDE -> RESPAWN` sin cambios de timing/IA.
+
 ### 2026-04-02 — GHOST-0061 Sonidos de Arthur (jump, punch/land, hit)
 
 - **`ARTHURJUMP.wav` al iniciar salto:** `Arthur` emite evento one-shot al entrar en `JUMP` desde suelo y `GhostsGame` reproduce `GameAudio.Cue.ARTHUR_JUMP`.

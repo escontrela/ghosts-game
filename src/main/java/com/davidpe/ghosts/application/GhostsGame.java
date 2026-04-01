@@ -243,6 +243,7 @@ public class GhostsGame extends ApplicationAdapter {
             : ZombieTuning.SPAWN_BEHIND_DISTANCE;
     float spawnX = zombie.resolveSpawnX(arthur.getX(), spawnSide, spawnDistance);
     zombie.startGroundRiseAt(spawnX);
+    gameAudio.play(GameAudio.Cue.ZOMBIE_SPAWN);
   }
 
   private void activateZombieCycle(Zombie.SpawnSide spawnSide) {
