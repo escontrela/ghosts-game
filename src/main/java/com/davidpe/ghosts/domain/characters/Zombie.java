@@ -14,8 +14,8 @@ public class Zombie extends Character {
   private static final float GROUND_Y = 130f;
   private static final float WALK_SPEED = 70f;
   private static final float TARGET_REACH_EPSILON = 2f;
-  private static final float HITTED_KNOCKBACK_SPEED = 120f;
-  private static final float HITTED_KNOCKBACK_DURATION = 0.18f;
+  private static final float HITTED_KNOCKBACK_SPEED = 180f;
+  private static final float HITTED_KNOCKBACK_DURATION = 0.25f;
 
   private static final float WALK_FRAME_DURATION = 0.06f;
   private static final float GROUND_FRAME_DURATION = 0.16f;
