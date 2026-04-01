@@ -214,6 +214,11 @@ public class Zombie extends Character {
   }
 
   @Override
+  protected float getReferenceFramePixelHeight() {
+    return 360f;
+  }
+
+  @Override
   public void draw(SpriteBatch batch) {
     if (!active) {
       return;
@@ -342,21 +347,12 @@ public class Zombie extends Character {
     return active && movementState == MovementState.WALK;
   }
 
+  @Override
   public boolean isInContactWith(float otherX, float otherY, float otherWidth, float otherHeight) {
     if (!isWalking()) {
       return false;
     }
-    float left = x;
-    float right = x + drawWidth;
-    float bottom = y;
-    float top = y + DRAW_HEIGHT;
-
-    float otherLeft = otherX;
-    float otherRight = otherX + otherWidth;
-    float otherBottom = otherY;
-    float otherTop = otherY + otherHeight;
-
-    return right > otherLeft && left < otherRight && top > otherBottom && bottom < otherTop;
+    return super.isInContactWith(otherX, otherY, otherWidth, otherHeight);
   }
 
   private float clampX(float candidateX) {

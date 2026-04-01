@@ -67,9 +67,10 @@ public abstract class Character {
   public void draw(SpriteBatch batch) {
     TextureRegion frameToDraw = getCurrentFrame();
     renderFrame.setRegion(frameToDraw);
-    float dh = Math.round(getDrawHeight());
-    float frameAspect = (float) frameToDraw.getRegionWidth() / frameToDraw.getRegionHeight();
-    float visualWidth = Math.round(dh * frameAspect);
+    float refPixelH = getReferenceFramePixelHeight();
+    float scale = getDrawHeight() / refPixelH;
+    float visualWidth = Math.round(frameToDraw.getRegionWidth() * scale);
+    float visualHeight = Math.round(frameToDraw.getRegionHeight() * scale);
     float centerX = x + drawWidth * 0.5f;
     float drawX = Math.round(centerX - visualWidth * 0.5f);
     float dw = visualWidth;
@@ -77,7 +78,7 @@ public abstract class Character {
       drawX += dw;
       dw = -dw;
     }
-    batch.draw(renderFrame, drawX, Math.round(y), dw, dh);
+    batch.draw(renderFrame, drawX, Math.round(y), dw, visualHeight);
   }
 
   /**
@@ -108,6 +109,17 @@ public abstract class Character {
   /** Returns the character draw height in world units. */
   public float getDrawHeightValue() {
     return getDrawHeight();
+  }
+
+  public boolean isInContactWith(float otherX, float otherY, float otherWidth, float otherHeight) {
+    float left = x;
+    float right = x + drawWidth;
+    float bottom = y;
+    float top = y + getDrawHeight();
+    return right > otherX
+        && left < otherX + otherWidth
+        && top > otherY
+        && bottom < otherY + otherHeight;
   }
 
   /**
@@ -157,4 +169,13 @@ public abstract class Character {
    * @return the height in world units
    */
   protected abstract float getDrawHeight();
+
+  /**
+   * Subclass hook: return the pixel height of the reference animation frame (e.g. the idle frame).
+   * Used by {@link #draw} to compute a uniform scale so that frames of different pixel sizes render
+   * at a consistent perceived size.
+   *
+   * @return the pixel height of the reference frame
+   */
+  protected abstract float getReferenceFramePixelHeight();
 }

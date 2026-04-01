@@ -256,6 +256,11 @@ public class Arthur extends Character {
     return DRAW_HEIGHT;
   }
 
+  @Override
+  protected float getReferenceFramePixelHeight() {
+    return 399f;
+  }
+
   // ---------------------------------------------------------------------------
   // Input, physics, state machine, scroll
   // ---------------------------------------------------------------------------
