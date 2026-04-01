@@ -67,6 +67,7 @@ public class Arthur extends Character {
   private static final float LIGHT_TORSO_Y_PUNCH = 0.52f;
   private static final float INITIAL_ENERGY = 100f;
   private static final float MAX_ENERGY_DRAIN_DELTA_SECONDS = 0.1f;
+  private static final float HIT_SOUND_COOLDOWN_SECONDS = 0.35f;
 
   // --- Crouch split: rows 0-4 = crouch down (20 frames), rows 4-end = stand up (13 frames) ---
   private static final int CROUCH_DOWN_END_FRAME = 20;
@@ -111,6 +112,10 @@ public class Arthur extends Character {
   private float currentLightSize;
   private float energy;
   private boolean punchHitWindowPending;
+  private boolean jumpSoundEventPending;
+  private boolean punchSoundEventPending;
+  private boolean hitSoundEventPending;
+  private float hitSoundCooldownTimer;
 
   public Arthur(float worldWidth, AnimationUtils animationUtils) {
     super(worldWidth);
@@ -173,6 +178,10 @@ public class Arthur extends Character {
     currentLightSize = LIGHT_SIZE_IDLE;
     energy = INITIAL_ENERGY;
     punchHitWindowPending = false;
+    jumpSoundEventPending = false;
+    punchSoundEventPending = false;
+    hitSoundEventPending = false;
+    hitSoundCooldownTimer = 0f;
   }
 
   // ---------------------------------------------------------------------------
@@ -203,8 +212,13 @@ public class Arthur extends Character {
     if (!zombieContactActive || drainPerSecond <= 0f || energy <= 0f || delta <= 0f) {
       return;
     }
+    float previousEnergy = energy;
     float stableDelta = Math.min(delta, MAX_ENERGY_DRAIN_DELTA_SECONDS);
     energy = Math.max(0f, energy - (drainPerSecond * stableDelta));
+    if (energy < previousEnergy && hitSoundCooldownTimer <= 0f) {
+      hitSoundEventPending = true;
+      hitSoundCooldownTimer = HIT_SOUND_COOLDOWN_SECONDS;
+    }
   }
 
   public boolean consumePunchHitWindow() {
@@ -219,12 +233,31 @@ public class Arthur extends Character {
     return punchHitWindowPending && movementState == MovementState.PUNCH;
   }
 
+  public boolean consumeJumpSoundEvent() {
+    boolean event = jumpSoundEventPending;
+    jumpSoundEventPending = false;
+    return event;
+  }
+
+  public boolean consumePunchSoundEvent() {
+    boolean event = punchSoundEventPending;
+    punchSoundEventPending = false;
+    return event;
+  }
+
+  public boolean consumeHitSoundEvent() {
+    boolean event = hitSoundEventPending;
+    hitSoundEventPending = false;
+    return event;
+  }
+
   // ---------------------------------------------------------------------------
   // Character abstract hooks
   // ---------------------------------------------------------------------------
 
   @Override
   protected void updateBehavior(float delta) {
+    hitSoundCooldownTimer = Math.max(0f, hitSoundCooldownTimer - delta);
     MovementState previousState = movementState;
     updateMovement(delta);
     updateLighting(delta);
@@ -306,6 +339,7 @@ public class Arthur extends Character {
       resetStateTime();
       velocityX = 0f;
       punchHitWindowPending = false;
+      punchSoundEventPending = true;
       updateScroll(delta);
       return;
     }
@@ -326,6 +360,7 @@ public class Arthur extends Character {
     if (jumpPressed && isOnGround) {
       velocityY = JUMP_VELOCITY;
       movementState = MovementState.JUMP;
+      jumpSoundEventPending = true;
     }
 
     if (!isOnGround || movementState == MovementState.JUMP) {

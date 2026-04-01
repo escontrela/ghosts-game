@@ -114,6 +114,12 @@ public class GhostsGame extends ApplicationAdapter {
     handleZombieDebugInput();
     float prevWorldOffset = arthur.getWorldOffsetX();
     arthur.update(delta);
+    if (arthur.consumeJumpSoundEvent()) {
+      gameAudio.play(GameAudio.Cue.ARTHUR_JUMP);
+    }
+    if (arthur.consumePunchSoundEvent()) {
+      gameAudio.play(GameAudio.Cue.ARTHUR_LAND);
+    }
     float scrollDelta = arthur.getWorldOffsetX() - prevWorldOffset;
     zombie.applyWorldScroll(scrollDelta);
     updateZombieSpawner(delta);
@@ -130,6 +136,9 @@ public class GhostsGame extends ApplicationAdapter {
             arthur.getX(), arthur.getY(), arthur.getDrawWidth(), arthur.getDrawHeightValue());
     arthur.applyContactEnergyDrain(
         zombieArthurContactActive, delta, ARTHUR_CONTACT_DRAIN_PER_SECOND);
+    if (arthur.consumeHitSoundEvent()) {
+      gameAudio.play(GameAudio.Cue.ARTHUR_HIT);
+    }
 
     camera.update();
     batch.setProjectionMatrix(camera.combined);

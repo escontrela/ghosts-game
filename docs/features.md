@@ -12,6 +12,14 @@
 
 ## Features implementadas
 
+### 2026-04-02 — GHOST-0061 Sonidos de Arthur (jump, punch/land, hit)
+
+- **`ARTHURJUMP.wav` al iniciar salto:** `Arthur` emite evento one-shot al entrar en `JUMP` desde suelo y `GhostsGame` reproduce `GameAudio.Cue.ARTHUR_JUMP`.
+- **`ARTHURLAND.wav` al lanzar punch:** al entrar en estado `PUNCH` se emite evento one-shot y `GhostsGame` reproduce `GameAudio.Cue.ARTHUR_LAND` (según especificación actual del producto).
+- **`ARTHURHIT.wav` al perder energía por contacto:** tras aplicar drenado real de energía, `Arthur` emite evento de hit y `GhostsGame` reproduce `GameAudio.Cue.ARTHUR_HIT`.
+- **Anti-spam en drenado continuo:** `Arthur` aplica cooldown interno (`0.35 s`) para evitar reproducción por frame durante contacto sostenido con zombie.
+- **Integración sin proliferación:** se extiende `Arthur` con eventos de dominio consumibles; no se crean múltiples clases auxiliares.
+
 ### 2026-04-02 — GHOST-0060 Infraestructura centralizada de audio WAV
 
 - **Componente único de audio:** se añade `GameAudio` en capa de aplicación para centralizar carga, reproducción y `dispose` de sonidos LibGDX (`Sound`).
