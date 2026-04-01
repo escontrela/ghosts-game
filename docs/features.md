@@ -12,6 +12,17 @@
 
 ## Features implementadas
 
+### 2026-04-02 — Estado DEATH del Zombie: animación de muerte y parpadeo (corrección de GHOST-0046)
+
+- **Transición a `DEATH` en tercer golpe (no `GROUND_HIDE`):** al acumular 3 impactos válidos, `Zombie.registerValidHit()` transiciona directamente al estado `DEATH`; la documentación anterior de `GHOST-0046` indicaba `GROUND_HIDE` como destino, que ya no es correcto.
+- **Animación de muerte completa:** se reproduce `deathAnimation` (`zombie/sprite-sheet-zombie-death.png` + `zombie/bounding-boxes-zombie-death.json`) una sola vez antes del parpadeo.
+- **Fase de parpadeo post-muerte:** al terminar la animación de muerte, el zombie parpadea durante `2.0 s` con intervalo de `0.12 s`; sigue presente en pantalla de forma intermitente durante este período.
+- **Fin de ciclo normalizado:** al agotarse el parpadeo, el zombie marca `active = false` y dispara `hideCycleCompleted`, igual que en `GROUND_HIDE` por timeout, para que el orquestador de spawn reactive el ciclo de reaparición.
+- **Evento de derrota exclusivo de `DEATH`:** `defeatByHitEventPending = true` solo se activa al entrar en `DEATH`; el timeout de `WALK` → `GROUND_HIDE` no produce evento de derrota y no incrementa `defeatedZombieCount`.
+- **Recursos añadidos:** `zombie/sprite-sheet-zombie-death.png` y `zombie/bounding-boxes-zombie-death.json`.
+- **`groundHideAnimation` construida con frames invertidos:** `buildReversedAnimationFromBoundingBoxes` usa el mismo sheet/JSON que `groundRiseAnimation`, evitando duplicar assets.
+- **`processArthurPunchHit()` corregido:** la ventana de golpe solo se consume cuando `zombie.isWalking()` es `true` (estado `WALK` activo), evitando consumo desperdiciado en bordes de transición de estado.
+
 ### 2026-03-31 — PO Iteración: validación de continuidad zombie hardening (sin cierres artificiales)
 
 - **Estado Tasker verificado:** `WIP=1` se mantiene en `GHOST-0054`; backlog operativo cubierto con 5 tickets (`GHOST-0055..GHOST-0059`).
