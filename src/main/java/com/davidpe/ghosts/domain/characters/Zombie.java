@@ -20,6 +20,9 @@ public class Zombie extends Character {
   private static final float WALK_FRAME_DURATION = 0.06f;
   private static final float GROUND_FRAME_DURATION = 0.16f;
   private static final float HITTED_FRAME_DURATION = 0.05f;
+  private static final float DEATH_FRAME_DURATION = 0.12f;
+  private static final float DEATH_BLINK_DURATION = 2.0f;
+  private static final float DEATH_BLINK_INTERVAL = 0.12f;
   private static final float DEFAULT_ACTIVE_WALK_DURATION_SECONDS =
       ZombieTuning.ACTIVE_WALK_DURATION_SECONDS;
   private static final float DEFAULT_HITTED_RECOVERY_DELAY_SECONDS =
@@ -35,13 +38,15 @@ public class Zombie extends Character {
     WALK,
     GROUND_RISE,
     GROUND_HIDE,
-    HITTED
+    HITTED,
+    DEATH
   }
 
   private final Animation<TextureRegion> walkAnimation;
   private final Animation<TextureRegion> groundRiseAnimation;
   private final Animation<TextureRegion> groundHideAnimation;
   private final Animation<TextureRegion> hittedAnimation;
+  private final Animation<TextureRegion> deathAnimation;
 
   private MovementState movementState;
   private final float activeWalkDurationSeconds;
@@ -54,6 +59,8 @@ public class Zombie extends Character {
   private boolean defeatedByHit;
   private boolean defeatByHitEventPending;
   private int accumulatedHits;
+  private boolean deathBlinking;
+  private float deathBlinkTimer;
 
   public Zombie(float worldWidth, AnimationUtils animationUtils) {
     this(
@@ -81,6 +88,7 @@ public class Zombie extends Character {
     Texture walkSheet = loadSheet("zombie/sprite-sheet-zombie-walk.png");
     Texture groundSheet = loadSheet("zombie/sprite-sheet-zombie-ground.png");
     Texture hittedSheet = loadSheet("zombie/sprite-sheet-zombie-hitted.png");
+    Texture deathSheet = loadSheet("zombie/sprite-sheet-zombie-death.png");
 
     walkAnimation =
         animationUtils.buildAnimationFromBoundingBoxes(
@@ -91,6 +99,9 @@ public class Zombie extends Character {
     hittedAnimation =
         animationUtils.buildAnimationFromBoundingBoxes(
             hittedSheet, "zombie/bounding-boxes-zombie-hitted.json", HITTED_FRAME_DURATION);
+    deathAnimation =
+        animationUtils.buildAnimationFromBoundingBoxes(
+            deathSheet, "zombie/bounding-boxes-zombie-death.json", DEATH_FRAME_DURATION);
 
     TextureRegion[] groundFrames =
         animationUtils.loadFramesFromBoundingBoxes(
@@ -117,6 +128,8 @@ public class Zombie extends Character {
     defeatedByHit = false;
     defeatByHitEventPending = false;
     accumulatedHits = 0;
+    deathBlinking = false;
+    deathBlinkTimer = 0f;
   }
 
   @Override
@@ -165,6 +178,20 @@ public class Zombie extends Character {
           hideCycleCompleted = true;
         }
       }
+      case DEATH -> {
+        velocityX = 0f;
+        if (deathBlinking) {
+          deathBlinkTimer -= delta;
+          if (deathBlinkTimer <= 0f) {
+            active = false;
+            hideCycleCompleted = true;
+            deathBlinking = false;
+          }
+        } else if (deathAnimation.isAnimationFinished(stateTime)) {
+          deathBlinking = true;
+          deathBlinkTimer = DEATH_BLINK_DURATION;
+        }
+      }
     }
   }
 
@@ -176,6 +203,7 @@ public class Zombie extends Character {
           case GROUND_RISE -> groundRiseAnimation;
           case GROUND_HIDE -> groundHideAnimation;
           case HITTED -> hittedAnimation;
+          case DEATH -> deathAnimation;
         };
     return animation.getKeyFrame(stateTime, movementState == MovementState.WALK);
   }
@@ -189,6 +217,12 @@ public class Zombie extends Character {
   public void draw(SpriteBatch batch) {
     if (!active) {
       return;
+    }
+    if (deathBlinking) {
+      int blinkIndex = (int) (deathBlinkTimer / DEATH_BLINK_INTERVAL);
+      if (blinkIndex % 2 != 0) {
+        return;
+      }
     }
     super.draw(batch);
   }
@@ -218,7 +252,7 @@ public class Zombie extends Character {
       if (accumulatedHits >= DEFEAT_HIT_THRESHOLD) {
         defeatedByHit = true;
         defeatByHitEventPending = true;
-        transitionTo(MovementState.GROUND_HIDE);
+        transitionTo(MovementState.DEATH);
       } else {
         transitionTo(MovementState.HITTED);
       }
@@ -267,6 +301,8 @@ public class Zombie extends Character {
     defeatedByHit = false;
     defeatByHitEventPending = false;
     accumulatedHits = 0;
+    deathBlinking = false;
+    deathBlinkTimer = 0f;
     transitionTo(MovementState.GROUND_RISE);
   }
 
