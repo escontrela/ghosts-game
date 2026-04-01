@@ -103,11 +103,9 @@ public class Zombie extends Character {
         animationUtils.buildAnimationFromBoundingBoxes(
             deathSheet, "zombie/bounding-boxes-zombie-death.json", DEATH_FRAME_DURATION);
 
-    TextureRegion[] groundFrames =
-        animationUtils.loadFramesFromBoundingBoxes(
-            groundSheet, "zombie/bounding-boxes-zombie-ground.json");
-    TextureRegion[] reversedGroundFrames = reverseFrames(groundFrames);
-    groundHideAnimation = new Animation<>(GROUND_FRAME_DURATION, reversedGroundFrames);
+    groundHideAnimation =
+        animationUtils.buildReversedAnimationFromBoundingBoxes(
+            groundSheet, "zombie/bounding-boxes-zombie-ground.json", GROUND_FRAME_DURATION);
 
     TextureRegion firstFrame = walkAnimation.getKeyFrame(0f);
     float aspectRatio = (float) firstFrame.getRegionWidth() / firstFrame.getRegionHeight();
@@ -237,14 +235,6 @@ public class Zombie extends Character {
     sheet.setFilter(TextureFilter.Nearest, TextureFilter.Nearest);
     ownedTextures.add(sheet);
     return sheet;
-  }
-
-  private TextureRegion[] reverseFrames(TextureRegion[] frames) {
-    TextureRegion[] reversed = new TextureRegion[frames.length];
-    for (int i = 0; i < frames.length; i++) {
-      reversed[i] = frames[frames.length - 1 - i];
-    }
-    return reversed;
   }
 
   public boolean triggerHitted() {
