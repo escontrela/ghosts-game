@@ -12,6 +12,13 @@
 
 ## Features implementadas
 
+### 2026-04-02 — GHOST-0064 Sonidos comunes de enemigo (hit/death)
+
+- **`ENEMYHIT.wav` en golpe válido:** `GhostsGame.processArthurPunchHit()` reproduce `GameAudio.Cue.ENEMY_HIT` solo cuando se cumplen alcance + ventana de golpe consumida + `zombie.registerValidHit()` aceptado.
+- **`ENEMYDEATH.wav` en derrota real:** al consumir `zombie.consumeDefeatByHitEvent()` y confirmar evento de derrota por tercer golpe, `GhostsGame` reproduce `GameAudio.Cue.ENEMY_DEATH` e incrementa score.
+- **Sin falsos positivos por timeout:** `GROUND_HIDE` por fin de vida no genera `defeatByHitEvent`, por lo que no dispara `ENEMYDEATH.wav`.
+- **Flujo score/evento preservado:** el sonido de muerte se ata al mismo evento one-shot que ya gobierna el incremento de score, evitando duplicados y desalineación.
+
 ### 2026-04-02 — GHOST-0063 Sonidos globales de sesión (GAMESTART / GAMEOVER)
 
 - **`GAMESTART.wav` al iniciar sesión:** `GhostsGame.create()` reproduce `GameAudio.Cue.GAME_START` tras inicializar audio y ciclo base.

@@ -131,6 +131,7 @@ public class GhostsGame extends ApplicationAdapter {
     boolean defeatedByHitEvent = zombie.consumeDefeatByHitEvent();
     if (defeatedByHitEvent) {
       defeatedZombieCount += 1;
+      gameAudio.play(GameAudio.Cue.ENEMY_DEATH);
     }
     zombieDefeatByHitEventPending = zombieDefeatByHitEventPending || defeatedByHitEvent;
     processArthurPunchHit();
@@ -334,8 +335,10 @@ public class GhostsGame extends ApplicationAdapter {
 
     float horizontalGap = distanceBetweenSegments(arthurLeft, arthurRight, zombieLeft, zombieRight);
 
-    if (horizontalGap <= ARTHUR_PUNCH_REACH && arthur.consumePunchHitWindow()) {
-      zombie.registerValidHit();
+    if (horizontalGap <= ARTHUR_PUNCH_REACH
+        && arthur.consumePunchHitWindow()
+        && zombie.registerValidHit()) {
+      gameAudio.play(GameAudio.Cue.ENEMY_HIT);
     }
   }
 
