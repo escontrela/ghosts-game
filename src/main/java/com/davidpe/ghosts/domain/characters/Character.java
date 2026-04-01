@@ -67,13 +67,17 @@ public abstract class Character {
   public void draw(SpriteBatch batch) {
     TextureRegion frameToDraw = getCurrentFrame();
     renderFrame.setRegion(frameToDraw);
-    float drawX = Math.round(x);
-    float dw = Math.round(drawWidth);
+    float dh = Math.round(getDrawHeight());
+    float frameAspect = (float) frameToDraw.getRegionWidth() / frameToDraw.getRegionHeight();
+    float visualWidth = Math.round(dh * frameAspect);
+    float centerX = x + drawWidth * 0.5f;
+    float drawX = Math.round(centerX - visualWidth * 0.5f);
+    float dw = visualWidth;
     if (!facingRight) {
       drawX += dw;
       dw = -dw;
     }
-    batch.draw(renderFrame, drawX, Math.round(y), dw, Math.round(getDrawHeight()));
+    batch.draw(renderFrame, drawX, Math.round(y), dw, dh);
   }
 
   /**

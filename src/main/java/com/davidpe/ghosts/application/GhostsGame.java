@@ -290,6 +290,7 @@ public class GhostsGame extends ApplicationAdapter {
   }
 
   private void processArthurPunchHit() {
+
     if (!arthur.isPunchHitWindowPending() || !zombie.isWalking()) {
       return;
     }
