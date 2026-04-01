@@ -12,6 +12,14 @@
 
 ## Features implementadas
 
+### 2026-04-02 — GHOST-0063 Sonidos globales de sesión (GAMESTART / GAMEOVER)
+
+- **`GAMESTART.wav` al iniciar sesión:** `GhostsGame.create()` reproduce `GameAudio.Cue.GAME_START` tras inicializar audio y ciclo base.
+- **`GAMEOVER.wav` al agotar energía:** en `render()`, cuando `arthur.getEnergy() <= 0`, se reproduce `GameAudio.Cue.GAME_OVER`.
+- **One-shot garantizado para game over:** `GhostsGame` mantiene `gameOverSoundPlayed` para impedir repetición frame a frame cuando la energía permanece en `0`.
+- **Regla explícita de rearmado por reinicio de sesión:** cada nueva sesión de juego (nueva ejecución de `create()`) reinicia `gameOverSoundPlayed = false`, vuelve a disparar `GAMESTART` y permite nuevo `GAMEOVER` cuando aplique.
+- **Sin subsistema paralelo:** integración localizada en `GhostsGame`, respetando arquitectura actual.
+
 ### 2026-04-02 — GHOST-0062 Sonido de spawn de Zombie
 
 - **Trigger en inicio de `GROUND_RISE`:** `GhostsGame.spawnZombieRelativeToArthur(...)` reproduce `GameAudio.Cue.ZOMBIE_SPAWN` inmediatamente después de `zombie.startGroundRiseAt(spawnX)`.

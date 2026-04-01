@@ -68,6 +68,7 @@ public class GhostsGame extends ApplicationAdapter {
   private float zombieRespawnTimer;
   private boolean zombieArthurContactActive;
   private boolean zombieDefeatByHitEventPending;
+  private boolean gameOverSoundPlayed;
   private int defeatedZombieCount;
   private float gameTime;
 
@@ -99,9 +100,11 @@ public class GhostsGame extends ApplicationAdapter {
     zombieRespawnTimer = 0f;
     zombieArthurContactActive = false;
     zombieDefeatByHitEventPending = false;
+    gameOverSoundPlayed = false;
     defeatedZombieCount = 0;
     gameTime = 0f;
     activateZombieCycle(pickSpawnSide());
+    gameAudio.play(GameAudio.Cue.GAME_START);
   }
 
   @Override
@@ -138,6 +141,10 @@ public class GhostsGame extends ApplicationAdapter {
         zombieArthurContactActive, delta, ARTHUR_CONTACT_DRAIN_PER_SECOND);
     if (arthur.consumeHitSoundEvent()) {
       gameAudio.play(GameAudio.Cue.ARTHUR_HIT);
+    }
+    if (arthur.getEnergy() <= 0f && !gameOverSoundPlayed) {
+      gameAudio.play(GameAudio.Cue.GAME_OVER);
+      gameOverSoundPlayed = true;
     }
 
     camera.update();
