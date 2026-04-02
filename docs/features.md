@@ -12,6 +12,14 @@
 
 ## Features implementadas
 
+### 2026-04-02 — GHOST-0065 Sistema de pausa con ESC y reanudación por tecla
+
+- **Entrada a pausa por `ESC`:** `GhostsGame.render()` activa `gamePaused=true` al detectar `Input.Keys.ESCAPE` en modo runtime normal.
+- **Congelación total de simulación:** mientras `gamePaused` está activo, no se ejecutan updates de Arthur/Zombie, IA, spawner, drenado de energía ni avance de `gameTime`, preservando estados y animaciones dependientes de `delta`.
+- **Reanudación por cualquier tecla:** en pausa, `GhostsGame` escanea `Input.Keys.MAX_KEYCODE` y desactiva `gamePaused` en la primera pulsación `isKeyJustPressed(...)`.
+- **Indicador HUD de pausa:** se renderiza texto `PAUSE` en la zona inferior central, entre `Score` y `Energy`, reutilizando estilo actual del HUD.
+- **Comportamiento idempotente:** el flujo usa ramas exclusivas (`if paused` / `else if ESC` / `else runtime`) para evitar toggles múltiples en un mismo frame.
+
 ### 2026-04-02 — GHOST-0064 Sonidos comunes de enemigo (hit/death)
 
 - **`ENEMYHIT.wav` en golpe válido:** `GhostsGame.processArthurPunchHit()` reproduce `GameAudio.Cue.ENEMY_HIT` solo cuando se cumplen alcance + ventana de golpe consumida + `zombie.registerValidHit()` aceptado.

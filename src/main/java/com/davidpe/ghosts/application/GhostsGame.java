@@ -39,6 +39,7 @@ public class GhostsGame extends ApplicationAdapter {
   private static final float ENERGY_HUD_MARGIN_BOTTOM = 14f;
   private static final float SCORE_HUD_MARGIN_LEFT = 18f;
   private static final float SCORE_HUD_MARGIN_BOTTOM = 14f;
+  private static final float PAUSE_HUD_MARGIN_BOTTOM = 14f;
   private static final float ENERGY_HUD_BASE_R = 0.86f;
   private static final float ENERGY_HUD_BASE_G = 0.84f;
   private static final float ENERGY_HUD_BASE_B = 0.79f;
@@ -69,6 +70,7 @@ public class GhostsGame extends ApplicationAdapter {
   private boolean zombieArthurContactActive;
   private boolean zombieDefeatByHitEventPending;
   private boolean gameOverSoundPlayed;
+  private boolean gamePaused;
   private int defeatedZombieCount;
   private float gameTime;
 
@@ -101,6 +103,7 @@ public class GhostsGame extends ApplicationAdapter {
     zombieArthurContactActive = false;
     zombieDefeatByHitEventPending = false;
     gameOverSoundPlayed = false;
+    gamePaused = false;
     defeatedZombieCount = 0;
     gameTime = 0f;
     activateZombieCycle(pickSpawnSide());
@@ -113,39 +116,47 @@ public class GhostsGame extends ApplicationAdapter {
     ScreenUtils.clear(0, 0, 0, 1);
 
     float delta = Gdx.graphics.getDeltaTime();
-    gameTime += delta;
-    handleZombieDebugInput();
-    float prevWorldOffset = arthur.getWorldOffsetX();
-    arthur.update(delta);
-    if (arthur.consumeJumpSoundEvent()) {
-      gameAudio.play(GameAudio.Cue.ARTHUR_JUMP);
-    }
-    if (arthur.consumePunchSoundEvent()) {
-      gameAudio.play(GameAudio.Cue.ARTHUR_LAND);
-    }
-    float scrollDelta = arthur.getWorldOffsetX() - prevWorldOffset;
-    zombie.applyWorldScroll(scrollDelta);
-    updateZombieSpawner(delta);
-    zombie.setTargetX(arthur.getX());
-    zombie.update(delta);
-    boolean defeatedByHitEvent = zombie.consumeDefeatByHitEvent();
-    if (defeatedByHitEvent) {
-      defeatedZombieCount += 1;
-      gameAudio.play(GameAudio.Cue.ENEMY_DEATH);
-    }
-    zombieDefeatByHitEventPending = zombieDefeatByHitEventPending || defeatedByHitEvent;
-    processArthurPunchHit();
-    zombieArthurContactActive =
-        zombie.isInContactWith(
-            arthur.getX(), arthur.getY(), arthur.getDrawWidth(), arthur.getDrawHeightValue());
-    arthur.applyContactEnergyDrain(
-        zombieArthurContactActive, delta, ARTHUR_CONTACT_DRAIN_PER_SECOND);
-    if (arthur.consumeHitSoundEvent()) {
-      gameAudio.play(GameAudio.Cue.ARTHUR_HIT);
-    }
-    if (arthur.getEnergy() <= 0f && !gameOverSoundPlayed) {
-      gameAudio.play(GameAudio.Cue.GAME_OVER);
-      gameOverSoundPlayed = true;
+    if (gamePaused) {
+      if (isAnyKeyJustPressed()) {
+        gamePaused = false;
+      }
+    } else if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+      gamePaused = true;
+    } else {
+      gameTime += delta;
+      handleZombieDebugInput();
+      float prevWorldOffset = arthur.getWorldOffsetX();
+      arthur.update(delta);
+      if (arthur.consumeJumpSoundEvent()) {
+        gameAudio.play(GameAudio.Cue.ARTHUR_JUMP);
+      }
+      if (arthur.consumePunchSoundEvent()) {
+        gameAudio.play(GameAudio.Cue.ARTHUR_LAND);
+      }
+      float scrollDelta = arthur.getWorldOffsetX() - prevWorldOffset;
+      zombie.applyWorldScroll(scrollDelta);
+      updateZombieSpawner(delta);
+      zombie.setTargetX(arthur.getX());
+      zombie.update(delta);
+      boolean defeatedByHitEvent = zombie.consumeDefeatByHitEvent();
+      if (defeatedByHitEvent) {
+        defeatedZombieCount += 1;
+        gameAudio.play(GameAudio.Cue.ENEMY_DEATH);
+      }
+      zombieDefeatByHitEventPending = zombieDefeatByHitEventPending || defeatedByHitEvent;
+      processArthurPunchHit();
+      zombieArthurContactActive =
+          zombie.isInContactWith(
+              arthur.getX(), arthur.getY(), arthur.getDrawWidth(), arthur.getDrawHeightValue());
+      arthur.applyContactEnergyDrain(
+          zombieArthurContactActive, delta, ARTHUR_CONTACT_DRAIN_PER_SECOND);
+      if (arthur.consumeHitSoundEvent()) {
+        gameAudio.play(GameAudio.Cue.ARTHUR_HIT);
+      }
+      if (arthur.getEnergy() <= 0f && !gameOverSoundPlayed) {
+        gameAudio.play(GameAudio.Cue.GAME_OVER);
+        gameOverSoundPlayed = true;
+      }
     }
 
     camera.update();
@@ -160,6 +171,7 @@ public class GhostsGame extends ApplicationAdapter {
     arthur.draw(batch);
     drawScoreHud();
     drawEnergyHud();
+    drawPauseHud();
 
     batch.end();
   }
@@ -298,6 +310,18 @@ public class GhostsGame extends ApplicationAdapter {
     hudFont.draw(batch, hudLayout, textX, textY);
   }
 
+  private void drawPauseHud() {
+    if (!gamePaused) {
+      return;
+    }
+    String pauseText = "PAUSE";
+    hudFont.setColor(ENERGY_HUD_BASE_R, ENERGY_HUD_BASE_G, ENERGY_HUD_BASE_B, ENERGY_HUD_BASE_A);
+    hudLayout.setText(hudFont, pauseText);
+    float textX = (WORLD_WIDTH - hudLayout.width) * 0.5f;
+    float textY = PAUSE_HUD_MARGIN_BOTTOM + hudLayout.height;
+    hudFont.draw(batch, hudLayout, textX, textY);
+  }
+
   public boolean isZombieArthurContactActive() {
     return zombieArthurContactActive;
   }
@@ -351,5 +375,14 @@ public class GhostsGame extends ApplicationAdapter {
       return firstMin - secondMax;
     }
     return 0f;
+  }
+
+  private boolean isAnyKeyJustPressed() {
+    for (int key = 0; key <= Input.Keys.MAX_KEYCODE; key++) {
+      if (Gdx.input.isKeyJustPressed(key)) {
+        return true;
+      }
+    }
+    return false;
   }
 }
