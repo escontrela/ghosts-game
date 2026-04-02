@@ -315,7 +315,7 @@ public class Arthur extends Character {
       horizontalInput = rightPressed ? 1 : -1;
     }
     movingHorizontally = horizontalInput != 0 && !downPressed;
-    if (movingHorizontally) {
+    if (movingHorizontally || (downPressed && horizontalInput != 0)) {
       facingRight = horizontalInput > 0;
     }
 

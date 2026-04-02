@@ -12,6 +12,13 @@
 
 ## Features implementadas
 
+### 2026-04-02 — GHOST-0066 Cambio de orientación de Arthur en crouch
+
+- **Giro en estado `CROUCH`:** `Arthur.updateMovement(...)` ahora actualiza `facingRight` cuando hay input horizontal y `DOWN/S` está pulsado, sin salir de crouch.
+- **Mismo frame con flip horizontal:** se reutiliza la animación/spritesheet existente de agachado; el cambio visual depende del flip de render ya implementado en `Character.draw(...)`.
+- **Sin jitter ni desplazamiento base:** la lógica de `crouchAnchorX` y velocidad `0` en crouch se mantiene intacta, por lo que invertir sentido no mueve la base del sprite.
+- **Transiciones preservadas:** no se modifican las reglas de entrada/salida de `CROUCH`, `CROUCH_UP`, `WALK`, `IDLE`, `PUNCH` y `JUMP`.
+
 ### 2026-04-02 — GHOST-0065 Sistema de pausa con ESC y reanudación por tecla
 
 - **Entrada a pausa por `ESC`:** `GhostsGame.render()` activa `gamePaused=true` al detectar `Input.Keys.ESCAPE` en modo runtime normal.
