@@ -45,6 +45,13 @@ Checklist manual corto acumulativo (tombstone E2E):
 6. Observar varios ciclos `GROUND_RISE -> WALK -> GROUND_HIDE -> RESPAWN` con tombstones visibles y comprobar ausencia de solape final en spawn/hide.
 7. Ejecutar `mvn -q -DskipTests compile` y `mvn -q test` para confirmar integración sin regresiones de build.
 
+### 2026-04-02 — GHOST-0073 Documento técnico `human-developer.md`
+
+- **Nuevo documento de transferencia técnica:** se crea `human-developer.md` en la raíz del repositorio con guía detallada de arquitectura, loop principal, Arthur, Zombie, tombstones, reglas de gameplay y riesgos de mantenimiento.
+- **Cobertura explícita de sistemas críticos:** incluye cálculo de movimiento/posiciones, colisiones, scroll/cámara, estados y secuencia update/render con fragmentos reales de código del proyecto.
+- **Sección de gotchas y extensión segura:** documenta riesgos por `delta`, consumo de eventos one-shot, orden de update, y recomendaciones para extender sin romper el estilo DDD actual.
+- **Intento opcional de envío por correo registrado:** se ejecutó `mail -s \"Ghosts Game human-developer.md\" escontrela@live.com < human-developer.md`; el entorno devolvió `sendmail: fatal: execvp /usr/sbin/postdrop: Operation not permitted`, por lo que no se pudo completar el envío y se continuó sin bloquear la tarea.
+
 ### 2026-04-02 — GHOST-0069 Spawn aleatorio de Tombstone por tramo de scroll
 
 - **Decisión `0/1` por tramo:** `GhostsGame` evalúa cada cambio de segmento de scroll (`floor(worldOffsetX / WORLD_WIDTH)`) y decide aleatoriamente si aparece `0` o `1` tombstone.
