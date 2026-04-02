@@ -126,6 +126,7 @@ public class GhostsGame extends ApplicationAdapter {
     for (int i = 0; i < MAX_VISIBLE_TOMBSTONES; i++) {
       tombstones.add(new Tombstone(WORLD_WIDTH, AnimationUtils.getInstance()));
     }
+    arthur.setTombstoneColliders(tombstones);
     random = new Random();
     enemyMarkerIcons = new EnumMap<>(EnemyType.class);
     enemyDefeatByType = new EnumMap<>(EnemyType.class);

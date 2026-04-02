@@ -12,6 +12,14 @@
 
 ## Features implementadas
 
+### 2026-04-02 — GHOST-0070 Interacción de Arthur con Tombstone (bloqueo, salto y caída)
+
+- **Bloqueo lateral sólido en caminata:** cuando Arthur colisiona lateralmente con una tombstone en `WALK`, mantiene su estado/animación pero pierde avance horizontal efectivo.
+- **Superación por salto sin estados nuevos:** Arthur puede pasar la lápida al ejecutar salto y mantener su máquina actual (`IDLE`, `WALK`, `CROUCH`, `JUMP`, `PUNCH`) sin animaciones extra.
+- **Soporte superior estable:** al aterrizar sobre una tombstone, Arthur queda soportado sobre su cara superior y puede desplazarse por encima.
+- **Caída natural al abandonar borde:** al salir lateralmente de la superficie de la tombstone, Arthur vuelve a dinámica aérea y cae hasta `GROUND_Y` reanudando el loop normal.
+- **Resolución anti-jitter:** la colisión aplica resolución por eje con prioridad vertical para aterrizajes, evitando vibración o teletransporte visible.
+
 ### 2026-04-02 — GHOST-0069 Spawn aleatorio de Tombstone por tramo de scroll
 
 - **Decisión `0/1` por tramo:** `GhostsGame` evalúa cada cambio de segmento de scroll (`floor(worldOffsetX / WORLD_WIDTH)`) y decide aleatoriamente si aparece `0` o `1` tombstone.

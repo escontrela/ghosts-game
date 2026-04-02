@@ -10,7 +10,9 @@ import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.MathUtils;
+import com.davidpe.ghosts.domain.obstacles.Tombstone;
 import com.davidpe.ghosts.domain.utils.AnimationUtils;
+import java.util.List;
 
 /**
  * Player character Arthur. Extends {@link Character} with keyboard-driven input, a six-state
@@ -68,6 +70,8 @@ public class Arthur extends Character {
   private static final float INITIAL_ENERGY = 100f;
   private static final float MAX_ENERGY_DRAIN_DELTA_SECONDS = 0.1f;
   private static final float HIT_SOUND_COOLDOWN_SECONDS = 0.35f;
+  private static final float GROUND_EPSILON = 0.1f;
+  private static final float TOMB_CEILING_RESOLVE_MARGIN = 0.5f;
 
   // --- Crouch split: rows 0-4 = crouch down (20 frames), rows 4-end = stand up (13 frames) ---
   private static final int CROUCH_DOWN_END_FRAME = 20;
@@ -116,6 +120,7 @@ public class Arthur extends Character {
   private boolean punchSoundEventPending;
   private boolean hitSoundEventPending;
   private float hitSoundCooldownTimer;
+  private List<Tombstone> tombstoneColliders;
 
   public Arthur(float worldWidth, AnimationUtils animationUtils) {
     super(worldWidth);
@@ -182,6 +187,7 @@ public class Arthur extends Character {
     punchSoundEventPending = false;
     hitSoundEventPending = false;
     hitSoundCooldownTimer = 0f;
+    tombstoneColliders = List.of();
   }
 
   // ---------------------------------------------------------------------------
@@ -251,6 +257,10 @@ public class Arthur extends Character {
     return event;
   }
 
+  public void setTombstoneColliders(List<Tombstone> tombstoneColliders) {
+    this.tombstoneColliders = tombstoneColliders == null ? List.of() : tombstoneColliders;
+  }
+
   // ---------------------------------------------------------------------------
   // Character abstract hooks
   // ---------------------------------------------------------------------------
@@ -308,7 +318,8 @@ public class Arthur extends Character {
     boolean jumpPressed =
         Gdx.input.isKeyJustPressed(Input.Keys.UP) || Gdx.input.isKeyJustPressed(Input.Keys.W);
     boolean punchPressed = Gdx.input.isKeyJustPressed(Input.Keys.SPACE);
-    boolean isOnGround = y <= GROUND_Y;
+    boolean standingOnTombstone = isStandingOnTombstone();
+    boolean isOnGround = y <= GROUND_Y + GROUND_EPSILON || standingOnTombstone;
 
     int horizontalInput = 0;
     if (leftPressed ^ rightPressed) {
@@ -378,7 +389,7 @@ public class Arthur extends Character {
       }
     }
 
-    boolean groundedAfterPhysics = y <= GROUND_Y;
+    boolean groundedAfterPhysics = y <= GROUND_Y + GROUND_EPSILON || isStandingOnTombstone();
     if (wasAirborne && groundedAfterPhysics) {
       landingStabilizeTimer = LANDING_STABILIZE_DURATION;
     }
@@ -411,7 +422,10 @@ public class Arthur extends Character {
     }
     landingStabilizeTimer = Math.max(0f, landingStabilizeTimer - delta);
 
-    if (groundedAfterPhysics) {
+    boolean standingOnTombstoneAfterMove = resolveTombstoneCollisions();
+    boolean groundedAfterCollision = y <= GROUND_Y + GROUND_EPSILON || standingOnTombstoneAfterMove;
+
+    if (groundedAfterCollision) {
       if (downPressed) {
         movementState = MovementState.CROUCH;
       } else if (movementState == MovementState.CROUCH) {
@@ -425,11 +439,85 @@ public class Arthur extends Character {
     }
 
     x = Math.max(0f, Math.min(x, worldWidth - drawWidth));
-    if (crouchRequested) {
+    if (crouchRequested && groundedAfterCollision) {
       crouchAnchorX = x;
     }
 
     updateScroll(delta);
+  }
+
+  private boolean resolveTombstoneCollisions() {
+    boolean standingOnTombstone = false;
+    float arthurBottom = y;
+    float arthurTop = arthurBottom + DRAW_HEIGHT;
+    float arthurLeft = x;
+    float arthurRight = arthurLeft + drawWidth;
+
+    for (Tombstone tombstone : tombstoneColliders) {
+      if (!tombstone.isVisible()) {
+        continue;
+      }
+      float tombLeft = tombstone.getCollisionX();
+      float tombRight = tombLeft + tombstone.getCollisionWidth();
+      float tombBottom = tombstone.getCollisionY();
+      float tombTop = tombBottom + tombstone.getCollisionHeight();
+
+      if (arthurRight <= tombLeft
+          || arthurLeft >= tombRight
+          || arthurTop <= tombBottom
+          || arthurBottom >= tombTop) {
+        continue;
+      }
+
+      float overlapLeft = arthurRight - tombLeft;
+      float overlapRight = tombRight - arthurLeft;
+      float overlapBottom = arthurTop - tombBottom;
+      float overlapTop = tombTop - arthurBottom;
+      float horizontalPenetration = Math.min(overlapLeft, overlapRight);
+      float verticalPenetration = Math.min(overlapBottom, overlapTop);
+
+      if (verticalPenetration <= horizontalPenetration && overlapTop <= overlapBottom) {
+        y = tombTop;
+        velocityY = 0f;
+        standingOnTombstone = true;
+      } else if (verticalPenetration <= horizontalPenetration) {
+        y = tombBottom - DRAW_HEIGHT - TOMB_CEILING_RESOLVE_MARGIN;
+        velocityY = Math.min(0f, velocityY);
+      } else if (overlapLeft <= overlapRight) {
+        x = tombLeft - drawWidth;
+        velocityX = 0f;
+      } else {
+        x = tombRight;
+        velocityX = 0f;
+      }
+
+      arthurBottom = y;
+      arthurTop = arthurBottom + DRAW_HEIGHT;
+      arthurLeft = x;
+      arthurRight = arthurLeft + drawWidth;
+    }
+    return standingOnTombstone;
+  }
+
+  private boolean isStandingOnTombstone() {
+    float footY = y;
+    float arthurLeft = x + 2f;
+    float arthurRight = x + drawWidth - 2f;
+    for (Tombstone tombstone : tombstoneColliders) {
+      if (!tombstone.isVisible()) {
+        continue;
+      }
+      float tombTop = tombstone.getCollisionY() + tombstone.getCollisionHeight();
+      if (Math.abs(footY - tombTop) > GROUND_EPSILON) {
+        continue;
+      }
+      float tombLeft = tombstone.getCollisionX();
+      float tombRight = tombLeft + tombstone.getCollisionWidth();
+      if (arthurRight > tombLeft && arthurLeft < tombRight) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private void updateScroll(float delta) {
