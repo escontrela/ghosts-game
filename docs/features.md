@@ -12,6 +12,15 @@
 
 ## Features implementadas
 
+### 2026-04-02 — GHOST-0068 Objeto de dominio Tombstone y carga de assets
+
+- **Nuevo objeto de dominio `Tombstone`:** se añade [`Tombstone.java`](/Users/davidpe/dev/projects/ghosts-game/src/main/java/com/davidpe/ghosts/domain/obstacles/Tombstone.java) con estado propio (`x`, `y`, `visible`), render y API de colisión.
+- **Assets cargados desde `resources/tombstone`:** `Tombstone` carga `tombstone/sprite-sheet-tombstone.png` + `tombstone/bounding-boxes-tombstone.json` y extrae el frame base desde bounding boxes.
+- **Collision shape derivada del asset:** el objeto expone `getCollisionX/Y/Width/Height` y `overlaps(...)` sobre su frame escalado, evitando cajas hardcodeadas fuera del asset pipeline.
+- **Lifecycle integrado sin fugas:** `GhostsGame` crea la colección de tombstones en `create()` y ejecuta `dispose()` de cada instancia en `dispose()`.
+- **Preparado para múltiples instancias:** `GhostsGame` inicializa una lista con capacidad escalable (`MAX_VISIBLE_TOMBSTONES`), manteniendo por ahora máximo 1 instancia activa.
+- **Compatibilidad de recursos:** se añade carpeta `src/main/resources/tombstone/` con el spritesheet y JSON de bounding boxes para el flujo nuevo de dominio.
+
 ### 2026-04-02 — GHOST-0067 Minimarcador de bajas por tipo de enemigo
 
 - **Mini HUD superior derecha:** `GhostsGame` dibuja un marcador compacto en esquina superior derecha con icono + contador por tipo.

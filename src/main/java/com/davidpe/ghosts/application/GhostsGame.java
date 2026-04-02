@@ -19,8 +19,11 @@ import com.davidpe.ghosts.application.factories.CharacterFactory;
 import com.davidpe.ghosts.domain.characters.Arthur;
 import com.davidpe.ghosts.domain.characters.Zombie;
 import com.davidpe.ghosts.domain.characters.ZombieTuning;
+import com.davidpe.ghosts.domain.obstacles.Tombstone;
 import com.davidpe.ghosts.domain.utils.AnimationUtils;
+import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Random;
 
 /**
@@ -58,6 +61,7 @@ public class GhostsGame extends ApplicationAdapter {
   private static final float ENERGY_HUD_BLINK_SPEED = 4f;
   private static final float ARTHUR_PUNCH_REACH = 46f;
   private static final float ARTHUR_PUNCH_VERTICAL_REACH = 22f;
+  private static final int MAX_VISIBLE_TOMBSTONES = 1;
 
   private SpriteBatch batch;
   private OrthographicCamera camera;
@@ -71,6 +75,7 @@ public class GhostsGame extends ApplicationAdapter {
 
   private Arthur arthur;
   private Zombie zombie;
+  private List<Tombstone> tombstones;
   private Random random;
   private EnumMap<EnemyType, TextureRegion> enemyMarkerIcons;
   private EnumMap<EnemyType, Integer> enemyDefeatByType;
@@ -111,6 +116,10 @@ public class GhostsGame extends ApplicationAdapter {
     CharacterFactory characterFactory = new CharacterFactory(AnimationUtils.getInstance());
     arthur = characterFactory.createArthur(WORLD_WIDTH);
     zombie = characterFactory.createZombie(WORLD_WIDTH);
+    tombstones = new ArrayList<>(MAX_VISIBLE_TOMBSTONES);
+    for (int i = 0; i < MAX_VISIBLE_TOMBSTONES; i++) {
+      tombstones.add(new Tombstone(WORLD_WIDTH, AnimationUtils.getInstance()));
+    }
     random = new Random();
     enemyMarkerIcons = new EnumMap<>(EnemyType.class);
     enemyDefeatByType = new EnumMap<>(EnemyType.class);
@@ -152,6 +161,9 @@ public class GhostsGame extends ApplicationAdapter {
       }
       float scrollDelta = arthur.getWorldOffsetX() - prevWorldOffset;
       zombie.applyWorldScroll(scrollDelta);
+      for (Tombstone tombstone : tombstones) {
+        tombstone.applyWorldScroll(scrollDelta);
+      }
       updateZombieSpawner(delta);
       zombie.setTargetX(arthur.getX());
       zombie.update(delta);
@@ -185,6 +197,7 @@ public class GhostsGame extends ApplicationAdapter {
     drawScrollingBackgrounds();
     drawBackgroundDim();
     zombie.draw(batch);
+    drawTombstones();
     arthur.drawEffects(batch);
     arthur.draw(batch);
     drawEnemyKillMarkerHud();
@@ -211,6 +224,9 @@ public class GhostsGame extends ApplicationAdapter {
     gameAudio.dispose();
     arthur.dispose();
     zombie.dispose();
+    for (Tombstone tombstone : tombstones) {
+      tombstone.dispose();
+    }
   }
 
   private void drawScrollingBackgrounds() {
@@ -353,16 +369,19 @@ public class GhostsGame extends ApplicationAdapter {
       String markerText = enemyTypeLabel(enemyType) + ": " + defeats;
       hudLayout.setText(hudFont, markerText);
       float rowCenterY = rowTopY - (ENEMY_MARKER_ICON_SIZE * 0.5f);
-      float textX =
-          WORLD_WIDTH
-              - ENEMY_MARKER_HUD_MARGIN_RIGHT
-              - hudLayout.width;
+      float textX = WORLD_WIDTH - ENEMY_MARKER_HUD_MARGIN_RIGHT - hudLayout.width;
       float iconX = textX - ENEMY_MARKER_ICON_TEXT_GAP - ENEMY_MARKER_ICON_SIZE;
       float iconY = rowTopY - ENEMY_MARKER_ICON_SIZE;
       float textBaselineY = rowCenterY + (hudLayout.height * 0.5f);
       batch.draw(iconRegion, iconX, iconY, ENEMY_MARKER_ICON_SIZE, ENEMY_MARKER_ICON_SIZE);
       hudFont.draw(batch, hudLayout, textX, textBaselineY);
       rowTopY -= ENEMY_MARKER_ICON_SIZE + ENEMY_MARKER_ROW_GAP;
+    }
+  }
+
+  private void drawTombstones() {
+    for (Tombstone tombstone : tombstones) {
+      tombstone.draw(batch);
     }
   }
 
