@@ -28,6 +28,23 @@
 - **Hide/death sin superposición final:** cuando zombie no está en `WALK`, cualquier solape con tombstone se resuelve desplazándolo fuera del obstáculo para no cerrar el ciclo superpuesto.
 - **Ciclo de vida conservado:** se mantiene `GROUND_RISE -> WALK -> GROUND_HIDE -> RESPAWN` sin bloquear timers ni eventos one-shot existentes.
 
+### 2026-04-02 — GHOST-0072 Integración tombstone end-to-end y checklist
+
+- **Validación de spawn por tramo:** el flujo actual mantiene decisión aleatoria por segmento de scroll con resultado `0` o `1` tombstone visible.
+- **Validación de Arthur contra tombstone:** se confirma bloqueo lateral sin avance efectivo en caminata, superación por salto y caída natural al abandonar borde.
+- **Validación de Zombie contra tombstone:** se confirma rebote de dirección en `WALK` y resolución de no-solape para spawn (`GROUND_RISE`) y cierre de hide/death.
+- **Directriz de implementación reforzada:** los cambios de obstacles deben extender la estructura DDD vigente (`GhostsGame`, `Arthur`, `Zombie`, `Tombstone`) y evitar proliferación de clases auxiliares sin responsabilidad clara.
+
+Checklist manual corto acumulativo (tombstone E2E):
+
+1. Recorrer al menos 8 cambios de segmento (`WORLD_WIDTH`) y registrar que cada tramo muestra aleatoriamente `0` o `1` tombstone, nunca más de una simultánea.
+2. Caminar contra tombstone sin saltar y validar estado visual `WALK` con avance horizontal bloqueado.
+3. Repetir aproximación saltando y confirmar que Arthur supera la tombstone sin jitter.
+4. Quedarse sobre la tombstone, avanzar hasta el borde y verificar caída limpia con retorno al loop normal.
+5. Forzar encuentro zombie-tombstone en `WALK` y validar inversión de dirección inmediata; repetir para confirmar rebote lógico en encuentros sucesivos.
+6. Observar varios ciclos `GROUND_RISE -> WALK -> GROUND_HIDE -> RESPAWN` con tombstones visibles y comprobar ausencia de solape final en spawn/hide.
+7. Ejecutar `mvn -q -DskipTests compile` y `mvn -q test` para confirmar integración sin regresiones de build.
+
 ### 2026-04-02 — GHOST-0069 Spawn aleatorio de Tombstone por tramo de scroll
 
 - **Decisión `0/1` por tramo:** `GhostsGame` evalúa cada cambio de segmento de scroll (`floor(worldOffsetX / WORLD_WIDTH)`) y decide aleatoriamente si aparece `0` o `1` tombstone.
