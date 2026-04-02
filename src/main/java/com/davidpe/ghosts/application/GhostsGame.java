@@ -62,6 +62,10 @@ public class GhostsGame extends ApplicationAdapter {
   private static final float ARTHUR_PUNCH_REACH = 46f;
   private static final float ARTHUR_PUNCH_VERTICAL_REACH = 22f;
   private static final int MAX_VISIBLE_TOMBSTONES = 1;
+  private static final float GROUND_Y = 130f;
+  private static final float TOMBSTONE_SPAWN_MIN_LEAD = 48f;
+  private static final float TOMBSTONE_SPAWN_MAX_LEAD = 280f;
+  private static final float TOMBSTONE_OFFSCREEN_CULL_MARGIN = 260f;
 
   private SpriteBatch batch;
   private OrthographicCamera camera;
@@ -79,6 +83,8 @@ public class GhostsGame extends ApplicationAdapter {
   private Random random;
   private EnumMap<EnemyType, TextureRegion> enemyMarkerIcons;
   private EnumMap<EnemyType, Integer> enemyDefeatByType;
+  private long tombstoneSegmentCursor;
+  private int lastScrollDirectionSign;
   private boolean zombieCycleActive;
   private float zombieRespawnTimer;
   private boolean zombieArthurContactActive;
@@ -125,6 +131,8 @@ public class GhostsGame extends ApplicationAdapter {
     enemyDefeatByType = new EnumMap<>(EnemyType.class);
     enemyMarkerIcons.put(EnemyType.ZOMBIE, new TextureRegion(zombie.getWalkMarkerFrame()));
     enemyDefeatByType.put(EnemyType.ZOMBIE, 0);
+    tombstoneSegmentCursor = Long.MIN_VALUE;
+    lastScrollDirectionSign = 1;
     zombieRespawnTimer = 0f;
     zombieArthurContactActive = false;
     zombieDefeatByHitEventPending = false;
@@ -164,6 +172,7 @@ public class GhostsGame extends ApplicationAdapter {
       for (Tombstone tombstone : tombstones) {
         tombstone.applyWorldScroll(scrollDelta);
       }
+      updateTombstoneSpawning(scrollDelta);
       updateZombieSpawner(delta);
       zombie.setTargetX(arthur.getX());
       zombie.update(delta);
@@ -383,6 +392,52 @@ public class GhostsGame extends ApplicationAdapter {
     for (Tombstone tombstone : tombstones) {
       tombstone.draw(batch);
     }
+  }
+
+  private void updateTombstoneSpawning(float scrollDelta) {
+    if (scrollDelta > 0.01f) {
+      lastScrollDirectionSign = 1;
+    } else if (scrollDelta < -0.01f) {
+      lastScrollDirectionSign = -1;
+    }
+
+    long currentSegment = (long) Math.floor(arthur.getWorldOffsetX() / WORLD_WIDTH);
+    if (currentSegment != tombstoneSegmentCursor) {
+      tombstoneSegmentCursor = currentSegment;
+      spawnTombstoneForCurrentSegment();
+    }
+
+    for (Tombstone tombstone : tombstones) {
+      if (!tombstone.isVisible()) {
+        continue;
+      }
+      float right = tombstone.getX() + tombstone.getDrawWidth();
+      if (right < -TOMBSTONE_OFFSCREEN_CULL_MARGIN
+          || tombstone.getX() > WORLD_WIDTH + TOMBSTONE_OFFSCREEN_CULL_MARGIN) {
+        tombstone.setVisible(false);
+      }
+    }
+  }
+
+  private void spawnTombstoneForCurrentSegment() {
+    for (Tombstone tombstone : tombstones) {
+      tombstone.setVisible(false);
+    }
+
+    if (!random.nextBoolean()) {
+      return;
+    }
+
+    Tombstone spawnCandidate = tombstones.get(0);
+    float lead =
+        TOMBSTONE_SPAWN_MIN_LEAD
+            + random.nextFloat() * (TOMBSTONE_SPAWN_MAX_LEAD - TOMBSTONE_SPAWN_MIN_LEAD);
+    float spawnX =
+        lastScrollDirectionSign >= 0
+            ? WORLD_WIDTH + lead
+            : -lead - spawnCandidate.getDrawWidth();
+    spawnCandidate.setPosition(spawnX, GROUND_Y);
+    spawnCandidate.setVisible(true);
   }
 
   public boolean isZombieArthurContactActive() {

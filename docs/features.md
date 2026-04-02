@@ -12,6 +12,14 @@
 
 ## Features implementadas
 
+### 2026-04-02 — GHOST-0069 Spawn aleatorio de Tombstone por tramo de scroll
+
+- **Decisión `0/1` por tramo:** `GhostsGame` evalúa cada cambio de segmento de scroll (`floor(worldOffsetX / WORLD_WIDTH)`) y decide aleatoriamente si aparece `0` o `1` tombstone.
+- **Spawn fuera de viewport inmediato y por delante:** cuando se activa, la tombstone nace fuera de pantalla (derecha si el scroll avanza a la derecha, izquierda si avanza a la izquierda) con lead aleatorio para entrar al avanzar.
+- **Máximo una simultánea por tramo visible:** antes de cada nueva decisión de segmento se limpia visibilidad de la pool y se activa como mucho una instancia (`MAX_VISIBLE_TOMBSTONES = 1`).
+- **Soporte explícito de tramos vacíos:** el branch aleatorio permite tramos sin lápida (`false` en la decisión), cumpliendo el caso de ausencia total.
+- **Sin jitter frame-to-frame:** la lógica de spawn solo se recalcula en cambio de segmento, no en cada frame; adicionalmente se aplica culling offscreen para estabilidad de runtime.
+
 ### 2026-04-02 — GHOST-0068 Objeto de dominio Tombstone y carga de assets
 
 - **Nuevo objeto de dominio `Tombstone`:** se añade [`Tombstone.java`](/Users/davidpe/dev/projects/ghosts-game/src/main/java/com/davidpe/ghosts/domain/obstacles/Tombstone.java) con estado propio (`x`, `y`, `visible`), render y API de colisión.
