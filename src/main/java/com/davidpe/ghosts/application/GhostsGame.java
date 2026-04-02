@@ -10,6 +10,7 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
@@ -19,6 +20,7 @@ import com.davidpe.ghosts.domain.characters.Arthur;
 import com.davidpe.ghosts.domain.characters.Zombie;
 import com.davidpe.ghosts.domain.characters.ZombieTuning;
 import com.davidpe.ghosts.domain.utils.AnimationUtils;
+import java.util.EnumMap;
 import java.util.Random;
 
 /**
@@ -40,6 +42,11 @@ public class GhostsGame extends ApplicationAdapter {
   private static final float SCORE_HUD_MARGIN_LEFT = 18f;
   private static final float SCORE_HUD_MARGIN_BOTTOM = 14f;
   private static final float PAUSE_HUD_MARGIN_BOTTOM = 14f;
+  private static final float ENEMY_MARKER_HUD_MARGIN_RIGHT = 18f;
+  private static final float ENEMY_MARKER_HUD_MARGIN_TOP = 14f;
+  private static final float ENEMY_MARKER_ICON_SIZE = 24f;
+  private static final float ENEMY_MARKER_ICON_TEXT_GAP = 8f;
+  private static final float ENEMY_MARKER_ROW_GAP = 6f;
   private static final float ENERGY_HUD_BASE_R = 0.86f;
   private static final float ENERGY_HUD_BASE_G = 0.84f;
   private static final float ENERGY_HUD_BASE_B = 0.79f;
@@ -65,6 +72,8 @@ public class GhostsGame extends ApplicationAdapter {
   private Arthur arthur;
   private Zombie zombie;
   private Random random;
+  private EnumMap<EnemyType, TextureRegion> enemyMarkerIcons;
+  private EnumMap<EnemyType, Integer> enemyDefeatByType;
   private boolean zombieCycleActive;
   private float zombieRespawnTimer;
   private boolean zombieArthurContactActive;
@@ -73,6 +82,10 @@ public class GhostsGame extends ApplicationAdapter {
   private boolean gamePaused;
   private int defeatedZombieCount;
   private float gameTime;
+
+  private enum EnemyType {
+    ZOMBIE
+  }
 
   @Override
   public void create() {
@@ -99,6 +112,10 @@ public class GhostsGame extends ApplicationAdapter {
     arthur = characterFactory.createArthur(WORLD_WIDTH);
     zombie = characterFactory.createZombie(WORLD_WIDTH);
     random = new Random();
+    enemyMarkerIcons = new EnumMap<>(EnemyType.class);
+    enemyDefeatByType = new EnumMap<>(EnemyType.class);
+    enemyMarkerIcons.put(EnemyType.ZOMBIE, new TextureRegion(zombie.getWalkMarkerFrame()));
+    enemyDefeatByType.put(EnemyType.ZOMBIE, 0);
     zombieRespawnTimer = 0f;
     zombieArthurContactActive = false;
     zombieDefeatByHitEventPending = false;
@@ -141,6 +158,7 @@ public class GhostsGame extends ApplicationAdapter {
       boolean defeatedByHitEvent = zombie.consumeDefeatByHitEvent();
       if (defeatedByHitEvent) {
         defeatedZombieCount += 1;
+        registerEnemyDefeat(EnemyType.ZOMBIE);
         gameAudio.play(GameAudio.Cue.ENEMY_DEATH);
       }
       zombieDefeatByHitEventPending = zombieDefeatByHitEventPending || defeatedByHitEvent;
@@ -169,6 +187,7 @@ public class GhostsGame extends ApplicationAdapter {
     zombie.draw(batch);
     arthur.drawEffects(batch);
     arthur.draw(batch);
+    drawEnemyKillMarkerHud();
     drawScoreHud();
     drawEnergyHud();
     drawPauseHud();
@@ -322,6 +341,31 @@ public class GhostsGame extends ApplicationAdapter {
     hudFont.draw(batch, hudLayout, textX, textY);
   }
 
+  private void drawEnemyKillMarkerHud() {
+    hudFont.setColor(ENERGY_HUD_BASE_R, ENERGY_HUD_BASE_G, ENERGY_HUD_BASE_B, ENERGY_HUD_BASE_A);
+    float rowTopY = WORLD_HEIGHT - ENEMY_MARKER_HUD_MARGIN_TOP;
+    for (EnemyType enemyType : EnemyType.values()) {
+      TextureRegion iconRegion = enemyMarkerIcons.get(enemyType);
+      if (iconRegion == null) {
+        continue;
+      }
+      int defeats = enemyDefeatByType.getOrDefault(enemyType, 0);
+      String markerText = enemyTypeLabel(enemyType) + ": " + defeats;
+      hudLayout.setText(hudFont, markerText);
+      float rowCenterY = rowTopY - (ENEMY_MARKER_ICON_SIZE * 0.5f);
+      float textX =
+          WORLD_WIDTH
+              - ENEMY_MARKER_HUD_MARGIN_RIGHT
+              - hudLayout.width;
+      float iconX = textX - ENEMY_MARKER_ICON_TEXT_GAP - ENEMY_MARKER_ICON_SIZE;
+      float iconY = rowTopY - ENEMY_MARKER_ICON_SIZE;
+      float textBaselineY = rowCenterY + (hudLayout.height * 0.5f);
+      batch.draw(iconRegion, iconX, iconY, ENEMY_MARKER_ICON_SIZE, ENEMY_MARKER_ICON_SIZE);
+      hudFont.draw(batch, hudLayout, textX, textBaselineY);
+      rowTopY -= ENEMY_MARKER_ICON_SIZE + ENEMY_MARKER_ROW_GAP;
+    }
+  }
+
   public boolean isZombieArthurContactActive() {
     return zombieArthurContactActive;
   }
@@ -384,5 +428,16 @@ public class GhostsGame extends ApplicationAdapter {
       }
     }
     return false;
+  }
+
+  private void registerEnemyDefeat(EnemyType enemyType) {
+    int currentValue = enemyDefeatByType.getOrDefault(enemyType, 0);
+    enemyDefeatByType.put(enemyType, currentValue + 1);
+  }
+
+  private String enemyTypeLabel(EnemyType enemyType) {
+    return switch (enemyType) {
+      case ZOMBIE -> "Zombie";
+    };
   }
 }

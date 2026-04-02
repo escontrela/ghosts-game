@@ -337,6 +337,10 @@ public class Zombie extends Character {
     return active && movementState == MovementState.WALK;
   }
 
+  public TextureRegion getWalkMarkerFrame() {
+    return walkAnimation.getKeyFrame(0f);
+  }
+
   @Override
   public boolean isInContactWith(float otherX, float otherY, float otherWidth, float otherHeight) {
     if (!isWalking()) {

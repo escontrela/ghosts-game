@@ -12,6 +12,14 @@
 
 ## Features implementadas
 
+### 2026-04-02 — GHOST-0067 Minimarcador de bajas por tipo de enemigo
+
+- **Mini HUD superior derecha:** `GhostsGame` dibuja un marcador compacto en esquina superior derecha con icono + contador por tipo.
+- **Icono por primer frame `WALK`:** para `Zombie`, el icono usa `zombie.getWalkMarkerFrame()` (frame 0 de la animación de caminar), renderizado en tamaño reducido.
+- **Conteo solo en derrotas válidas:** el incremento del marcador se engancha al mismo `defeatedByHitEvent` que ya incrementa score, evitando sumar en `GROUND_HIDE` por timeout.
+- **Integración sin duplicar lógica de derrota:** score y minimarcador comparten la misma señal one-shot de dominio; no se añaden rutas paralelas de conteo.
+- **Diseño extensible:** estructura interna basada en `EnemyType` + `EnumMap` para añadir futuros tipos de enemigo sin rehacer el pipeline HUD.
+
 ### 2026-04-02 — GHOST-0066 Cambio de orientación de Arthur en crouch
 
 - **Giro en estado `CROUCH`:** `Arthur.updateMovement(...)` ahora actualiza `facingRight` cuando hay input horizontal y `DOWN/S` está pulsado, sin salir de crouch.
