@@ -66,6 +66,8 @@ public class GhostsGame extends ApplicationAdapter {
   private static final float TOMBSTONE_SPAWN_MIN_LEAD = 48f;
   private static final float TOMBSTONE_SPAWN_MAX_LEAD = 280f;
   private static final float TOMBSTONE_OFFSCREEN_CULL_MARGIN = 260f;
+  private static final int ZOMBIE_SPAWN_RESOLVE_ATTEMPTS = 8;
+  private static final float ZOMBIE_SPAWN_RESOLVE_STEP = 56f;
 
   private SpriteBatch batch;
   private OrthographicCamera camera;
@@ -177,6 +179,7 @@ public class GhostsGame extends ApplicationAdapter {
       updateZombieSpawner(delta);
       zombie.setTargetX(arthur.getX());
       zombie.update(delta);
+      resolveZombieTombstoneInteractions();
       boolean defeatedByHitEvent = zombie.consumeDefeatByHitEvent();
       if (defeatedByHitEvent) {
         defeatedZombieCount += 1;
@@ -306,7 +309,8 @@ public class GhostsGame extends ApplicationAdapter {
         spawnSide == Zombie.SpawnSide.AHEAD
             ? ZombieTuning.SPAWN_AHEAD_DISTANCE
             : ZombieTuning.SPAWN_BEHIND_DISTANCE;
-    float spawnX = zombie.resolveSpawnX(arthur.getX(), spawnSide, spawnDistance);
+    float preferredSpawnX = zombie.resolveSpawnX(arthur.getX(), spawnSide, spawnDistance);
+    float spawnX = resolveZombieSpawnX(preferredSpawnX, spawnSide);
     zombie.startGroundRiseAt(spawnX);
     gameAudio.play(GameAudio.Cue.ZOMBIE_SPAWN);
   }
@@ -439,6 +443,69 @@ public class GhostsGame extends ApplicationAdapter {
             : -lead - spawnCandidate.getDrawWidth();
     spawnCandidate.setPosition(spawnX, GROUND_Y);
     spawnCandidate.setVisible(true);
+  }
+
+  private void resolveZombieTombstoneInteractions() {
+    for (Tombstone tombstone : tombstones) {
+      if (!tombstone.isVisible() || !isZombieOverlappingTombstone(tombstone)) {
+        continue;
+      }
+      float tombLeft = tombstone.getCollisionX();
+      float tombRight = tombLeft + tombstone.getCollisionWidth();
+      if (zombie.isWalking()) {
+        zombie.bounceFromObstacle(tombLeft, tombRight);
+      } else {
+        zombie.pushOutOfObstacle(tombLeft, tombRight);
+      }
+    }
+  }
+
+  private boolean isZombieOverlappingTombstone(Tombstone tombstone) {
+    return tombstone.overlaps(zombie.getX(), zombie.getY(), zombie.getDrawWidth(), zombie.getDrawHeightValue());
+  }
+
+  private float resolveZombieSpawnX(float preferredSpawnX, Zombie.SpawnSide preferredSide) {
+    if (!isZombieOverlappingAnyTombstone(preferredSpawnX)) {
+      return preferredSpawnX;
+    }
+    float direction = preferredSide == Zombie.SpawnSide.AHEAD ? 1f : -1f;
+    float resolved =
+        findFreeZombieSpawn(preferredSpawnX, direction, ZOMBIE_SPAWN_RESOLVE_ATTEMPTS);
+    if (!Float.isNaN(resolved)) {
+      return resolved;
+    }
+    resolved = findFreeZombieSpawn(preferredSpawnX, -direction, ZOMBIE_SPAWN_RESOLVE_ATTEMPTS);
+    if (!Float.isNaN(resolved)) {
+      return resolved;
+    }
+    return preferredSpawnX;
+  }
+
+  private float findFreeZombieSpawn(float originX, float direction, int maxAttempts) {
+    for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+      float candidate =
+          clampZombieX(originX + (direction * attempt * (zombie.getDrawWidth() + ZOMBIE_SPAWN_RESOLVE_STEP)));
+      if (!isZombieOverlappingAnyTombstone(candidate)) {
+        return candidate;
+      }
+    }
+    return Float.NaN;
+  }
+
+  private boolean isZombieOverlappingAnyTombstone(float zombieX) {
+    for (Tombstone tombstone : tombstones) {
+      if (!tombstone.isVisible()) {
+        continue;
+      }
+      if (tombstone.overlaps(zombieX, zombie.getY(), zombie.getDrawWidth(), zombie.getDrawHeightValue())) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private float clampZombieX(float candidateX) {
+    return zombie.resolveSpawnX(candidateX, Zombie.SpawnSide.AHEAD, 0f);
   }
 
   public boolean isZombieArthurContactActive() {

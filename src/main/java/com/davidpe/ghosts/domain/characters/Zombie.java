@@ -16,6 +16,8 @@ public class Zombie extends Character {
   private static final float TARGET_REACH_EPSILON = 2f;
   private static final float HITTED_KNOCKBACK_SPEED = 180f;
   private static final float HITTED_KNOCKBACK_DURATION = 0.25f;
+  private static final float OBSTACLE_BOUNCE_TARGET_DISTANCE = 150f;
+  private static final float OBSTACLE_RESOLVE_MARGIN = 0.1f;
 
   private static final float WALK_FRAME_DURATION = 0.06f;
   private static final float GROUND_FRAME_DURATION = 0.16f;
@@ -61,6 +63,8 @@ public class Zombie extends Character {
   private int accumulatedHits;
   private boolean deathBlinking;
   private float deathBlinkTimer;
+  private boolean obstacleAvoidanceActive;
+  private float obstacleAvoidanceTargetX;
 
   public Zombie(float worldWidth, AnimationUtils animationUtils) {
     this(
@@ -128,6 +132,8 @@ public class Zombie extends Character {
     accumulatedHits = 0;
     deathBlinking = false;
     deathBlinkTimer = 0f;
+    obstacleAvoidanceActive = false;
+    obstacleAvoidanceTargetX = x;
   }
 
   @Override
@@ -144,14 +150,18 @@ public class Zombie extends Character {
       }
       case WALK -> {
         activeWalkTimer -= delta;
-        float distanceToTarget = targetX - x;
+        if (obstacleAvoidanceActive && Math.abs(obstacleAvoidanceTargetX - x) <= TARGET_REACH_EPSILON) {
+          obstacleAvoidanceActive = false;
+        }
+        float activeTargetX = obstacleAvoidanceActive ? obstacleAvoidanceTargetX : targetX;
+        float distanceToTarget = activeTargetX - x;
         if (Math.abs(distanceToTarget) <= TARGET_REACH_EPSILON) {
           velocityX = 0f;
         } else {
           velocityX = Math.signum(distanceToTarget) * WALK_SPEED;
           facingRight = velocityX > 0f;
         }
-        x += velocityX * delta;
+        x = clampX(x + velocityX * delta);
         if (activeWalkTimer <= 0f) {
           defeatedByHit = false;
           transitionTo(MovementState.GROUND_HIDE);
@@ -298,6 +308,8 @@ public class Zombie extends Character {
     accumulatedHits = 0;
     deathBlinking = false;
     deathBlinkTimer = 0f;
+    obstacleAvoidanceActive = false;
+    obstacleAvoidanceTargetX = x;
     transitionTo(MovementState.GROUND_RISE);
   }
 
@@ -321,6 +333,34 @@ public class Zombie extends Character {
 
   public void setTargetX(float targetX) {
     this.targetX = clampX(targetX);
+  }
+
+  public void bounceFromObstacle(float obstacleLeft, float obstacleRight) {
+    if (!isWalking()) {
+      return;
+    }
+    boolean movingRight = velocityX > 0f || (velocityX == 0f && facingRight);
+    if (movingRight) {
+      x = clampX(Math.min(x, obstacleLeft - drawWidth - OBSTACLE_RESOLVE_MARGIN));
+      obstacleAvoidanceTargetX = clampX(x - OBSTACLE_BOUNCE_TARGET_DISTANCE);
+    } else {
+      x = clampX(Math.max(x, obstacleRight + OBSTACLE_RESOLVE_MARGIN));
+      obstacleAvoidanceTargetX = clampX(x + OBSTACLE_BOUNCE_TARGET_DISTANCE);
+    }
+    obstacleAvoidanceActive = true;
+    velocityX = 0f;
+    facingRight = obstacleAvoidanceTargetX > x;
+  }
+
+  public void pushOutOfObstacle(float obstacleLeft, float obstacleRight) {
+    float leftResolveDistance = Math.abs((x + drawWidth) - obstacleLeft);
+    float rightResolveDistance = Math.abs(obstacleRight - x);
+    if (leftResolveDistance <= rightResolveDistance) {
+      x = clampX(obstacleLeft - drawWidth - OBSTACLE_RESOLVE_MARGIN);
+    } else {
+      x = clampX(obstacleRight + OBSTACLE_RESOLVE_MARGIN);
+    }
+    velocityX = 0f;
   }
 
   public void applyWorldScroll(float scrollDelta) {

@@ -20,6 +20,14 @@
 - **Caída natural al abandonar borde:** al salir lateralmente de la superficie de la tombstone, Arthur vuelve a dinámica aérea y cae hasta `GROUND_Y` reanudando el loop normal.
 - **Resolución anti-jitter:** la colisión aplica resolución por eje con prioridad vertical para aterrizajes, evitando vibración o teletransporte visible.
 
+### 2026-04-02 — GHOST-0071 Reglas de Zombie frente a Tombstone y zonas prohibidas
+
+- **Rebote en `WALK` contra tombstone:** cuando el zombie colisiona con una tombstone durante persecución, resuelve su posición fuera del obstáculo e invierte su sentido de marcha.
+- **Rebote lógico repetible:** si en la nueva dirección vuelve a encontrar tombstone, la misma regla se reaplica y mantiene rebote coherente entre obstáculos.
+- **Spawn protegido de solapamiento:** el spawn inicial de `GROUND_RISE` ahora reubica la X objetivo por pasos hasta encontrar una posición libre de tombstone visible.
+- **Hide/death sin superposición final:** cuando zombie no está en `WALK`, cualquier solape con tombstone se resuelve desplazándolo fuera del obstáculo para no cerrar el ciclo superpuesto.
+- **Ciclo de vida conservado:** se mantiene `GROUND_RISE -> WALK -> GROUND_HIDE -> RESPAWN` sin bloquear timers ni eventos one-shot existentes.
+
 ### 2026-04-02 — GHOST-0069 Spawn aleatorio de Tombstone por tramo de scroll
 
 - **Decisión `0/1` por tramo:** `GhostsGame` evalúa cada cambio de segmento de scroll (`floor(worldOffsetX / WORLD_WIDTH)`) y decide aleatoriamente si aparece `0` o `1` tombstone.
