@@ -438,9 +438,7 @@ public class GhostsGame extends ApplicationAdapter {
         TOMBSTONE_SPAWN_MIN_LEAD
             + random.nextFloat() * (TOMBSTONE_SPAWN_MAX_LEAD - TOMBSTONE_SPAWN_MIN_LEAD);
     float spawnX =
-        lastScrollDirectionSign >= 0
-            ? WORLD_WIDTH + lead
-            : -lead - spawnCandidate.getDrawWidth();
+        lastScrollDirectionSign >= 0 ? WORLD_WIDTH + lead : -lead - spawnCandidate.getDrawWidth();
     spawnCandidate.setPosition(spawnX, GROUND_Y);
     spawnCandidate.setVisible(true);
   }
@@ -461,7 +459,8 @@ public class GhostsGame extends ApplicationAdapter {
   }
 
   private boolean isZombieOverlappingTombstone(Tombstone tombstone) {
-    return tombstone.overlaps(zombie.getX(), zombie.getY(), zombie.getDrawWidth(), zombie.getDrawHeightValue());
+    return tombstone.overlaps(
+        zombie.getX(), zombie.getY(), zombie.getDrawWidth(), zombie.getDrawHeightValue());
   }
 
   private float resolveZombieSpawnX(float preferredSpawnX, Zombie.SpawnSide preferredSide) {
@@ -469,8 +468,7 @@ public class GhostsGame extends ApplicationAdapter {
       return preferredSpawnX;
     }
     float direction = preferredSide == Zombie.SpawnSide.AHEAD ? 1f : -1f;
-    float resolved =
-        findFreeZombieSpawn(preferredSpawnX, direction, ZOMBIE_SPAWN_RESOLVE_ATTEMPTS);
+    float resolved = findFreeZombieSpawn(preferredSpawnX, direction, ZOMBIE_SPAWN_RESOLVE_ATTEMPTS);
     if (!Float.isNaN(resolved)) {
       return resolved;
     }
@@ -484,7 +482,9 @@ public class GhostsGame extends ApplicationAdapter {
   private float findFreeZombieSpawn(float originX, float direction, int maxAttempts) {
     for (int attempt = 1; attempt <= maxAttempts; attempt++) {
       float candidate =
-          clampZombieX(originX + (direction * attempt * (zombie.getDrawWidth() + ZOMBIE_SPAWN_RESOLVE_STEP)));
+          clampZombieX(
+              originX
+                  + (direction * attempt * (zombie.getDrawWidth() + ZOMBIE_SPAWN_RESOLVE_STEP)));
       if (!isZombieOverlappingAnyTombstone(candidate)) {
         return candidate;
       }
@@ -497,7 +497,8 @@ public class GhostsGame extends ApplicationAdapter {
       if (!tombstone.isVisible()) {
         continue;
       }
-      if (tombstone.overlaps(zombieX, zombie.getY(), zombie.getDrawWidth(), zombie.getDrawHeightValue())) {
+      if (tombstone.overlaps(
+          zombieX, zombie.getY(), zombie.getDrawWidth(), zombie.getDrawHeightValue())) {
         return true;
       }
     }
