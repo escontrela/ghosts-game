@@ -57,4 +57,18 @@ public class AnimationUtils {
     System.arraycopy(allFrames, from, subset, 0, subset.length);
     return new Animation<>(frameDuration, subset);
   }
+
+  public TextureRegion[] reverseFrames(TextureRegion[] frames) {
+    TextureRegion[] reversed = new TextureRegion[frames.length];
+    for (int i = 0; i < frames.length; i++) {
+      reversed[i] = frames[frames.length - 1 - i];
+    }
+    return reversed;
+  }
+
+  public Animation<TextureRegion> buildReversedAnimationFromBoundingBoxes(
+      Texture sheet, String jsonPath, float frameDuration) {
+    TextureRegion[] frames = loadFramesFromBoundingBoxes(sheet, jsonPath);
+    return new Animation<>(frameDuration, reverseFrames(frames));
+  }
 }

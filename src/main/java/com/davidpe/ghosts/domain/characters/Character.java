@@ -1,7 +1,6 @@
 package com.davidpe.ghosts.domain.characters;
 
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,7 +20,7 @@ import java.util.List;
  * <p>Subclasses register their textures in {@link #ownedTextures} during construction so that
  * {@link #dispose()} releases all GPU resources uniformly.
  */
-public abstract class Character {
+public abstract class Character implements Drawable {
 
   protected float x;
   protected float y;
@@ -58,22 +57,26 @@ public abstract class Character {
   }
 
   /**
-   * Renders the character's current animation frame at its position, handling horizontal flip when
-   * the character faces left. Uses {@link #getCurrentFrame()} and {@link #getDrawHeight()} provided
-   * by the subclass.
+   * Computes the render data for the character's current animation frame at its position. The
+   * returned {@link RenderData} contains the texture region, position, dimensions, and flip flag
+   * needed by the game controller to draw the character.
    *
-   * @param batch the active sprite batch (must be between {@code begin()} and {@code end()})
+   * @return the render data for the current frame, or {@code null} if nothing should be drawn
    */
-  public void draw(SpriteBatch batch) {
+  @Override
+  public RenderData getRenderData() {
+
     TextureRegion frameToDraw = getCurrentFrame();
     renderFrame.setRegion(frameToDraw);
-    float drawX = Math.round(x);
-    float dw = Math.round(drawWidth);
-    if (!facingRight) {
-      drawX += dw;
-      dw = -dw;
-    }
-    batch.draw(renderFrame, drawX, Math.round(y), dw, Math.round(getDrawHeight()));
+    float refPixelH = getReferenceFramePixelHeight();
+    float scale = getDrawHeight() / refPixelH;
+    float visualWidth = Math.round(frameToDraw.getRegionWidth() * scale);
+    float visualHeight = Math.round(frameToDraw.getRegionHeight() * scale);
+    float centerX = x + drawWidth * 0.5f;
+    float drawX = Math.round(centerX - visualWidth * 0.5f);
+
+    return new RenderData(
+        renderFrame, drawX, Math.round(y), visualWidth, visualHeight, !facingRight);
   }
 
   /**
@@ -94,6 +97,27 @@ public abstract class Character {
   /** Returns the character's current vertical position in world coordinates. */
   public float getY() {
     return y;
+  }
+
+  /** Returns the character draw width in world units. */
+  public float getDrawWidth() {
+    return drawWidth;
+  }
+
+  /** Returns the character draw height in world units. */
+  public float getDrawHeightValue() {
+    return getDrawHeight();
+  }
+
+  public boolean isInContactWith(float otherX, float otherY, float otherWidth, float otherHeight) {
+    float left = x;
+    float right = x + drawWidth;
+    float bottom = y;
+    float top = y + getDrawHeight();
+    return right > otherX
+        && left < otherX + otherWidth
+        && top > otherY
+        && bottom < otherY + otherHeight;
   }
 
   /**
@@ -143,4 +167,13 @@ public abstract class Character {
    * @return the height in world units
    */
   protected abstract float getDrawHeight();
+
+  /**
+   * Subclass hook: return the pixel height of the reference animation frame (e.g. the idle frame).
+   * Used by {@link #draw} to compute a uniform scale so that frames of different pixel sizes render
+   * at a consistent perceived size.
+   *
+   * @return the pixel height of the reference frame
+   */
+  protected abstract float getReferenceFramePixelHeight();
 }

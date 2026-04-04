@@ -12,6 +12,409 @@
 
 ## Features implementadas
 
+### 2026-04-04 — Refactor de render desacoplado (`Drawable` + `RenderData`)
+
+- **Render desacoplado de dominio:** `Character` ya no conoce `SpriteBatch`; ahora implementa `Drawable` y expone `getRenderData()`.
+- **Payload inmutable de render:** nuevo `RenderData` como contrato de dibujo (`region`, `x`, `y`, `width`, `height`, `flipX`).
+- **Orquestación centralizada en aplicación:** `GhostsGame` incorpora `drawDrawable(...)` y ejecuta todo el draw de entidades desde el controller.
+- **Compatibilidad de efectos preservada:** `Arthur.drawEffects(SpriteBatch)` se mantiene separado para no mezclar capa de VFX con payload base de sprite.
+- **Obstacles alineados al pipeline:** `Tombstone` también implementa `Drawable` y devuelve `RenderData` solo cuando está visible.
+
+### 2026-04-04 — Sistema general de colisiones (`CollisionManager`)
+
+- **Nuevo paquete de dominio `collision`:** se añaden `Collider`, `CollisionLayer`, `CollisionPair` y `CollisionManager`.
+- **Registro por frame explícito:** `GhostsGame` ahora ejecuta `clear()`, `register(...)`, `computeCollisions()` y resuelve pares con `handleCollision(...)`.
+- **Capas de colisión iniciales:** `PLAYER`, `PLAYER_ATTACK`, `ENEMY`, `OBSTACLE` (y `PICKUP` reservado para extensión futura).
+- **Hitbox de ataque dedicada:** `Arthur` expone `getBodyCollider()` y `getAttackCollider()`; la de ataque solo existe durante ventana válida de punch.
+- **Colisionadores condicionales:** `Zombie.getCollider()` devuelve `null` si está inactivo y `Tombstone.getCollider()` devuelve `null` si no está visible.
+- **Migración de reglas previas sin regresión funcional:** contacto Arthur/Zombie, hit melee de Arthur y rebote/push-out Zombie/Tombstone pasan al nuevo resolver por pares.
+- **Limpieza de lógica acoplada:** se elimina el flujo específico de `processArthurPunchHit()` y la resolución manual dedicada de `resolveZombieTombstoneInteractions()` en favor de la ruta genérica.
+
+### 2026-04-02 — GHOST-0070 Interacción de Arthur con Tombstone (bloqueo, salto y caída)
+
+- **Bloqueo lateral sólido en caminata:** cuando Arthur colisiona lateralmente con una tombstone en `WALK`, mantiene su estado/animación pero pierde avance horizontal efectivo.
+- **Superación por salto sin estados nuevos:** Arthur puede pasar la lápida al ejecutar salto y mantener su máquina actual (`IDLE`, `WALK`, `CROUCH`, `JUMP`, `PUNCH`) sin animaciones extra.
+- **Soporte superior estable:** al aterrizar sobre una tombstone, Arthur queda soportado sobre su cara superior y puede desplazarse por encima.
+- **Caída natural al abandonar borde:** al salir lateralmente de la superficie de la tombstone, Arthur vuelve a dinámica aérea y cae hasta `GROUND_Y` reanudando el loop normal.
+- **Resolución anti-jitter:** la colisión aplica resolución por eje con prioridad vertical para aterrizajes, evitando vibración o teletransporte visible.
+
+### 2026-04-02 — GHOST-0071 Reglas de Zombie frente a Tombstone y zonas prohibidas
+
+- **Rebote en `WALK` contra tombstone:** cuando el zombie colisiona con una tombstone durante persecución, resuelve su posición fuera del obstáculo e invierte su sentido de marcha.
+- **Rebote lógico repetible:** si en la nueva dirección vuelve a encontrar tombstone, la misma regla se reaplica y mantiene rebote coherente entre obstáculos.
+- **Spawn protegido de solapamiento:** el spawn inicial de `GROUND_RISE` ahora reubica la X objetivo por pasos hasta encontrar una posición libre de tombstone visible.
+- **Hide/death sin superposición final:** cuando zombie no está en `WALK`, cualquier solape con tombstone se resuelve desplazándolo fuera del obstáculo para no cerrar el ciclo superpuesto.
+- **Ciclo de vida conservado:** se mantiene `GROUND_RISE -> WALK -> GROUND_HIDE -> RESPAWN` sin bloquear timers ni eventos one-shot existentes.
+
+### 2026-04-02 — GHOST-0072 Integración tombstone end-to-end y checklist
+
+- **Validación de spawn por tramo:** el flujo actual mantiene decisión aleatoria por segmento de scroll con resultado `0` o `1` tombstone visible.
+- **Validación de Arthur contra tombstone:** se confirma bloqueo lateral sin avance efectivo en caminata, superación por salto y caída natural al abandonar borde.
+- **Validación de Zombie contra tombstone:** se confirma rebote de dirección en `WALK` y resolución de no-solape para spawn (`GROUND_RISE`) y cierre de hide/death.
+- **Directriz de implementación reforzada:** los cambios de obstacles deben extender la estructura DDD vigente (`GhostsGame`, `Arthur`, `Zombie`, `Tombstone`) y evitar proliferación de clases auxiliares sin responsabilidad clara.
+
+Checklist manual corto acumulativo (tombstone E2E):
+
+1. Recorrer al menos 8 cambios de segmento (`WORLD_WIDTH`) y registrar que cada tramo muestra aleatoriamente `0` o `1` tombstone, nunca más de una simultánea.
+2. Caminar contra tombstone sin saltar y validar estado visual `WALK` con avance horizontal bloqueado.
+3. Repetir aproximación saltando y confirmar que Arthur supera la tombstone sin jitter.
+4. Quedarse sobre la tombstone, avanzar hasta el borde y verificar caída limpia con retorno al loop normal.
+5. Forzar encuentro zombie-tombstone en `WALK` y validar inversión de dirección inmediata; repetir para confirmar rebote lógico en encuentros sucesivos.
+6. Observar varios ciclos `GROUND_RISE -> WALK -> GROUND_HIDE -> RESPAWN` con tombstones visibles y comprobar ausencia de solape final en spawn/hide.
+7. Ejecutar `mvn -q -DskipTests compile` y `mvn -q test` para confirmar integración sin regresiones de build.
+
+### 2026-04-02 — GHOST-0073 Documento técnico `human-developer.md`
+
+- **Nuevo documento de transferencia técnica:** se crea `human-developer.md` en la raíz del repositorio con guía detallada de arquitectura, loop principal, Arthur, Zombie, tombstones, reglas de gameplay y riesgos de mantenimiento.
+- **Cobertura explícita de sistemas críticos:** incluye cálculo de movimiento/posiciones, colisiones, scroll/cámara, estados y secuencia update/render con fragmentos reales de código del proyecto.
+- **Sección de gotchas y extensión segura:** documenta riesgos por `delta`, consumo de eventos one-shot, orden de update, y recomendaciones para extender sin romper el estilo DDD actual.
+- **Intento opcional de envío por correo registrado:** se ejecutó `mail -s \"Ghosts Game human-developer.md\" escontrela@live.com < human-developer.md`; el entorno devolvió `sendmail: fatal: execvp /usr/sbin/postdrop: Operation not permitted`, por lo que no se pudo completar el envío y se continuó sin bloquear la tarea.
+
+### 2026-04-02 — GHOST-0069 Spawn aleatorio de Tombstone por tramo de scroll
+
+- **Decisión `0/1` por tramo:** `GhostsGame` evalúa cada cambio de segmento de scroll (`floor(worldOffsetX / WORLD_WIDTH)`) y decide aleatoriamente si aparece `0` o `1` tombstone.
+- **Spawn fuera de viewport inmediato y por delante:** cuando se activa, la tombstone nace fuera de pantalla (derecha si el scroll avanza a la derecha, izquierda si avanza a la izquierda) con lead aleatorio para entrar al avanzar.
+- **Máximo una simultánea por tramo visible:** antes de cada nueva decisión de segmento se limpia visibilidad de la pool y se activa como mucho una instancia (`MAX_VISIBLE_TOMBSTONES = 1`).
+- **Soporte explícito de tramos vacíos:** el branch aleatorio permite tramos sin lápida (`false` en la decisión), cumpliendo el caso de ausencia total.
+- **Sin jitter frame-to-frame:** la lógica de spawn solo se recalcula en cambio de segmento, no en cada frame; adicionalmente se aplica culling offscreen para estabilidad de runtime.
+
+### 2026-04-02 — GHOST-0068 Objeto de dominio Tombstone y carga de assets
+
+- **Nuevo objeto de dominio `Tombstone`:** se añade [`Tombstone.java`](/Users/davidpe/dev/projects/ghosts-game/src/main/java/com/davidpe/ghosts/domain/obstacles/Tombstone.java) con estado propio (`x`, `y`, `visible`), render y API de colisión.
+- **Assets cargados desde `resources/tombstone`:** `Tombstone` carga `tombstone/sprite-sheet-tombstone.png` + `tombstone/bounding-boxes-tombstone.json` y extrae el frame base desde bounding boxes.
+- **Collision shape derivada del asset:** el objeto expone `getCollisionX/Y/Width/Height` y `overlaps(...)` sobre su frame escalado, evitando cajas hardcodeadas fuera del asset pipeline.
+- **Lifecycle integrado sin fugas:** `GhostsGame` crea la colección de tombstones en `create()` y ejecuta `dispose()` de cada instancia en `dispose()`.
+- **Preparado para múltiples instancias:** `GhostsGame` inicializa una lista con capacidad escalable (`MAX_VISIBLE_TOMBSTONES`), manteniendo por ahora máximo 1 instancia activa.
+- **Compatibilidad de recursos:** se añade carpeta `src/main/resources/tombstone/` con el spritesheet y JSON de bounding boxes para el flujo nuevo de dominio.
+
+### 2026-04-02 — GHOST-0067 Minimarcador de bajas por tipo de enemigo
+
+- **Mini HUD superior derecha:** `GhostsGame` dibuja un marcador compacto en esquina superior derecha con icono + contador por tipo.
+- **Icono por primer frame `WALK`:** para `Zombie`, el icono usa `zombie.getWalkMarkerFrame()` (frame 0 de la animación de caminar), renderizado en tamaño reducido.
+- **Conteo solo en derrotas válidas:** el incremento del marcador se engancha al mismo `defeatedByHitEvent` que ya incrementa score, evitando sumar en `GROUND_HIDE` por timeout.
+- **Integración sin duplicar lógica de derrota:** score y minimarcador comparten la misma señal one-shot de dominio; no se añaden rutas paralelas de conteo.
+- **Diseño extensible:** estructura interna basada en `EnemyType` + `EnumMap` para añadir futuros tipos de enemigo sin rehacer el pipeline HUD.
+
+### 2026-04-02 — GHOST-0066 Cambio de orientación de Arthur en crouch
+
+- **Giro en estado `CROUCH`:** `Arthur.updateMovement(...)` ahora actualiza `facingRight` cuando hay input horizontal y `DOWN/S` está pulsado, sin salir de crouch.
+- **Mismo frame con flip horizontal:** se reutiliza la animación/spritesheet existente de agachado; el cambio visual depende del flip de render ya implementado en `Character.draw(...)`.
+- **Sin jitter ni desplazamiento base:** la lógica de `crouchAnchorX` y velocidad `0` en crouch se mantiene intacta, por lo que invertir sentido no mueve la base del sprite.
+- **Transiciones preservadas:** no se modifican las reglas de entrada/salida de `CROUCH`, `CROUCH_UP`, `WALK`, `IDLE`, `PUNCH` y `JUMP`.
+
+### 2026-04-02 — GHOST-0065 Sistema de pausa con ESC y reanudación por tecla
+
+- **Entrada a pausa por `ESC`:** `GhostsGame.render()` activa `gamePaused=true` al detectar `Input.Keys.ESCAPE` en modo runtime normal.
+- **Congelación total de simulación:** mientras `gamePaused` está activo, no se ejecutan updates de Arthur/Zombie, IA, spawner, drenado de energía ni avance de `gameTime`, preservando estados y animaciones dependientes de `delta`.
+- **Reanudación por cualquier tecla:** en pausa, `GhostsGame` escanea `Input.Keys.MAX_KEYCODE` y desactiva `gamePaused` en la primera pulsación `isKeyJustPressed(...)`.
+- **Indicador HUD de pausa:** se renderiza texto `PAUSE` en la zona inferior central, entre `Score` y `Energy`, reutilizando estilo actual del HUD.
+- **Comportamiento idempotente:** el flujo usa ramas exclusivas (`if paused` / `else if ESC` / `else runtime`) para evitar toggles múltiples en un mismo frame.
+
+### 2026-04-02 — GHOST-0064 Sonidos comunes de enemigo (hit/death)
+
+- **`ENEMYHIT.wav` en golpe válido:** `GhostsGame.processArthurPunchHit()` reproduce `GameAudio.Cue.ENEMY_HIT` solo cuando se cumplen alcance + ventana de golpe consumida + `zombie.registerValidHit()` aceptado.
+- **`ENEMYDEATH.wav` en derrota real:** al consumir `zombie.consumeDefeatByHitEvent()` y confirmar evento de derrota por tercer golpe, `GhostsGame` reproduce `GameAudio.Cue.ENEMY_DEATH` e incrementa score.
+- **Sin falsos positivos por timeout:** `GROUND_HIDE` por fin de vida no genera `defeatByHitEvent`, por lo que no dispara `ENEMYDEATH.wav`.
+- **Flujo score/evento preservado:** el sonido de muerte se ata al mismo evento one-shot que ya gobierna el incremento de score, evitando duplicados y desalineación.
+
+### 2026-04-02 — GHOST-0063 Sonidos globales de sesión (GAMESTART / GAMEOVER)
+
+- **`GAMESTART.wav` al iniciar sesión:** `GhostsGame.create()` reproduce `GameAudio.Cue.GAME_START` tras inicializar audio y ciclo base.
+- **`GAMEOVER.wav` al agotar energía:** en `render()`, cuando `arthur.getEnergy() <= 0`, se reproduce `GameAudio.Cue.GAME_OVER`.
+- **One-shot garantizado para game over:** `GhostsGame` mantiene `gameOverSoundPlayed` para impedir repetición frame a frame cuando la energía permanece en `0`.
+- **Regla explícita de rearmado por reinicio de sesión:** cada nueva sesión de juego (nueva ejecución de `create()`) reinicia `gameOverSoundPlayed = false`, vuelve a disparar `GAMESTART` y permite nuevo `GAMEOVER` cuando aplique.
+- **Sin subsistema paralelo:** integración localizada en `GhostsGame`, respetando arquitectura actual.
+
+### 2026-04-02 — GHOST-0062 Sonido de spawn de Zombie
+
+- **Trigger en inicio de `GROUND_RISE`:** `GhostsGame.spawnZombieRelativeToArthur(...)` reproduce `GameAudio.Cue.ZOMBIE_SPAWN` inmediatamente después de `zombie.startGroundRiseAt(spawnX)`.
+- **Una vez por ciclo:** el sonido queda ligado al punto de arranque del ciclo de spawn, evitando repeticiones durante `WALK` y `GROUND_HIDE`.
+- **Comportamiento consistente por lado de spawn:** tanto `AHEAD` como `BEHIND` usan la misma ruta de activación y por tanto el mismo cue.
+- **Sin impacto en ciclo existente:** se conserva `GROUND_RISE -> WALK -> GROUND_HIDE -> RESPAWN` sin cambios de timing/IA.
+
+### 2026-04-02 — GHOST-0061 Sonidos de Arthur (jump, punch/land, hit)
+
+- **`ARTHURJUMP.wav` al iniciar salto:** `Arthur` emite evento one-shot al entrar en `JUMP` desde suelo y `GhostsGame` reproduce `GameAudio.Cue.ARTHUR_JUMP`.
+- **`ARTHURLAND.wav` al lanzar punch:** al entrar en estado `PUNCH` se emite evento one-shot y `GhostsGame` reproduce `GameAudio.Cue.ARTHUR_LAND` (según especificación actual del producto).
+- **`ARTHURHIT.wav` al perder energía por contacto:** tras aplicar drenado real de energía, `Arthur` emite evento de hit y `GhostsGame` reproduce `GameAudio.Cue.ARTHUR_HIT`.
+- **Anti-spam en drenado continuo:** `Arthur` aplica cooldown interno (`0.35 s`) para evitar reproducción por frame durante contacto sostenido con zombie.
+- **Integración sin proliferación:** se extiende `Arthur` con eventos de dominio consumibles; no se crean múltiples clases auxiliares.
+
+### 2026-04-02 — GHOST-0060 Infraestructura centralizada de audio WAV
+
+- **Componente único de audio:** se añade `GameAudio` en capa de aplicación para centralizar carga, reproducción y `dispose` de sonidos LibGDX (`Sound`).
+- **Registro único de assets + lifecycle:** todas las rutas WAV se registran en `GameAudio.Cue`; `GhostsGame.create()` ejecuta `loadAll()` y `GhostsGame.dispose()` libera recursos con `gameAudio.dispose()`.
+- **Ruteo por dominio/categoría:** cada cue declara categoría (`GAME_GENERAL`, `ARTHUR`, `ENEMY_COMMON`, `ENEMY_ZOMBIE`) para soportar eventos de juego general, Arthur, enemigo común y enemigo específico sin acoplar render/UI.
+- **Patrón de disparo recomendado por DDD actual:**
+  - `GhostsGame`: reproduce cues globales y de orquestación (`GAME_START`, `GAME_OVER`, `ENEMY_HIT`, `ENEMY_DEATH`, `ZOMBIE_SPAWN`).
+  - `Arthur` y `Zombie`: exponen eventos de dominio one-shot (sin tocar audio directo) para que `GhostsGame` decida cuándo reproducir.
+- **Scope controlado:** no se añade mezcla avanzada ni subsistema paralelo; se reutiliza la arquitectura existente.
+
+### 2026-04-02 — Estado DEATH del Zombie: animación de muerte y parpadeo (corrección de GHOST-0046)
+
+- **Transición a `DEATH` en tercer golpe (no `GROUND_HIDE`):** al acumular 3 impactos válidos, `Zombie.registerValidHit()` transiciona directamente al estado `DEATH`; la documentación anterior de `GHOST-0046` indicaba `GROUND_HIDE` como destino, que ya no es correcto.
+- **Animación de muerte completa:** se reproduce `deathAnimation` (`zombie/sprite-sheet-zombie-death.png` + `zombie/bounding-boxes-zombie-death.json`) una sola vez antes del parpadeo.
+- **Fase de parpadeo post-muerte:** al terminar la animación de muerte, el zombie parpadea durante `2.0 s` con intervalo de `0.12 s`; sigue presente en pantalla de forma intermitente durante este período.
+- **Fin de ciclo normalizado:** al agotarse el parpadeo, el zombie marca `active = false` y dispara `hideCycleCompleted`, igual que en `GROUND_HIDE` por timeout, para que el orquestador de spawn reactive el ciclo de reaparición.
+- **Evento de derrota exclusivo de `DEATH`:** `defeatByHitEventPending = true` solo se activa al entrar en `DEATH`; el timeout de `WALK` → `GROUND_HIDE` no produce evento de derrota y no incrementa `defeatedZombieCount`.
+- **Recursos añadidos:** `zombie/sprite-sheet-zombie-death.png` y `zombie/bounding-boxes-zombie-death.json`.
+- **`groundHideAnimation` construida con frames invertidos:** `buildReversedAnimationFromBoundingBoxes` usa el mismo sheet/JSON que `groundRiseAnimation`, evitando duplicar assets.
+- **`processArthurPunchHit()` corregido:** la ventana de golpe solo se consume cuando `zombie.isWalking()` es `true` (estado `WALK` activo), evitando consumo desperdiciado en bordes de transición de estado.
+
+### 2026-03-31 — PO Iteración: validación de continuidad zombie hardening (sin cierres artificiales)
+
+- **Estado Tasker verificado:** `WIP=1` se mantiene en `GHOST-0054`; backlog operativo cubierto con 5 tickets (`GHOST-0055..GHOST-0059`).
+- **Evidencia técnica para mantener alcance actual:**
+  - `GhostsGame.handleZombieDebugInput()` mantiene activas teclas debug (`1`, `2`, `H`, `G`) en runtime normal.
+  - `GhostsGame.processArthurPunchHit()` sigue consumiendo `consumePunchHitWindow()` antes de confirmar target elegible (`zombie.isWalking()`).
+- **Sin transiciones en esta iteración:** no se marca `done` ningún ticket de hardening al no existir evidencia completa de cierre en código.
+- **Salud de build (smoke):** `mvn -q -DskipTests compile` ejecutado con resultado **OK** en `feature/zombie-enemies`.
+- **Directriz reiterada a devs:** preservar estructura DDD actual y reutilizar `GhostsGame`/`Arthur`/`Zombie`, evitando proliferación de clases.
+
+### 2026-03-31 — PO Iteración: backlog repuesto para hardening zombie post-review
+
+- **Lectura de contexto completada:** Tasker quedó con `backlog=0` e `in_progress=0` tras cierre del bloque anterior, por lo que se repone secuencia operativa sin romper el plan de zombies.
+- **`WIP=1` restablecido:** `GHOST-0054` pasa a `in_progress` como único ticket activo.
+- **Backlog mínimo restituido (5 tickets):**
+  - `GHOST-0055` consistencia de hit de Arthur (consumo de ventana solo con target elegible).
+  - `GHOST-0056` robustez de drenado de energía ante variaciones de `delta`/FPS.
+  - `GHOST-0057` centralización de parámetros de ciclo zombie para tuning controlado.
+  - `GHOST-0058` checklist E2E de 10 ciclos zombie sin intervención debug.
+  - `GHOST-0059` review técnica focalizada en bugs runtime de zombie.
+- **Directriz reforzada para devs:** preservar estructura DDD actual, reutilizar `GhostsGame`/`Arthur`/`Zombie` y evitar proliferación de clases pequeñas sin responsabilidad clara.
+
+### 2026-03-31 — PO Iteración: planificación bloque score + review tras cierre de combate
+
+- **Verificación de implementación real:** el código actual ya contiene ciclo de combate zombie con golpe cercano de Arthur (`SPACE`), transición a `HITTED`, umbral de 3 impactos, retorno a `GROUND_HIDE` y corte de drenado de energía tras derrota.
+- **Normalización de estado Tasker:** `GHOST-0043` se transiciona a `done` para reflejar el estado real implementado y evitar bloqueo artificial de secuencia.
+- **Nuevo `WIP=1` aplicado:** `GHOST-0048` queda en `in_progress` como único ticket activo del bloque de score.
+- **Backlog repuesto (5 mínimo preservado):**
+  - `GHOST-0049` contador de enemigos enviados a ground en sesión.
+  - `GHOST-0050` HUD de score en parte baja opuesta a `Energy`.
+  - `GHOST-0051` integración score+combate con checklist manual.
+  - `GHOST-0052` review técnica para agentes dev (bugs/compilación, no cambios cosméticos masivos).
+  - `GHOST-0053` smoke build/checklist de compilación previa a review.
+- **Directriz explícita para devs en este bloque:** preservar estructura DDD actual, reutilizar `GhostsGame`, `Arthur` y `Zombie`, y evitar proliferación de clases pequeñas sin responsabilidad clara.
+
+### 2026-03-31 — GHOST-0000 Bootstrap de fase 1 (revalidación operativa en rama activa)
+
+- **Rama activa validada para implementación:** `feature/zombie-enemies` (política vigente del repositorio para este ciclo).
+- **Alcance base de fase ratificado:** control de Arthur (izquierda/derecha/agacharse/salto), scroll de dos fondos y luz tenue focal.
+- **Regla de reutilización reafirmada:** extender clases existentes y evitar proliferación innecesaria de clases.
+- **Tratamiento del ticket en Tasker:** cierre en `done` para evitar duplicidad operativa, manteniendo `GHOST-0000` como referencia documental en este log.
+
+### 2026-03-31 — GHOST-0043 Golpe de Arthur dispara `HITTED` por ventana de punch
+
+- **Trigger por ventana de golpe:** `Arthur` expone `consumePunchHitWindow()` para evaluar impacto una sola vez por cada entrada en estado `PUNCH`.
+- **Alcance configurable en dos ejes:** `GhostsGame` aplica umbrales explícitos de proximidad horizontal (`ARTHUR_PUNCH_REACH`) y vertical (`ARTHUR_PUNCH_VERTICAL_REACH`) antes de registrar golpe válido.
+- **Gate de estado del enemigo preservado:** solo zombies en `WALK` aceptan golpe y transicionan a `HITTED`.
+- **Sin alcance válido, sin impacto:** si la separación horizontal o vertical supera los umbrales configurados, no se dispara `registerValidHit()`.
+
+### 2026-03-31 — GHOST-0044 Contador de impactos de Zombie con umbral 3
+
+- **Contador acumulado en dominio:** `Zombie` incorpora `accumulatedHits` y suma 1 por cada golpe válido aceptado en estado `WALK`.
+- **Umbral de derrota explícito:** el límite queda fijado en `3` mediante constante de dominio (`DEFEAT_HIT_THRESHOLD`).
+- **Reset por nuevo ciclo de spawn:** el contador vuelve a `0` al iniciar `startGroundRiseAt(...)`.
+- **Integración sin nuevas capas:** `GhostsGame` registra golpes válidos de `SPACE` cuando el zombie está en rango de golpe de Arthur.
+
+### 2026-03-31 — GHOST-0045 Reanudación de persecución tras HITTED con delay corto
+
+- **Delay configurable tras impacto no letal:** `Zombie` añade `hittedRecoveryDelaySeconds` (base `0.18s`) antes de volver a moverse.
+- **Retorno automático a persecución si impactos < 3:** tras terminar `HITTED` y consumir el delay, la transición vuelve a `WALK`.
+- **Target de Arthur preservado:** al recuperar `WALK`, el zombie continúa persiguiendo la X publicada por `GhostsGame`.
+- **Integración mínima:** sin clases nuevas, todo resuelto dentro del flujo actual de `Zombie`.
+
+### 2026-03-31 — GHOST-0046 Tercer golpe fuerza GROUND_HIDE y corta daño
+
+- **Umbral aplicado en runtime:** al registrar el impacto válido número `3`, el zombie transiciona de forma inmediata a `GROUND_HIDE`.
+- **Corte de contacto dañino garantizado:** la detección de contacto dañino permanece limitada a `WALK`, por lo que tras entrar en `GROUND_HIDE` deja de drenar energía a Arthur.
+- **Ciclo de respawn conservado:** al finalizar `GROUND_HIDE`, el flujo existente (`hideCycleCompleted`) mantiene listo el respawn del zombie.
+- **Sin expansión estructural:** ajuste integrado sobre `Zombie` y lógica existente de `GhostsGame`.
+
+### 2026-03-31 — GHOST-0047 Integración bloque 4 combate Zombie + checklist
+
+- **Flujo de combate integrado:** golpe válido cercano de Arthur activa `HITTED`; con impactos acumulados `< 3` el zombie vuelve a `WALK` tras delay corto; al impacto `3` entra en `GROUND_HIDE`.
+- **Daño detenido tras tercer golpe:** al pasar a `GROUND_HIDE`, el zombie deja de computar contacto dañino y Arthur deja de perder energía por ese enemigo.
+- **Directriz para devs (bloque 4):** priorizar reutilización sobre clases actuales (`GhostsGame`, `Arthur`, `Zombie`) y evitar proliferación innecesaria de clases.
+
+Checklist manual breve bloque 4 (3-5 minutos):
+
+1. **Golpe no letal:** acercar Arthur al zombie, pulsar `SPACE` y validar transición inmediata a `HITTED`.
+2. **Retorno a persecución:** tras terminar `HITTED`, verificar breve pausa y vuelta automática del zombie a `WALK`.
+3. **Acumulación de impactos:** repetir golpes válidos y confirmar que el tercer impacto no vuelve a `HITTED`, sino que dispara `GROUND_HIDE`.
+4. **Corte de daño:** durante `GROUND_HIDE`, mantener proximidad visual y validar que `Energy` deja de decrecer por ese zombie.
+5. **Ciclo listo para respawn:** esperar final de `GROUND_HIDE` y comprobar que el ciclo queda preparado para respawn con la IA existente.
+
+### 2026-03-31 — GHOST-0048 Evento consumible de derrota por tercer golpe
+
+- **Distinción explícita del motivo de `GROUND_HIDE`:** `Zombie` marca derrota por combate solo cuando entra en `GROUND_HIDE` al alcanzar 3 impactos válidos.
+- **Señal one-shot consumible:** nuevo evento `consumeDefeatByHitEvent()` en `Zombie`, propagado a aplicación mediante `consumeZombieDefeatByHitEvent()` en `GhostsGame`.
+- **Sin falsos positivos por timeout/debug:** transiciones a `GROUND_HIDE` por fin de `WALK` o trigger manual no activan el evento de derrota.
+- **Reset por ciclo garantizado:** al iniciar `startGroundRiseAt(...)` se limpian flag y evento para el siguiente spawn.
+
+### 2026-03-31 — GHOST-0049 Contador de enemigos derrotados en sesión
+
+- **Contador de sesión inicializado a 0:** `GhostsGame` añade `defeatedZombieCount` y lo resetea al crear la partida.
+- **Incremento solo por derrota válida:** el contador suma `+1` exclusivamente cuando llega el evento one-shot `consumeDefeatByHitEvent()`.
+- **Sin incremento por timeout:** `GROUND_HIDE` por fin de `WALK` no genera evento de derrota y no altera el contador.
+- **Exposición mínima para HUD/aplicación:** `getDefeatedZombieCount()` publica el valor actual sin añadir capas extra.
+
+### 2026-03-31 — GHOST-0050 HUD de score en esquina inferior izquierda
+
+- **Nuevo texto HUD opuesto a energía:** `GhostsGame` renderiza `Score: <valor>` en la parte baja izquierda del viewport.
+- **Lectura en tiempo real del contador:** el valor mostrado usa `defeatedZombieCount` actualizado por derrotas válidas del zombie.
+- **Estilo visual coherente:** usa `BitmapFont` y paleta base sutil del HUD actual para mantener consistencia con `Energy`.
+- **Sin sistema UI paralelo:** implementación integrada en el pipeline HUD existente (`drawScoreHud()` + `drawEnergyHud()`).
+
+### 2026-03-31 — GHOST-0051 Integración score + combate zombie con checklist manual
+
+- **Flujo E2E validable:** golpe válido cercano en `PUNCH` activa progresión de impactos hasta que el tercer golpe dispara `GROUND_HIDE` y `Score +1`.
+- **Regla anti-falso-positivo verificada:** `GROUND_HIDE` por timeout del `WALK` no genera evento de derrota y no incrementa score.
+- **Directriz técnica reiterada:** mantener implementación sobre `GhostsGame`/`Arthur`/`Zombie` y evitar proliferación de clases pequeñas.
+
+Checklist manual breve bloque score (3-5 minutos):
+
+1. **Base inicial:** iniciar partida y confirmar `Score: 0` en esquina inferior izquierda.
+2. **No sumar por golpes parciales:** conectar 1er y 2do golpe válidos; validar transición `HITTED` y confirmar que `Score` sigue igual.
+3. **Suma en tercer golpe:** aplicar 3er golpe válido y validar transición inmediata a `GROUND_HIDE` con incremento exacto `Score +1`.
+4. **No sumar por timeout:** dejar un zombie en `WALK` hasta auto-hide por tiempo y confirmar que `Score` no cambia.
+5. **Ciclo repetido:** repetir otro ciclo de 3 golpes y comprobar incremento acumulado monotónico (`0 -> 1 -> 2`).
+
+### 2026-03-31 — GHOST-0052 Review técnico breve (zombie/energía/score)
+
+- **Enfoque de review aplicado:** bugs potenciales, riesgos de regresión y estabilidad de compilación; sin refactors cosméticos amplios.
+- **Hallazgo 1 (riesgo funcional):** `GhostsGame.render()` mantiene `handleZombieDebugInput()` activo, por lo que teclas debug (`1`, `2`, `H`, `G`) pueden alterar ciclo/score en runtime normal.
+- **Hallazgo 2 (riesgo de timing):** `processArthurPunchHit()` consume la ventana de golpe antes de confirmar que el zombie está en `WALK`; en borde de transición de estado puede perderse un impacto esperado.
+- **Acciones propuestas (breve):** aislar debug keys detrás de flag de desarrollo y evaluar consumo de ventana de punch solo cuando el target sea elegible para impacto.
+- **Regla técnica reforzada:** aplicar fixes sobre `GhostsGame`/`Arthur`/`Zombie` reutilizando estructura existente.
+
+### 2026-03-31 — GHOST-0053 Smoke build + checklist pre-review
+
+- **Comandos smoke ejecutados:**
+  - `mvn -q -DskipTests clean compile` -> **falló** al limpiar `target` (`Failed to delete .../target`).
+  - `mvn -q -DskipTests test` -> **ok**.
+  - `mvn -q compile` -> **ok**.
+  - `mvn -q -DskipTests compile exec:exec` -> arranque intentado; salida con errores de servicios macOS (`Connection invalid`) en este entorno.
+- **Bloqueo técnico identificado:** limpieza completa (`clean`) no fiable en el sandbox actual por restricción/estado de borrado de `target`.
+- **Criterio mínimo de éxito documentado:** considerar pase verde cuando `compile` y `test` terminan sin error; tratar `exec:exec` como validación local interactiva fuera de sandbox.
+
+Checklist rápido pre-review (2-3 minutos):
+
+1. Ejecutar `mvn -q compile`.
+2. Ejecutar `mvn -q test`.
+3. Si el entorno permite UI, ejecutar `mvn -q compile exec:exec` y validar apertura inicial sin crash de JVM.
+4. Si `clean` falla por borrado de `target`, registrar error exacto y continuar con compilación no limpia para desbloquear review.
+
+### 2026-03-31 — GHOST-0000 Bootstrap de fase 1 de control y scroll (validación operativa)
+
+- **Rama de trabajo validada para el ciclo actual:** desarrollo ejecutado en `feature/zombie-enemies` (política activa del repositorio).
+- **Alcance ratificado de fase 1:** izquierda/derecha, agacharse, salto, scroll de dos fondos y luz tenue sobre Arthur.
+- **Regla de implementación ratificada:** priorizar extensión de clases existentes y evitar proliferación innecesaria de clases.
+- **Nota de referencia histórica:** la entrada original de 2026-03-21 mantiene el contexto inicial del bootstrap.
+- **Cierre operacional Tasker:** este bootstrap pasa a `done` en Tasker para evitar duplicidad de backlog, conservando su valor documental como referencia de fase.
+
+### 2026-03-31 — GHOST-0033 Ciclo de vida temporal del Zombie (spawn -> walk -> ground hide)
+
+- **Duración activa configurable de `WALK`:** `Zombie` incorpora `activeWalkDurationSeconds` con valor inicial de fábrica `10s`.
+- **Transición automática por tiempo:** al agotarse el temporizador de `WALK`, el estado cambia a `GROUND_HIDE` sin intervención externa.
+- **Fin de ciclo utilizable para respawn:** al terminar la animación `GROUND_HIDE`, el zombie se marca como inactivo y publica `hideCycleCompleted`.
+- **Responsabilidad contenida en dominio:** el ciclo temporal vive en `Zombie` y evita nuevas clases para cumplir alcance del ticket.
+
+### 2026-03-31 — GHOST-0034 Spawn relativo a Arthur (delante/detrás) con límites de mundo
+
+- **Resolución de spawn por modo:** la aparición del zombie se calcula desde la X de Arthur con dos variantes explícitas: `AHEAD` y `BEHIND`.
+- **Clamp de mundo aplicado:** la X final del spawn se limita a `0..(WORLD_WIDTH - drawWidth)` para evitar nacimientos fuera del escenario.
+- **Entrada de ciclo garantizada:** cada aparición inicia en `GROUND_RISE` mediante API dedicada de Zombie (`startGroundRiseAt`).
+- **Integración sin romper scroll:** Arthur mantiene el control del offset global de fondo; el spawn del zombie no altera ese contrato.
+
+### 2026-03-31 — GHOST-0035 IA simple de aparición y reaparición aleatoria del Zombie
+
+- **Controlador de ciclo en aplicación:** `GhostsGame` incorpora un orquestador mínimo que activa/desactiva el ciclo de spawn del zombie.
+- **Reaparición con rango configurable:** al completar `GROUND_HIDE`, el siguiente spawn se agenda con delay aleatorio entre `ZOMBIE_RESPAWN_DELAY_MIN_SECONDS` y `ZOMBIE_RESPAWN_DELAY_MAX_SECONDS`.
+- **Un único enemigo activo:** se mantiene un solo `Zombie` instanciado y controlado por flags de ciclo para evitar multiplicidad.
+- **Separación de responsabilidades:** la orquestación temporal vive en aplicación y el character expone señales de fin de ciclo (`consumeHideCycleCompleted`).
+
+### 2026-03-31 — GHOST-0036 Persecución hacia Arthur desacoplada del driver de scroll
+
+- **Persecución en `WALK`:** Zombie ajusta su dirección horizontal para converger hacia la X objetivo de Arthur.
+- **Objetivo inyectado desde aplicación:** `GhostsGame` publica la X de Arthur al character enemigo mediante `setTargetX(...)`.
+- **Scroll global preservado:** la cámara/fondo siguen usando `arthur.getWorldOffsetX()`; el zombie no modifica el offset de mundo.
+- **Ciclo estable fuera de encuadre:** el update del zombie continúa por estado aunque su sprite no esté visible en viewport.
+
+### 2026-03-31 — GHOST-0037 Integración final spawn/IA zombie + checklist manual bloque 2
+
+- **Flujo runtime cerrado del bloque 2:** `GROUND_RISE -> WALK -> GROUND_HIDE -> respawn` con `WALK` finalizado por timeout configurable (base `10s`) y reaparición con delay aleatorio.
+- **Spawn relativo mantenido en ambos lados:** cada ciclo selecciona `AHEAD/BEHIND` relativo a Arthur y reaplica clamp de límites de mundo.
+- **Sin efecto de contacto en este bloque:** cuando zombie y Arthur se cruzan, no hay daño ni cambios de energía por diseño.
+
+Checklist manual breve bloque 2 (3-5 minutos):
+
+1. **Inicio de ciclo:** arrancar juego y validar que el zombie aparece en `GROUND_RISE`, pasa a `WALK` y orienta su movimiento hacia Arthur.
+2. **Hide por timeout:** sin usar teclas de debug, esperar fin del timeout de `WALK` y confirmar transición automática a `GROUND_HIDE`.
+3. **Respawn aleatorio:** tras terminar `GROUND_HIDE`, verificar que existe una espera variable antes del siguiente spawn.
+4. **Lados de spawn:** iterar varios ciclos y confirmar apariciones por delante y por detrás de Arthur (usar `1/2` para forzar lado en validación dirigida si hace falta).
+5. **Cruce sin impacto:** provocar cruce zombie-Arthur y validar explícitamente que no se aplica daño ni UI de energía en este bloque.
+
+### 2026-03-31 — PO Iteración: planificación bloque 3/4 (energía de Arthur por contacto)
+
+- **Verificación previa completada:** bloque 2 (`GHOST-0033..GHOST-0037`) validado como implementado en código y cerrado en Tasker antes de abrir nueva temática.
+- **Secuencia creada para bloque 3 (energía):**
+  - `GHOST-0038` detección de cruce Zombie-Arthur (WIP activo).
+  - `GHOST-0039` modelo de energía de Arthur (`100 -> 0`) con drenado por contacto.
+  - `GHOST-0040` HUD sutil de energía en esquina inferior derecha.
+  - `GHOST-0041` regla visual de crítico: energía 0 en rojo sin muerte.
+  - `GHOST-0042` integración end-to-end + checklist manual del bloque.
+- **Restricciones de alcance aplicadas:** en este bloque no entra aún reacción del zombie al golpe de Arthur ni puntuación.
+- **Directriz técnica para devs:** mantener estructura DDD dominio/aplicación actual, reutilizar clases existentes y evitar proliferación innecesaria de clases pequeñas.
+
+### 2026-03-31 — PO Iteración: validación de avance bloque 4 (combate zombie por golpes)
+
+- **Estado Tasker validado:** `WIP=1` se mantiene en `GHOST-0043`; backlog operativo en 5 tickets (`GHOST-0000`, `GHOST-0044..GHOST-0047`).
+- **Comprobación de código local:** el estado `HITTED` del zombie existe, pero el disparo desde el golpe de Arthur aún está conectado por tecla debug (`H`) y no por rango de impacto de `PUNCH`.
+- **Decisión de planificación:** no se crean tickets nuevos ni se transicionan estados hasta cerrar `GHOST-0043` para respetar la secuencia del plan y evitar solapamiento de alcance.
+- **Recordatorio para devs:** preservar estructura DDD actual y reutilizar clases (`GhostsGame`, `Arthur`, `Zombie`) evitando proliferación de clases pequeñas.
+
+### 2026-03-31 — GHOST-0038 Detección de contacto Zombie-Arthur desacoplada de combate
+
+- **Señal determinista de contacto:** `Zombie` expone `isInContactWith(...)` con chequeo AABB usando posiciones y bounds de ambos personajes.
+- **Evaluación restringida a `WALK`:** el contacto solo se considera activo cuando el zombie está caminando, sin depender de cámara ni scroll.
+- **Exposición para capa de aplicación:** `GhostsGame` actualiza `zombieArthurContactActive` por frame para ser consumido por tickets de energía.
+- **Sin efectos de combate en este ticket:** no se alteran estados de `HITTED`, no hay daño ni knockback.
+
+### 2026-03-31 — GHOST-0039 Energía de Arthur (100 -> 0) con drenado por contacto
+
+- **Modelo base de energía:** `Arthur` expone energía numérica con valor inicial `100` y clamp inferior `0`.
+- **Drenado configurable por segundo:** `GhostsGame` aplica drenado con constante `ARTHUR_CONTACT_DRAIN_PER_SECOND` únicamente cuando el contacto está activo.
+- **Sin contacto, sin drenado:** la energía deja de bajar inmediatamente al desaparecer la señal de contacto.
+- **Sin muerte en este bloque:** al llegar a `0`, Arthur mantiene su loop jugable sin estado de game over.
+
+### 2026-03-31 — GHOST-0040 HUD sutil de energía en esquina inferior derecha
+
+- **HUD textual mínimo:** `GhostsGame` renderiza `Energy: <valor>` con `BitmapFont` sin introducir sistema UI adicional.
+- **Posición fija en viewport:** texto anclado a la esquina inferior derecha usando márgenes y medición de `GlyphLayout`.
+- **Actualización en tiempo real:** el valor mostrado se calcula por frame desde `arthur.getEnergy()`.
+- **Estilo sobrio para fondo oscuro:** color de baja intensidad/alfa para mantener legibilidad sin dominar la escena.
+
+### 2026-03-31 — GHOST-0041 Estado crítico visual en energía 0 (sin muerte)
+
+- **Regla de color crítica:** el HUD mantiene color base mientras `energy > 0` y cambia a rojo estable cuando `energy == 0`.
+- **Loop de control intacto:** Arthur continúa jugable en `0` (movimiento, salto y punch) sin transición de muerte.
+- **Sin consecuencias extra en este bloque:** no se introduce knockback, invulnerabilidad ni game over.
+
+### 2026-03-31 — GHOST-0042 Integración bloque 3 (contacto -> energía -> HUD -> crítico)
+
+- **Flujo integrado validable:** contacto activo Zombie-Arthur reduce energía, separación detiene drenado, HUD refleja el valor por frame.
+- **Comportamiento crítico consolidado:** en `energy == 0` el texto cambia a rojo y Arthur mantiene control completo sin muerte.
+- **Directriz de arquitectura reforzada:** mantener la implementación sobre clases existentes (`GhostsGame`, `Arthur`, `Zombie`) evitando proliferación innecesaria.
+
+Checklist manual breve bloque 3 (3-5 minutos):
+
+1. **Contacto inicia drenado:** acercar Arthur al zombie en `WALK` y comprobar que `Energy` empieza a bajar de forma continua.
+2. **Separación detiene drenado:** alejar Arthur fuera de contacto y validar que el valor deja de decrecer inmediatamente.
+3. **HUD sincronizado:** durante contacto/separación, confirmar que `Energy: <valor>` refleja siempre el valor actual sin latencia visible.
+4. **Estado crítico rojo:** mantener contacto hasta `0` y verificar cambio estable del HUD a rojo.
+5. **Arthur sigue vivo:** con energía `0`, validar que Arthur aún puede moverse, saltar y golpear.
+
 ### 2026-03-21 — GHOST-0000 Bootstrap de fase 1 de control y scroll
 
 - **Rama de trabajo validada:** desarrollo ejecutado en `features-nightly-20260321`.
@@ -621,3 +1024,210 @@ com.davidpe.ghosts
   `arthur.drawEffects(batch)` → `arthur.draw(batch)`.
 - Overlay negro semitransparente: `Pixmap` 1×1, alpha `0.21f`.
 - Únicamente 2 fondos de scroll: `main-backgroud-1.png` y `main-background-2.png`.
+
+## Iteración PO autónoma — 2026-03-31 (plan de zombies, bloque 1/4)
+
+Validación ejecutada contra Tasker (`projectId=6`, `userId=1`) y repositorio local en rama `feature/zombie-enemies`.
+
+### Estado validado antes de planificar
+
+- `DONE`: tickets históricos `GHOST-0001` a `GHOST-0027`.
+- `IN_PROGRESS`: ninguno.
+- `BACKLOG`: ninguno.
+
+### Acciones ejecutadas
+
+- `GHOST-0000` retornado a `BACKLOG` (ticket bootstrap debe permanecer de referencia).
+- Se crearon 5 tickets nuevos de **Character Zombie** (sin lógica global de gameplay):
+  - `GHOST-0028` — Esqueleto de Zombie y estados base de animación.
+  - `GHOST-0029` — Carga de animaciones Zombie desde `resources/zombie`.
+  - `GHOST-0030` — Máquina de estados del Zombie y transiciones cerradas.
+  - `GHOST-0031` — Render y movimiento base del Zombie en escena.
+  - `GHOST-0032` — Integración de fábrica y checklist de validación de Zombie Character.
+
+### Secuencia obligatoria de rollout (sin saltos)
+
+1. Completar `GHOST-0028`..`GHOST-0032` (character zombie listo: `WALK`, `GROUND_RISE`, `GROUND_HIDE`, `HITTED`).
+2. Solo después crear 5 tickets de spawn/IA/lifetime (`10s`, hide posterior, respawn aleatorio, Arthur como driver de scroll).
+3. Solo después crear 5 tickets de energía de Arthur (100→0, HUD sutil abajo derecha, rojo al llegar a 0, sin muerte aún).
+4. Solo después crear 5 tickets de combate Arthur→Zombie (animación `HITTED`, 3 golpes para forzar `GROUND_HIDE`, si no llega a 3 vuelve a perseguir).
+5. Al finalizar todo el bloque, crear ticket único de code review orientado a bugs/compilación, pidiendo cambios mínimos y alta reutilización estructural.
+
+### Aviso a desarrolladores
+
+- Mantener estructura DDD actual (`application`/`domain`) y evitar proliferación de clases.
+- Reutilizar utilidades/factorías existentes antes de abrir nuevas abstracciones.
+- Tickets pequeños, verticales y verificables en build jugable.
+
+## 2026-03-31 — GHOST-0000 Bootstrap operativo vigente
+
+- Rama de implementación validada para esta ejecución: `feature/zombie-enemies`.
+- El ticket se usa como referencia de alcance y reglas de trabajo incremental.
+- Foco documentado de esta iteración: bloque de Zombie Character (`GHOST-0028` a `GHOST-0032`).
+- Regla de arquitectura reafirmada: priorizar extensión de estructura existente (`application`/`domain`) y evitar proliferación de clases.
+
+## 2026-03-31 — GHOST-0028..GHOST-0032 Zombie Character base
+
+- Nuevo character de dominio: `Zombie extends Character` con estados `WALK`, `GROUND_RISE`, `GROUND_HIDE`, `HITTED`.
+- Carga de animaciones con `AnimationUtils` desde:
+  - `zombie/sprite-sheet-zombie-walk.png` + `bounding-boxes-zombie-walk.json`
+  - `zombie/sprite-sheet-zombie-ground.png` + `bounding-boxes-zombie-ground.json`
+  - `zombie/sprite-sheet-zombie-hitted.png` + `bounding-boxes-zombie-hitted.json`
+- `GROUND_HIDE` reutiliza los mismos frames de `GROUND` en orden inverso (sin assets duplicados).
+- Transiciones internas cerradas del Zombie:
+  - `GROUND_RISE` (one-shot) -> `WALK`
+  - `WALK` (loop)
+  - `HITTED` (one-shot) -> `WALK`
+  - `GROUND_HIDE` (one-shot) -> `GROUND_RISE`
+- Integración en `GhostsGame`:
+  - `update()` + `draw()` del Zombie activos en escena.
+  - Movimiento horizontal base por patrulla local (Arthur sigue siendo driver del scroll global por `worldOffsetX`).
+  - Instanciación vía `CharacterFactory#createZombie(...)`.
+
+### Checklist manual corto Zombie Character
+
+1. Ejecutar el juego y validar que Zombie arranca con `GROUND_RISE` y pasa automáticamente a `WALK`.
+2. Observar patrulla horizontal: el sprite invierte orientación en límites sin jitter visible.
+3. Pulsar `H` y verificar `HITTED` one-shot con retorno a `WALK`.
+4. Pulsar `G` y verificar secuencia `GROUND_HIDE` (one-shot) seguida de `GROUND_RISE` y vuelta a `WALK`.
+5. Repetir `H`/`G` alternados y confirmar estabilidad de animación y ausencia de fugas de texturas al cerrar la app.
+
+## Iteración PO autónoma — 2026-03-31 (plan de zombies, bloque 2/4)
+
+Validación ejecutada contra Tasker (`projectId=6`, `userId=1`) y repositorio local en rama `feature/zombie-enemies`.
+
+### Estado validado antes de planificar
+
+- `DONE`: `GHOST-0028`..`GHOST-0032` completados (character zombie base finalizado).
+- `IN_PROGRESS`: ninguno.
+- `BACKLOG`: ninguno.
+
+### Acciones ejecutadas
+
+- `GHOST-0000` retornado a `BACKLOG` para conservar ticket bootstrap de referencia.
+- Se crearon 5 tickets nuevos del **bloque 2 (spawn/IA/lifetime)**:
+  - `GHOST-0033` — Ciclo de vida temporal del Zombie (`10s` -> `GROUND_HIDE`).
+  - `GHOST-0034` — Spawn relativo a Arthur (delante/detrás) con límites de mundo.
+  - `GHOST-0035` — IA simple de aparición y reaparición aleatoria.
+  - `GHOST-0036` — Persecución hacia Arthur desacoplada del driver de scroll.
+  - `GHOST-0037` — Integración final spawn/IA + checklist manual del bloque 2.
+- `GHOST-0033` pasado a `IN_PROGRESS` para restaurar `WIP=1`.
+
+### Reglas de implementación reafirmadas para devs
+
+- Mantener estructura DDD actual (`application`/`domain`) y reutilizar clases existentes.
+- Evitar proliferación de clases: introducir solo piezas mínimas cuando sea imprescindible.
+- Arthur sigue siendo el driver del scroll; el ciclo de vida del zombie no se reinicia por salir del viewport.
+- En este bloque no hay daño por contacto al cruzarse con Arthur.
+
+### Secuencia obligatoria de rollout (sin saltos)
+
+1. Completar `GHOST-0033`..`GHOST-0037` (spawn + IA + lifecycle estables).
+2. Solo después crear 5 tickets de energía de Arthur (`100 -> 0`, HUD sutil abajo derecha, rojo al llegar a 0, sin muerte).
+3. Solo después crear 5 tickets de combate Arthur->Zombie (`HITTED`, 3 golpes para forzar `GROUND_HIDE`).
+4. Tras cerrar esos bloques, crear ticket único de review para agentes dev orientado a bugs/compilación con cambios mínimos.
+
+## Iteración PO autónoma — 2026-03-31 (seguimiento bloque 3/4 energía)
+
+Validación ejecutada contra Tasker (`projectId=6`, `userId=1`) y repositorio local en rama `feature/zombie-enemies`.
+
+### Estado Tasker validado
+
+- `IN_PROGRESS (WIP=1)`: `GHOST-0038`.
+- `BACKLOG (5)`: `GHOST-0000`, `GHOST-0039`, `GHOST-0040`, `GHOST-0041`, `GHOST-0042`.
+- `DONE`: mantiene histórico completo de bloques 1 y 2 (`GHOST-0028..GHOST-0037` cerrados).
+
+### Validación de implementación en repositorio
+
+- Compilación verificada: `mvn -q -DskipTests compile` (OK).
+- Bloque 2 sigue operativo en código (`spawn/lifecycle/IA` de zombie ya integrado).
+- Bloque 3 todavía no está implementado en código: no existe aún modelo de energía de Arthur, ni HUD inferior derecho, ni regla visual de energía 0 en rojo.
+
+### Decisión de planificación
+
+- No se crean tickets del bloque 4 (combate Arthur->Zombie) porque la secuencia obligatoria exige cerrar antes `GHOST-0038..GHOST-0042`.
+- Se mantiene `WIP=1` y backlog en 5 tickets sin alterar scope de tickets existentes.
+
+### Aviso a desarrolladores
+
+- Priorizar cierre vertical de `GHOST-0038..GHOST-0042` antes de abrir nuevas líneas funcionales.
+- Mantener estructura DDD actual y reutilizar clases existentes; evitar proliferación innecesaria de clases.
+- Hacer cambios pequeños y compilables por ticket.
+
+## Iteración PO autónoma — 2026-03-31 (plan de zombies, bloque 4/4)
+
+Validación ejecutada contra Tasker (`projectId=6`, `userId=1`) y repositorio local en rama `feature/zombie-enemies`.
+
+### Estado validado antes de planificar
+
+- `DONE`: `GHOST-0038`..`GHOST-0042` (bloque de energía de Arthur por contacto completado en Tasker).
+- Se corrigió deriva de estado: `GHOST-0000` volvió a `BACKLOG` (ticket bootstrap de referencia).
+- Revisión de código confirmada en `GhostsGame`, `Arthur` y `Zombie`:
+  - Contacto Zombie-Arthur activo y drenado de energía `100 -> 0` implementado.
+  - HUD `Energy` visible en esquina inferior derecha, con cambio a rojo en `0`.
+  - Arthur permanece jugable en energía `0` (sin muerte), como exige el alcance.
+
+### Nuevos tickets creados (bloque 4: combate Arthur -> Zombie)
+
+- `GHOST-0043` — Golpe de Arthur dispara estado `HITTED` del Zombie. (`IN_PROGRESS`)
+- `GHOST-0044` — Contador de impactos al Zombie con umbral de 3 golpes.
+- `GHOST-0045` — Reanudación de persecución tras `HITTED` con breve delay.
+- `GHOST-0046` — Tercer golpe fuerza `GROUND_HIDE` y corta daño a Arthur.
+- `GHOST-0047` — Integración bloque 4 combate Zombie + checklist manual.
+
+### Reglas activas de orquestación
+
+- `WIP=1` respetado: solo `GHOST-0043` en `IN_PROGRESS`.
+- Backlog mínimo garantizado: `GHOST-0000` + `GHOST-0044`..`GHOST-0047`.
+- No se abre todavía ticket de puntuación ni ticket de review final: quedan explícitamente bloqueados hasta completar `GHOST-0043`..`GHOST-0047`.
+
+### Directriz para agentes dev
+
+- Mantener arquitectura DDD actual (dominio/aplicación) y reutilizar clases existentes.
+- Evitar proliferación de clases; priorizar extensión puntual en `GhostsGame`, `Arthur`, `Zombie` y factorías actuales.
+
+### 2026-03-31 — GHOST-0058 Checklist E2E de 10 ciclos Zombie sin debug
+
+- **Objetivo de estabilidad prolongada:** validar 10 ciclos completos consecutivos del zombie sin usar teclas debug (`1`, `2`, `H`, `G`).
+- **Secuencia esperada por ciclo:** `GROUND_RISE -> WALK -> GROUND_HIDE -> RESPAWN`.
+- **Criterios funcionales a vigilar durante cada ciclo:**
+  - `Energy` solo disminuye cuando existe contacto activo con zombie en `WALK`.
+  - `Score` solo incrementa cuando el zombie entra en `GROUND_HIDE` por tercer golpe válido de Arthur.
+  - `GROUND_HIDE` por timeout de `WALK` no incrementa `Score`.
+
+Checklist manual 10 ciclos (sin debug):
+
+1. Iniciar partida y confirmar estado base `Score: 0` con `Energy: 100`.
+2. Observar ciclo 1 completo sin pulsar teclas debug y confirmar retorno a respawn.
+3. Repetir observación de ciclo completo hasta alcanzar 10 ciclos consecutivos.
+4. En al menos 3 ciclos, forzar contacto zombie-Arthur y validar drenado continuo solo mientras haya solape.
+5. En al menos 2 ciclos, ejecutar derrota por tercer golpe y validar incremento unitario de `Score` (`+1` exacto por derrota).
+6. En al menos 2 ciclos, dejar timeout de `WALK` sin tercer golpe y validar `Score` inalterado.
+7. Confirmar que tras cada `GROUND_HIDE` el zombie reaparece con delay dentro de rango de tuning actual.
+8. Verificar que no aparecen dobles incrementos de `Score` en un mismo ciclo.
+9. Verificar que `Energy` nunca baja de `0` ni muestra saltos extremos por un único frame.
+10. Cerrar ejecución con resumen rápido: ciclos completados, score final, anomalías observadas.
+
+Síntomas de fuga de estado/evento duplicado a registrar explícitamente:
+
+- Incremento de `Score` sin tercer golpe.
+- Incremento múltiple de `Score` para una única derrota.
+- Drenado de `Energy` fuera de contacto o durante `GROUND_HIDE`.
+- Zombie sin respawn tras completar `GROUND_HIDE`.
+- Eventos de golpe consumidos con objetivo no elegible (`WALK` no activo).
+
+### 2026-03-31 — GHOST-0059 Review técnico focalizado en bugs runtime de Zombie
+
+- **Enfoque aplicado:** revisión de defectos funcionales/regresión y estabilidad de compilación del bloque zombie; sin refactors cosméticos masivos.
+- **Validación técnica ejecutada:** `mvn -q -DskipTests compile` y `mvn -q test` en rama `feature/zombie-enemies` (resultado: OK).
+
+Hallazgos accionables (priorizados):
+
+1. **Riesgo alto de comportamiento no deseado en runtime normal:** `GhostsGame` mantiene `handleZombieDebugInput()` activo por defecto, permitiendo alterar ciclo/combate/score con `1`, `2`, `H`, `G` fuera de modo desarrollo.
+2. **Riesgo medio en coherencia de combate:** `processArthurPunchHit()` evalúa alcance sin filtro por orientación de Arthur, por lo que un punch puede impactar también por detrás si distancia AABB entra en umbral.
+3. **Riesgo medio en tuning extremo de FPS:** con la protección anti-spike de energía, fps extremadamente bajos pueden subdrenar respecto al ritmo nominal por segundo; conviene monitorizar en checklist de 10 ciclos bajo carga.
+
+Directriz técnica explícita para devs:
+
+- Mantener estructura DDD actual y priorizar cambios puntuales sobre `GhostsGame`, `Arthur`, `Zombie` y factorías existentes.
+- Evitar proliferación de clases auxiliares sin responsabilidad clara.

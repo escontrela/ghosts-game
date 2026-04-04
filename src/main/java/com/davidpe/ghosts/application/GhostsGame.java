@@ -1,18 +1,38 @@
 package com.davidpe.ghosts.application;
 
+import static com.badlogic.gdx.Input.Keys.ESCAPE;
+
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
+import com.davidpe.ghosts.application.audio.GameAudio;
 import com.davidpe.ghosts.application.factories.CharacterFactory;
 import com.davidpe.ghosts.domain.characters.Arthur;
+import com.davidpe.ghosts.domain.characters.ArthurAudioListener;
+import com.davidpe.ghosts.domain.characters.Drawable;
+import com.davidpe.ghosts.domain.characters.RenderData;
+import com.davidpe.ghosts.domain.characters.Zombie;
+import com.davidpe.ghosts.domain.characters.ZombieTuning;
+import com.davidpe.ghosts.domain.collision.CollisionLayer;
+import com.davidpe.ghosts.domain.collision.CollisionManager;
+import com.davidpe.ghosts.domain.collision.CollisionPair;
+import com.davidpe.ghosts.domain.obstacles.Tombstone;
 import com.davidpe.ghosts.domain.utils.AnimationUtils;
+import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Random;
 
 /**
  * Main game orchestrator for "Ghosts 'n Goblins Remake". Manages the LibGDX lifecycle ({@code
@@ -27,6 +47,33 @@ public class GhostsGame extends ApplicationAdapter {
   public static final float WORLD_HEIGHT = 600;
 
   private static final float BACKGROUND_BASE_DIM_ALPHA = 0.21f;
+  private static final float ARTHUR_CONTACT_DRAIN_PER_SECOND = 13f;
+  private static final float ENERGY_HUD_MARGIN_RIGHT = 18f;
+  private static final float ENERGY_HUD_MARGIN_BOTTOM = 14f;
+  private static final float SCORE_HUD_MARGIN_LEFT = 18f;
+  private static final float SCORE_HUD_MARGIN_BOTTOM = 14f;
+  private static final float PAUSE_HUD_MARGIN_BOTTOM = 14f;
+  private static final float ENEMY_MARKER_HUD_MARGIN_RIGHT = 18f;
+  private static final float ENEMY_MARKER_HUD_MARGIN_TOP = 14f;
+  private static final float ENEMY_MARKER_ICON_SIZE = 24f;
+  private static final float ENEMY_MARKER_ICON_TEXT_GAP = 8f;
+  private static final float ENEMY_MARKER_ROW_GAP = 6f;
+  private static final float ENERGY_HUD_BASE_R = 0.86f;
+  private static final float ENERGY_HUD_BASE_G = 0.84f;
+  private static final float ENERGY_HUD_BASE_B = 0.79f;
+  private static final float ENERGY_HUD_BASE_A = 0.78f;
+  private static final float ENERGY_HUD_CRITICAL_R = 0.93f;
+  private static final float ENERGY_HUD_CRITICAL_G = 0.2f;
+  private static final float ENERGY_HUD_CRITICAL_B = 0.2f;
+  private static final float ENERGY_HUD_CRITICAL_A = 0.9f;
+  private static final float ENERGY_HUD_BLINK_SPEED = 4f;
+  private static final int MAX_VISIBLE_TOMBSTONES = 1;
+  private static final float GROUND_Y = 130f;
+  private static final float TOMBSTONE_SPAWN_MIN_LEAD = 48f;
+  private static final float TOMBSTONE_SPAWN_MAX_LEAD = 280f;
+  private static final float TOMBSTONE_OFFSCREEN_CULL_MARGIN = 260f;
+  private static final int ZOMBIE_SPAWN_RESOLVE_ATTEMPTS = 8;
+  private static final float ZOMBIE_SPAWN_RESOLVE_STEP = 56f;
 
   private SpriteBatch batch;
   private OrthographicCamera camera;
@@ -34,8 +81,31 @@ public class GhostsGame extends ApplicationAdapter {
 
   private Texture[] backgrounds;
   private Texture blackOverlayTexture;
+  private BitmapFont hudFont;
+  private GlyphLayout hudLayout;
+  private GameAudio gameAudio;
 
+  private CollisionManager collisionManager;
   private Arthur arthur;
+  private Zombie zombie;
+  private List<Tombstone> tombstones;
+  private Random random;
+  private EnumMap<EnemyType, TextureRegion> enemyMarkerIcons;
+  private EnumMap<EnemyType, Integer> enemyDefeatByType;
+  private long tombstoneSegmentCursor;
+  private int lastScrollDirectionSign;
+  private boolean zombieCycleActive;
+  private float zombieRespawnTimer;
+  private boolean zombieArthurContactActive;
+  private boolean zombieDefeatByHitEventPending;
+  private boolean gameOverSoundPlayed;
+  private boolean gamePaused;
+  private int defeatedZombieCount;
+  private float gameTime;
+
+  private enum EnemyType {
+    ZOMBIE
+  }
 
   @Override
   public void create() {
@@ -53,18 +123,128 @@ public class GhostsGame extends ApplicationAdapter {
           new Texture(Gdx.files.internal("main-background-2.png"))
         };
     blackOverlayTexture = createSolidTexture(1, 1, 0f, 0f, 0f, 1f);
+    hudFont = new BitmapFont();
+    hudLayout = new GlyphLayout();
+    gameAudio = new GameAudio();
+    gameAudio.loadAll();
 
     CharacterFactory characterFactory = new CharacterFactory(AnimationUtils.getInstance());
     arthur = characterFactory.createArthur(WORLD_WIDTH);
+    zombie = characterFactory.createZombie(WORLD_WIDTH);
+    arthur.setAudioListener(
+        new ArthurAudioListener() {
+          @Override
+          public void onJump() {
+            gameAudio.play(GameAudio.Cue.ARTHUR_JUMP);
+          }
+
+          @Override
+          public void onPunch() {
+            gameAudio.play(GameAudio.Cue.ARTHUR_LAND);
+          }
+
+          @Override
+          public void onHit() {
+            gameAudio.play(GameAudio.Cue.ARTHUR_HIT);
+          }
+        });
+    collisionManager = new CollisionManager();
+    tombstones = new ArrayList<>(MAX_VISIBLE_TOMBSTONES);
+    for (int i = 0; i < MAX_VISIBLE_TOMBSTONES; i++) {
+      tombstones.add(new Tombstone(WORLD_WIDTH, AnimationUtils.getInstance()));
+    }
+    arthur.setTombstoneColliders(tombstones);
+    random = new Random();
+    enemyMarkerIcons = new EnumMap<>(EnemyType.class);
+    enemyDefeatByType = new EnumMap<>(EnemyType.class);
+    enemyMarkerIcons.put(EnemyType.ZOMBIE, new TextureRegion(zombie.getWalkMarkerFrame()));
+    enemyDefeatByType.put(EnemyType.ZOMBIE, 0);
+    tombstoneSegmentCursor = Long.MIN_VALUE;
+    lastScrollDirectionSign = 1;
+    zombieRespawnTimer = 0f;
+    zombieArthurContactActive = false;
+    zombieDefeatByHitEventPending = false;
+    gameOverSoundPlayed = false;
+    gamePaused = false;
+    defeatedZombieCount = 0;
+    gameTime = 0f;
+    activateZombieCycle(pickSpawnSide());
+    gameAudio.play(GameAudio.Cue.GAME_START);
   }
 
   @Override
   public void render() {
 
     ScreenUtils.clear(0, 0, 0, 1);
-
     float delta = Gdx.graphics.getDeltaTime();
+
+    if (gamePaused && isAnyKeyJustPressed()) {
+
+      gamePaused = false;
+      return;
+    }
+
+    if (gamePaused) {
+
+      drawFrame();
+      return;
+    }
+
+    if (Gdx.input.isKeyJustPressed(ESCAPE)) {
+
+      gamePaused = true;
+      return;
+    }
+
+    gameTime += delta;
+    handleZombieDebugInput();
+    float prevWorldOffset = arthur.getWorldOffsetX();
     arthur.update(delta);
+
+    float scrollDelta = arthur.getWorldOffsetX() - prevWorldOffset;
+    zombie.applyWorldScroll(scrollDelta);
+    for (Tombstone tombstone : tombstones) {
+      tombstone.applyWorldScroll(scrollDelta);
+    }
+    updateTombstoneSpawning(scrollDelta);
+    updateZombieSpawner(delta);
+    zombie.setTargetX(arthur.getX());
+    zombie.update(delta);
+    collisionManager.clear();
+    collisionManager.register(arthur.getBodyCollider());
+    collisionManager.register(arthur.getAttackCollider());
+    collisionManager.register(zombie.getCollider());
+    for (Tombstone tombstone : tombstones) {
+      collisionManager.register(tombstone.getCollider());
+    }
+    List<CollisionPair> pairs = collisionManager.computeCollisions();
+    zombieArthurContactActive = false;
+    for (CollisionPair pair : pairs) {
+      handleCollision(pair);
+    }
+    boolean defeatedByHitEvent = zombie.consumeDefeatByHitEvent();
+    if (defeatedByHitEvent) {
+      defeatedZombieCount += 1;
+      registerEnemyDefeat(EnemyType.ZOMBIE);
+      gameAudio.play(GameAudio.Cue.ENEMY_DEATH);
+    }
+    zombieDefeatByHitEventPending = zombieDefeatByHitEventPending || defeatedByHitEvent;
+    arthur.applyContactEnergyDrain(
+        zombieArthurContactActive, delta, ARTHUR_CONTACT_DRAIN_PER_SECOND);
+    if (arthur.getEnergy() <= 0f && !gameOverSoundPlayed) {
+      gameAudio.play(GameAudio.Cue.GAME_OVER);
+      gameOverSoundPlayed = true;
+    }
+
+    drawFrame();
+  }
+
+  /**
+   * Renders the current game state by drawing the scrolling backgrounds, the dim overlay, all
+   * visible domain objects (Arthur, the zombie, and tombstones), and the HUD elements (score,
+   * energy, enemy defeat markers, and pause message). The draw order is backgrounds first,
+   */
+  private void drawFrame() {
 
     camera.update();
     batch.setProjectionMatrix(camera.combined);
@@ -73,8 +253,14 @@ public class GhostsGame extends ApplicationAdapter {
 
     drawScrollingBackgrounds();
     drawBackgroundDim();
+    drawDrawable(zombie);
+    drawTombstones();
     arthur.drawEffects(batch);
-    arthur.draw(batch);
+    drawDrawable(arthur);
+    drawEnemyKillMarkerHud();
+    drawScoreHud();
+    drawEnergyHud();
+    drawPauseHud();
 
     batch.end();
   }
@@ -91,7 +277,13 @@ public class GhostsGame extends ApplicationAdapter {
       texture.dispose();
     }
     blackOverlayTexture.dispose();
+    hudFont.dispose();
+    gameAudio.dispose();
     arthur.dispose();
+    zombie.dispose();
+    for (Tombstone tombstone : tombstones) {
+      tombstone.dispose();
+    }
   }
 
   private void drawScrollingBackgrounds() {
@@ -117,6 +309,35 @@ public class GhostsGame extends ApplicationAdapter {
     batch.setColor(previousColor);
   }
 
+  private void handleZombieDebugInput() {
+    if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) {
+      spawnZombieRelativeToArthur(Zombie.SpawnSide.BEHIND);
+    }
+    if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) {
+      spawnZombieRelativeToArthur(Zombie.SpawnSide.AHEAD);
+    }
+    if (Gdx.input.isKeyJustPressed(Input.Keys.H)) {
+      zombie.triggerHitted();
+    }
+    if (Gdx.input.isKeyJustPressed(Input.Keys.G)) {
+      zombie.triggerGroundHide();
+    }
+  }
+
+  private void updateZombieSpawner(float delta) {
+    if (zombieCycleActive) {
+      if (zombie.consumeHideCycleCompleted()) {
+        zombieCycleActive = false;
+        zombieRespawnTimer = randomRespawnDelay();
+      }
+      return;
+    }
+    zombieRespawnTimer -= delta;
+    if (zombieRespawnTimer <= 0f) {
+      activateZombieCycle(pickSpawnSide());
+    }
+  }
+
   private Texture createSolidTexture(int width, int height, float r, float g, float b, float a) {
 
     Pixmap pixmap = new Pixmap(width, height, Pixmap.Format.RGBA8888);
@@ -125,5 +346,287 @@ public class GhostsGame extends ApplicationAdapter {
     Texture texture = new Texture(pixmap);
     pixmap.dispose();
     return texture;
+  }
+
+  private void spawnZombieRelativeToArthur(Zombie.SpawnSide spawnSide) {
+    float spawnDistance =
+        spawnSide == Zombie.SpawnSide.AHEAD
+            ? ZombieTuning.SPAWN_AHEAD_DISTANCE
+            : ZombieTuning.SPAWN_BEHIND_DISTANCE;
+    float preferredSpawnX = zombie.resolveSpawnX(arthur.getX(), spawnSide, spawnDistance);
+    float spawnX = resolveZombieSpawnX(preferredSpawnX, spawnSide);
+    zombie.startGroundRiseAt(spawnX);
+    gameAudio.play(GameAudio.Cue.ZOMBIE_SPAWN);
+  }
+
+  private void activateZombieCycle(Zombie.SpawnSide spawnSide) {
+    spawnZombieRelativeToArthur(spawnSide);
+    zombieCycleActive = true;
+    zombieRespawnTimer = 0f;
+  }
+
+  private Zombie.SpawnSide pickSpawnSide() {
+    return random.nextBoolean() ? Zombie.SpawnSide.AHEAD : Zombie.SpawnSide.BEHIND;
+  }
+
+  private float randomRespawnDelay() {
+    return ZombieTuning.RESPAWN_DELAY_MIN_SECONDS
+        + random.nextFloat()
+            * (ZombieTuning.RESPAWN_DELAY_MAX_SECONDS - ZombieTuning.RESPAWN_DELAY_MIN_SECONDS);
+  }
+
+  private void drawEnergyHud() {
+    float energy = arthur.getEnergy();
+    String energyText = "Energy: " + Math.round(energy);
+    if (energy <= 0f) {
+      float blink = (float) Math.abs(Math.sin(gameTime * ENERGY_HUD_BLINK_SPEED * Math.PI));
+      hudFont.setColor(
+          ENERGY_HUD_CRITICAL_R,
+          ENERGY_HUD_CRITICAL_G,
+          ENERGY_HUD_CRITICAL_B,
+          ENERGY_HUD_CRITICAL_A * blink);
+    } else {
+      hudFont.setColor(ENERGY_HUD_BASE_R, ENERGY_HUD_BASE_G, ENERGY_HUD_BASE_B, ENERGY_HUD_BASE_A);
+    }
+    hudLayout.setText(hudFont, energyText);
+    float textX = WORLD_WIDTH - ENERGY_HUD_MARGIN_RIGHT - hudLayout.width;
+    float textY = ENERGY_HUD_MARGIN_BOTTOM + hudLayout.height;
+    hudFont.draw(batch, hudLayout, textX, textY);
+  }
+
+  private void drawScoreHud() {
+    String scoreText = "Score: " + defeatedZombieCount;
+    hudFont.setColor(ENERGY_HUD_BASE_R, ENERGY_HUD_BASE_G, ENERGY_HUD_BASE_B, ENERGY_HUD_BASE_A);
+    hudLayout.setText(hudFont, scoreText);
+    float textX = SCORE_HUD_MARGIN_LEFT;
+    float textY = SCORE_HUD_MARGIN_BOTTOM + hudLayout.height;
+    hudFont.draw(batch, hudLayout, textX, textY);
+  }
+
+  private void drawPauseHud() {
+    if (!gamePaused) {
+      return;
+    }
+    String pauseText = "PAUSE";
+    hudFont.setColor(ENERGY_HUD_BASE_R, ENERGY_HUD_BASE_G, ENERGY_HUD_BASE_B, ENERGY_HUD_BASE_A);
+    hudLayout.setText(hudFont, pauseText);
+    float textX = (WORLD_WIDTH - hudLayout.width) * 0.5f;
+    float textY = PAUSE_HUD_MARGIN_BOTTOM + hudLayout.height;
+    hudFont.draw(batch, hudLayout, textX, textY);
+  }
+
+  private void drawEnemyKillMarkerHud() {
+    hudFont.setColor(ENERGY_HUD_BASE_R, ENERGY_HUD_BASE_G, ENERGY_HUD_BASE_B, ENERGY_HUD_BASE_A);
+    float rowTopY = WORLD_HEIGHT - ENEMY_MARKER_HUD_MARGIN_TOP;
+    for (EnemyType enemyType : EnemyType.values()) {
+      TextureRegion iconRegion = enemyMarkerIcons.get(enemyType);
+      if (iconRegion == null) {
+        continue;
+      }
+      int defeats = enemyDefeatByType.getOrDefault(enemyType, 0);
+      String markerText = enemyTypeLabel(enemyType) + ": " + defeats;
+      hudLayout.setText(hudFont, markerText);
+      float rowCenterY = rowTopY - (ENEMY_MARKER_ICON_SIZE * 0.5f);
+      float textX = WORLD_WIDTH - ENEMY_MARKER_HUD_MARGIN_RIGHT - hudLayout.width;
+      float iconX = textX - ENEMY_MARKER_ICON_TEXT_GAP - ENEMY_MARKER_ICON_SIZE;
+      float iconY = rowTopY - ENEMY_MARKER_ICON_SIZE;
+      float textBaselineY = rowCenterY + (hudLayout.height * 0.5f);
+      batch.draw(iconRegion, iconX, iconY, ENEMY_MARKER_ICON_SIZE, ENEMY_MARKER_ICON_SIZE);
+      hudFont.draw(batch, hudLayout, textX, textBaselineY);
+      rowTopY -= ENEMY_MARKER_ICON_SIZE + ENEMY_MARKER_ROW_GAP;
+    }
+  }
+
+  private void drawTombstones() {
+    for (Tombstone tombstone : tombstones) {
+      drawDrawable(tombstone);
+    }
+  }
+
+  private void updateTombstoneSpawning(float scrollDelta) {
+    if (scrollDelta > 0.01f) {
+      lastScrollDirectionSign = 1;
+    } else if (scrollDelta < -0.01f) {
+      lastScrollDirectionSign = -1;
+    }
+
+    long currentSegment = (long) Math.floor(arthur.getWorldOffsetX() / WORLD_WIDTH);
+    if (currentSegment != tombstoneSegmentCursor) {
+      tombstoneSegmentCursor = currentSegment;
+      spawnTombstoneForCurrentSegment();
+    }
+
+    for (Tombstone tombstone : tombstones) {
+      if (!tombstone.isVisible()) {
+        continue;
+      }
+      float right = tombstone.getX() + tombstone.getDrawWidth();
+      if (right < -TOMBSTONE_OFFSCREEN_CULL_MARGIN
+          || tombstone.getX() > WORLD_WIDTH + TOMBSTONE_OFFSCREEN_CULL_MARGIN) {
+        tombstone.setVisible(false);
+      }
+    }
+  }
+
+  private void spawnTombstoneForCurrentSegment() {
+    for (Tombstone tombstone : tombstones) {
+      tombstone.setVisible(false);
+    }
+
+    if (!random.nextBoolean()) {
+      return;
+    }
+
+    Tombstone spawnCandidate = tombstones.get(0);
+    float lead =
+        TOMBSTONE_SPAWN_MIN_LEAD
+            + random.nextFloat() * (TOMBSTONE_SPAWN_MAX_LEAD - TOMBSTONE_SPAWN_MIN_LEAD);
+    float spawnX =
+        lastScrollDirectionSign >= 0 ? WORLD_WIDTH + lead : -lead - spawnCandidate.getDrawWidth();
+    spawnCandidate.setPosition(spawnX, GROUND_Y);
+    spawnCandidate.setVisible(true);
+  }
+
+  private float resolveZombieSpawnX(float preferredSpawnX, Zombie.SpawnSide preferredSide) {
+    if (!isZombieOverlappingAnyTombstone(preferredSpawnX)) {
+      return preferredSpawnX;
+    }
+    float direction = preferredSide == Zombie.SpawnSide.AHEAD ? 1f : -1f;
+    float resolved = findFreeZombieSpawn(preferredSpawnX, direction, ZOMBIE_SPAWN_RESOLVE_ATTEMPTS);
+    if (!Float.isNaN(resolved)) {
+      return resolved;
+    }
+    resolved = findFreeZombieSpawn(preferredSpawnX, -direction, ZOMBIE_SPAWN_RESOLVE_ATTEMPTS);
+    if (!Float.isNaN(resolved)) {
+      return resolved;
+    }
+    return preferredSpawnX;
+  }
+
+  private float findFreeZombieSpawn(float originX, float direction, int maxAttempts) {
+    for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+      float candidate =
+          clampZombieX(
+              originX
+                  + (direction * attempt * (zombie.getDrawWidth() + ZOMBIE_SPAWN_RESOLVE_STEP)));
+      if (!isZombieOverlappingAnyTombstone(candidate)) {
+        return candidate;
+      }
+    }
+    return Float.NaN;
+  }
+
+  private boolean isZombieOverlappingAnyTombstone(float zombieX) {
+    for (Tombstone tombstone : tombstones) {
+      if (!tombstone.isVisible()) {
+        continue;
+      }
+      if (tombstone.overlaps(
+          zombieX, zombie.getY(), zombie.getDrawWidth(), zombie.getDrawHeightValue())) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private float clampZombieX(float candidateX) {
+    return zombie.resolveSpawnX(candidateX, Zombie.SpawnSide.AHEAD, 0f);
+  }
+
+  public boolean isZombieArthurContactActive() {
+    return zombieArthurContactActive;
+  }
+
+  public boolean consumeZombieDefeatByHitEvent() {
+    boolean event = zombieDefeatByHitEventPending;
+    zombieDefeatByHitEventPending = false;
+    return event;
+  }
+
+  public int getDefeatedZombieCount() {
+    return defeatedZombieCount;
+  }
+
+  private void handleCollision(CollisionPair pair) {
+
+    CollisionLayer la = pair.a().getLayer();
+    CollisionLayer lb = pair.b().getLayer();
+
+    if ((la == CollisionLayer.PLAYER && lb == CollisionLayer.ENEMY)
+        || (la == CollisionLayer.ENEMY && lb == CollisionLayer.PLAYER)) {
+      if (zombie.isWalking()) {
+        zombieArthurContactActive = true;
+      }
+      return;
+    }
+
+    if ((la == CollisionLayer.PLAYER_ATTACK && lb == CollisionLayer.ENEMY)
+        || (la == CollisionLayer.ENEMY && lb == CollisionLayer.PLAYER_ATTACK)) {
+      if (arthur.consumePunchHitWindow() && zombie.registerValidHit()) {
+        gameAudio.play(GameAudio.Cue.ENEMY_HIT);
+      }
+      return;
+    }
+
+    if ((la == CollisionLayer.ENEMY && lb == CollisionLayer.OBSTACLE)
+        || (la == CollisionLayer.OBSTACLE && lb == CollisionLayer.ENEMY)) {
+      Tombstone tombstone =
+          (Tombstone) (la == CollisionLayer.OBSTACLE ? pair.a().getOwner() : pair.b().getOwner());
+      float tombLeft = tombstone.getCollisionX();
+      float tombRight = tombLeft + tombstone.getCollisionWidth();
+      if (zombie.isWalking()) {
+        zombie.bounceFromObstacle(tombLeft, tombRight);
+      } else {
+        zombie.pushOutOfObstacle(tombLeft, tombRight);
+      }
+    }
+  }
+
+  private boolean isAnyKeyJustPressed() {
+    for (int key = 0; key <= Input.Keys.MAX_KEYCODE; key++) {
+      if (Gdx.input.isKeyJustPressed(key)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private void registerEnemyDefeat(EnemyType enemyType) {
+    int currentValue = enemyDefeatByType.getOrDefault(enemyType, 0);
+    enemyDefeatByType.put(enemyType, currentValue + 1);
+  }
+
+  private String enemyTypeLabel(EnemyType enemyType) {
+    return switch (enemyType) {
+      case ZOMBIE -> "Zombie";
+    };
+  }
+
+  /**
+   * Draws the given {@link Drawable} using its {@link RenderData}. If the drawable has no render
+   * data for the current frame (i.e. {@code getRenderData()} returns {@code null}), nothing is
+   * drawn.
+   *
+   * @param drawable the drawable to render
+   */
+  private void drawDrawable(Drawable drawable) {
+
+    RenderData rd = drawable.getRenderData();
+
+    if (rd == null) {
+
+      return;
+    }
+
+    float dw = rd.width();
+    float dx = rd.x();
+
+    if (rd.flipX()) {
+
+      dx += dw;
+      dw = -dw;
+    }
+
+    batch.draw(rd.region(), dx, rd.y(), dw, rd.height());
   }
 }

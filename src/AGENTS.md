@@ -32,7 +32,9 @@ com.davidpe.ghosts
 └── domain/
     ├── characters/
     │   ├── Character                 ← Clase base abstracta para todos los personajes
-    │   └── Arthur                    ← Personaje jugador (extiende Character)
+    │   ├── Arthur                    ← Personaje jugador (extiende Character)
+    │   ├── Zombie                    ← Enemigo zombie (extiende Character)
+    │   └── ZombieTuning              ← Constantes de tuning del zombie (final, sin instanciar)
     └── utils/
         └── AnimationUtils            ← Singleton: carga animaciones desde JSON de bounding boxes
 ```
@@ -44,11 +46,13 @@ com.davidpe.ghosts
 | Clase | Responsabilidad |
 |---|---|
 | `DesktopLauncher` | Punto de entrada, configura ventana y FPS, instancia `GhostsGame` |
-| `GhostsGame` | Ciclo LibGDX (`create/render/resize/dispose`), camara, viewport, batch, fondos, overlay, orden de dibujado |
-| `CharacterFactory` | Conecta personajes con sus dependencias (inyecta `AnimationUtils`) |
-| `Character` | Estado común: posición, velocidad, dirección, timer de animación, dibujado con flip, disposal de texturas |
-| `Arthur` | Máquina de estados de 6 estados, física de salto/caída, input de teclado, scroll de cámara, luz focal dinámica |
-| `AnimationUtils` | Parsea JSON de bounding boxes, crea `Animation<TextureRegion>` y sub-rangos |
+| `GhostsGame` | Ciclo LibGDX (`create/render/resize/dispose`), cámara, viewport, batch, fondos, overlay, spawner de zombie, HUD, orden de dibujado |
+| `CharacterFactory` | Conecta personajes con sus dependencias (inyecta `AnimationUtils`); crea `Arthur` y `Zombie` |
+| `Character` | Estado común: posición, velocidad, dirección, timer de animación, dibujado con flip, AABB de contacto, disposal de texturas |
+| `Arthur` | Máquina de estados de 6 estados, física de salto/caída, input de teclado, scroll de cámara, luz focal dinámica, energía |
+| `Zombie` | Máquina de estados de 5 estados, IA de persecución, ciclo de vida temporal, sistema de impactos y muerte |
+| `ZombieTuning` | Constantes de tuning del zombie (distancias de spawn, delays, duración de walk) |
+| `AnimationUtils` | Parsea JSON de bounding boxes, crea `Animation<TextureRegion>`, sub-rangos y animaciones invertidas |
 
 ---
 
@@ -59,17 +63,29 @@ Todos los personajes extienden `Character`. La clase base provee:
 - Campos protegidos: `x`, `y`, `velocityX`, `velocityY`, `facingRight`, `drawWidth`, `stateTime`, `worldWidth`, `renderFrame`
 - Lista `ownedTextures` (tipo `List<Texture>`): registrar aquí todas las texturas creadas para que `dispose()` las libere automáticamente
 - `update(float delta)`: llama a `updateBehavior(delta)` y luego avanza `stateTime`
-- `draw(SpriteBatch batch)`: dibuja `getCurrentFrame()` con flip horizontal según `facingRight`
+- `draw(SpriteBatch batch)`: dibuja `getCurrentFrame()` a escala uniforme (basada en `getReferenceFramePixelHeight()`) con flip horizontal según `facingRight`
 - `dispose()`: itera `ownedTextures` y libera todas
 - Método utilitario protegido `moveTowards(current, target, maxDelta)`: acelera/frena sin sobrepasar objetivo
 - Método protegido `resetStateTime()`: resetea `stateTime` a 0 al cambiar de estado
 
+**API pública de `Character`:**
+
+```java
+float getX()                                                           // posición horizontal actual
+float getY()                                                           // posición vertical actual
+float getDrawWidth()                                                   // ancho de render en unidades de mundo
+float getDrawHeightValue()                                             // alto de render en unidades de mundo
+boolean isInContactWith(float otherX, float otherY,
+                        float otherWidth, float otherHeight)           // AABB simple; subclases pueden sobreescribir
+```
+
 **Hooks abstractos que toda subclase debe implementar:**
 
 ```java
-protected abstract void updateBehavior(float delta);   // input / física / máquina de estados
-protected abstract TextureRegion getCurrentFrame();     // frame actual de animación
-protected abstract float getDrawHeight();               // altura en unidades de mundo
+protected abstract void updateBehavior(float delta);      // input / física / máquina de estados
+protected abstract TextureRegion getCurrentFrame();        // frame actual de animación
+protected abstract float getDrawHeight();                  // altura en unidades de mundo
+protected abstract float getReferenceFramePixelHeight();   // alto de frame de referencia en píxeles (para escala uniforme)
 ```
 
 ---
@@ -105,8 +121,12 @@ Personaje jugador. Constructor: `Arthur(float worldWidth, AnimationUtils animati
 ### API pública adicional de Arthur
 
 ```java
-void drawEffects(SpriteBatch batch)   // dibuja halo de luz focal alrededor del torso
-float getWorldOffsetX()               // offset acumulado del mundo (lo usa GhostsGame para scroll de fondos)
+void drawEffects(SpriteBatch batch)                                               // dibuja halo de luz focal alrededor del torso
+float getWorldOffsetX()                                                           // offset acumulado del mundo (lo usa GhostsGame para scroll de fondos)
+float getEnergy()                                                                 // valor actual de energía (0-100)
+void applyContactEnergyDrain(boolean contactActive, float delta, float drain)     // reduce energía si contactActive; clampea a 0; ignora deltas > 0.1 s
+boolean consumePunchHitWindow()                                                   // consume ventana de golpe one-shot; retorna true si había ventana activa
+boolean isPunchHitWindowPending()                                                 // true si la ventana de golpe está activa este frame (y el estado es PUNCH)
 ```
 
 ### Carga de animaciones
@@ -140,6 +160,7 @@ Obtener la instancia: `AnimationUtils.getInstance()`.
 
 ```java
 Animation<TextureRegion> buildAnimationFromBoundingBoxes(Texture sheet, String jsonPath, float frameDuration)
+Animation<TextureRegion> buildReversedAnimationFromBoundingBoxes(Texture sheet, String jsonPath, float frameDuration)  // frames en orden inverso (p.ej. GROUND_HIDE)
 TextureRegion[] loadFramesFromBoundingBoxes(Texture sheet, String jsonPath)
 Animation<TextureRegion> buildAnimationFromRange(TextureRegion[] allFrames, int from, int to, float frameDuration)
 ```
@@ -157,11 +178,12 @@ Formato del JSON de bounding boxes (array de objetos):
 
 ## `CharacterFactory`
 
-Crear un Arthur con sus dependencias ya conectadas:
+Crear personajes con sus dependencias ya conectadas:
 
 ```java
 CharacterFactory factory = new CharacterFactory(AnimationUtils.getInstance());
 Arthur arthur = factory.createArthur(WORLD_WIDTH);
+Zombie zombie = factory.createZombie(WORLD_WIDTH);
 ```
 
 Toda creación de personajes debe pasar por `CharacterFactory`, no instanciar directamente desde `GhostsGame`.
@@ -174,21 +196,128 @@ Toda creación de personajes debe pasar por `CharacterFactory`, no instanciar di
 // create()
 CharacterFactory factory = new CharacterFactory(AnimationUtils.getInstance());
 arthur = factory.createArthur(WORLD_WIDTH);
+zombie = factory.createZombie(WORLD_WIDTH);
 
 // render() — orden de dibujado obligatorio
+float prevWorldOffset = arthur.getWorldOffsetX();
 arthur.update(delta);
+float scrollDelta = arthur.getWorldOffsetX() - prevWorldOffset;
+zombie.applyWorldScroll(scrollDelta);          // arrastra el zombie con el scroll del mundo
+updateZombieSpawner(delta);                    // gestiona respawn y delays
+zombie.setTargetX(arthur.getX());             // IA de persecución
+zombie.update(delta);
+boolean defeatedByHit = zombie.consumeDefeatByHitEvent();  // evento one-shot de derrota
+if (defeatedByHit) defeatedZombieCount++;
+processArthurPunchHit();                      // evalúa golpe válido (ventana PUNCH + AABB)
+zombieArthurContactActive = zombie.isInContactWith(...);   // AABB de contacto dañino
+arthur.applyContactEnergyDrain(zombieArthurContactActive, delta, ARTHUR_CONTACT_DRAIN_PER_SECOND);
+
 batch.begin();
   drawScrollingBackgrounds();   // usa arthur.getWorldOffsetX()
   drawBackgroundDim();          // overlay negro semitransparente
-  arthur.drawEffects(batch);    // luz focal (detrás del sprite)
-  arthur.draw(batch);           // sprite del personaje (encima)
+  zombie.draw(batch);           // enemigo (debajo de Arthur)
+  arthur.drawEffects(batch);    // luz focal (detrás del sprite de Arthur)
+  arthur.draw(batch);           // sprite del personaje
+  drawScoreHud();               // Score: N — esquina inferior izquierda
+  drawEnergyHud();              // Energy: N — esquina inferior derecha (rojo parpadeante en 0)
 batch.end();
 
 // dispose()
-arthur.dispose();               // libera ownedTextures
+arthur.dispose();
+zombie.dispose();
 ```
 
+### Constantes de GhostsGame relevantes para balanceo
+
+| Constante | Valor | Descripción |
+|---|---:|---|
+| `ARTHUR_CONTACT_DRAIN_PER_SECOND` | `13f` | Energía drenada por segundo de contacto |
+| `ARTHUR_PUNCH_REACH` | `46f` | Gap horizontal máximo para que el golpe sea válido |
+| `ARTHUR_PUNCH_VERTICAL_REACH` | `22f` | Gap vertical máximo para que el golpe sea válido |
+
 Resolución virtual constante: `WORLD_WIDTH = 800`, `WORLD_HEIGHT = 600` (campos `public static final float`).
+
+---
+
+## Clase `Zombie`
+
+Enemigo NPC. Constructor: `Zombie(float worldWidth, AnimationUtils animationUtils)`.
+Acepta sobrecargas opcionales para `activeWalkDurationSeconds` y `hittedRecoveryDelaySeconds` (usadas en testing).
+
+### Máquina de estados (`MovementState` — enum privado interno)
+
+| Estado | Descripción | Loop |
+|---|---|---|
+| `GROUND_RISE` | Emergiendo del suelo (one-shot) | no |
+| `WALK` | Persiguiendo a Arthur; tiene temporizador de duración máxima | sí |
+| `HITTED` | Retroceso por golpe no letal; regresa a `WALK` tras delay | no |
+| `GROUND_HIDE` | Ocultándose (one-shot); activado por timeout de `WALK` | no |
+| `DEATH` | Animación de muerte + fase de parpadeo; activado al acumular 3 golpes | no |
+
+### Constantes de física y tuning (valores por defecto vía `ZombieTuning`)
+
+| Constante | Valor | Descripción |
+|---|---:|---|
+| `DRAW_HEIGHT` | `120f` | Altura de render en unidades de mundo |
+| `GROUND_Y` | `130f` | Y mínima (suelo) |
+| `WALK_SPEED` | `70f` | Velocidad horizontal de persecución |
+| `HITTED_KNOCKBACK_SPEED` | `180f` | Velocidad de retroceso durante `HITTED` |
+| `HITTED_KNOCKBACK_DURATION` | `0.25f` | Duración del retroceso en segundos |
+| `DEFEAT_HIT_THRESHOLD` | `3` | Golpes acumulados para disparar `DEATH` |
+| `DEATH_BLINK_DURATION` | `2.0f` | Duración del parpadeo post-muerte en segundos |
+| `DEATH_BLINK_INTERVAL` | `0.12f` | Intervalo de parpadeo en segundos |
+
+### Carga de animaciones
+
+| Recurso | Archivo |
+|---|---|
+| Sprite walk | `zombie/sprite-sheet-zombie-walk.png` |
+| Sprite ground (rise y hide) | `zombie/sprite-sheet-zombie-ground.png` |
+| Sprite hitted | `zombie/sprite-sheet-zombie-hitted.png` |
+| Sprite death | `zombie/sprite-sheet-zombie-death.png` |
+| JSON walk | `zombie/bounding-boxes-zombie-walk.json` |
+| JSON ground | `zombie/bounding-boxes-zombie-ground.json` |
+| JSON hitted | `zombie/bounding-boxes-zombie-hitted.json` |
+| JSON death | `zombie/bounding-boxes-zombie-death.json` |
+
+`GROUND_HIDE` usa `buildReversedAnimationFromBoundingBoxes` sobre el mismo sheet/JSON que `GROUND_RISE`.
+
+### API pública de Zombie
+
+```java
+void startGroundRiseAt(float spawnX)          // inicia un nuevo ciclo de spawn en la X indicada; resetea hits y flags
+float resolveSpawnX(float arthurX,
+                    SpawnSide spawnSide,
+                    float spawnDistance)        // calcula X de spawn relativa a Arthur con clamp de mundo
+void setTargetX(float targetX)                 // inyecta la X objetivo de Arthur para la IA de WALK
+void applyWorldScroll(float scrollDelta)        // desplaza el zombie con el scroll del mundo
+boolean registerValidHit()                      // registra impacto válido desde WALK; retorna true si se aceptó
+boolean triggerHitted()                         // alias de registerValidHit()
+void triggerGroundHide()                        // fuerza GROUND_HIDE desde WALK o HITTED (uso debug)
+boolean consumeHideCycleCompleted()             // señal one-shot: ciclo terminado (fin de GROUND_HIDE o DEATH)
+boolean consumeDefeatByHitEvent()               // señal one-shot: zombie derrotado por tercer golpe (solo DEATH)
+boolean isWalking()                             // true si está activo y en estado WALK
+boolean isDefeatedByHit()                       // true si el zombie murió por acumulación de golpes
+int getAccumulatedHits()                        // hits acumulados en el ciclo actual
+int getDefeatHitThreshold()                     // umbral de derrota (3)
+boolean isInContactWith(float x, float y,
+                        float w, float h)        // AABB; solo activo cuando isWalking()
+```
+
+---
+
+## `ZombieTuning`
+
+Clase `final` sin constructor. Todas las constantes son `public static final float`.
+
+| Constante | Valor | Descripción |
+|---|---:|---|
+| `SPAWN_AHEAD_DISTANCE` | `230f` | Distancia de spawn por delante de Arthur |
+| `SPAWN_BEHIND_DISTANCE` | `200f` | Distancia de spawn por detrás de Arthur |
+| `RESPAWN_DELAY_MIN_SECONDS` | `1.3f` | Mínimo delay aleatorio entre ciclos de spawn |
+| `RESPAWN_DELAY_MAX_SECONDS` | `3.4f` | Máximo delay aleatorio entre ciclos de spawn |
+| `ACTIVE_WALK_DURATION_SECONDS` | `10f` | Duración del estado WALK antes de GROUND_HIDE por timeout |
+| `HITTED_RECOVERY_DELAY_SECONDS` | `0.18f` | Delay de recuperación tras HITTED no letal |
 
 ---
 

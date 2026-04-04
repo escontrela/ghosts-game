@@ -10,7 +10,12 @@ import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Rectangle;
+import com.davidpe.ghosts.domain.collision.Collider;
+import com.davidpe.ghosts.domain.collision.CollisionLayer;
+import com.davidpe.ghosts.domain.obstacles.Tombstone;
 import com.davidpe.ghosts.domain.utils.AnimationUtils;
+import java.util.List;
 
 /**
  * Player character Arthur. Extends {@link Character} with keyboard-driven input, a six-state
@@ -65,6 +70,15 @@ public class Arthur extends Character {
   private static final float LIGHT_TORSO_Y_CROUCH_UP = 0.45f;
   private static final float LIGHT_TORSO_Y_JUMP = 0.56f;
   private static final float LIGHT_TORSO_Y_PUNCH = 0.52f;
+  private static final float INITIAL_ENERGY = 100f;
+  private static final float MAX_ENERGY_DRAIN_DELTA_SECONDS = 0.1f;
+  private static final float HIT_SOUND_COOLDOWN_SECONDS = 0.35f;
+  private static final float GROUND_EPSILON = 0.1f;
+  private static final float TOMB_CEILING_RESOLVE_MARGIN = 0.5f;
+
+  // --- Punch reach (used to build attack collider) ---
+  private static final float PUNCH_REACH = 46f;
+  private static final float PUNCH_VERTICAL_REACH = 22f;
 
   // --- Crouch split: rows 0-4 = crouch down (20 frames), rows 4-end = stand up (13 frames) ---
   private static final int CROUCH_DOWN_END_FRAME = 20;
@@ -74,6 +88,7 @@ public class Arthur extends Character {
   private static final float WALK_FRAME_DURATION = 0.035f;
   private static final float JUMP_FRAME_DURATION = 0.04f;
   private static final float PUNCH_FRAME_DURATION = 0.035f;
+  private static final float PUNCH_HIT_WINDOW_RATIO = 0.65f;
   private static final float CROUCH_FRAME_DURATION = 0.035f;
 
   // --- State machine ---
@@ -106,6 +121,53 @@ public class Arthur extends Character {
   private float crouchAnchorX;
   private float currentLightAlpha;
   private float currentLightSize;
+  private float energy;
+  private boolean punchHitWindowPending;
+  private float hitSoundCooldownTimer;
+  private ArthurAudioListener audioListener;
+  private List<Tombstone> tombstoneColliders;
+
+  // --- Collision ---
+  private final Rectangle bodyBounds = new Rectangle();
+  private final Rectangle attackBounds = new Rectangle();
+  private final Collider bodyCollider =
+      new Collider() {
+        @Override
+        public Rectangle getBounds() {
+          return bodyBounds.set(x, y, drawWidth, getDrawHeight());
+        }
+
+        @Override
+        public CollisionLayer getLayer() {
+          return CollisionLayer.PLAYER;
+        }
+
+        @Override
+        public Object getOwner() {
+          return Arthur.this;
+        }
+      };
+  private final Collider attackCollider =
+      new Collider() {
+        @Override
+        public Rectangle getBounds() {
+          return attackBounds.set(
+              x - PUNCH_REACH,
+              y - PUNCH_VERTICAL_REACH,
+              drawWidth + 2 * PUNCH_REACH,
+              getDrawHeight() + 2 * PUNCH_VERTICAL_REACH);
+        }
+
+        @Override
+        public CollisionLayer getLayer() {
+          return CollisionLayer.PLAYER_ATTACK;
+        }
+
+        @Override
+        public Object getOwner() {
+          return Arthur.this;
+        }
+      };
 
   public Arthur(float worldWidth, AnimationUtils animationUtils) {
     super(worldWidth);
@@ -166,6 +228,10 @@ public class Arthur extends Character {
     crouchAnchorX = x;
     currentLightAlpha = LIGHT_ALPHA_IDLE;
     currentLightSize = LIGHT_SIZE_IDLE;
+    energy = INITIAL_ENERGY;
+    punchHitWindowPending = false;
+    hitSoundCooldownTimer = 0f;
+    tombstoneColliders = List.of();
   }
 
   // ---------------------------------------------------------------------------
@@ -173,6 +239,7 @@ public class Arthur extends Character {
   // ---------------------------------------------------------------------------
 
   public void drawEffects(SpriteBatch batch) {
+
     float torsoAnchorX = x + (drawWidth * LIGHT_TORSO_X);
     float torsoAnchorY = y + (DRAW_HEIGHT * getTorsoAnchorY());
     float lightX = torsoAnchorX - (currentLightSize * 0.5f);
@@ -184,7 +251,69 @@ public class Arthur extends Character {
   }
 
   public float getWorldOffsetX() {
+
     return worldOffsetX;
+  }
+
+  public float getEnergy() {
+
+    return energy;
+  }
+
+  public void applyContactEnergyDrain(
+      boolean zombieContactActive, float delta, float drainPerSecond) {
+
+    if (!zombieContactActive || drainPerSecond <= 0f || energy <= 0f || delta <= 0f) {
+      return;
+    }
+    float previousEnergy = energy;
+    float stableDelta = Math.min(delta, MAX_ENERGY_DRAIN_DELTA_SECONDS);
+    energy = Math.max(0f, energy - (drainPerSecond * stableDelta));
+    if (energy < previousEnergy && hitSoundCooldownTimer <= 0f) {
+      if (audioListener != null) audioListener.onHit();
+      hitSoundCooldownTimer = HIT_SOUND_COOLDOWN_SECONDS;
+    }
+  }
+
+  public boolean consumePunchHitWindow() {
+    if (!punchHitWindowPending) {
+      return false;
+    }
+    punchHitWindowPending = false;
+    return true;
+  }
+
+  public boolean isPunchHitWindowPending() {
+    return punchHitWindowPending && movementState == MovementState.PUNCH;
+  }
+
+  public void setAudioListener(ArthurAudioListener listener) {
+    this.audioListener = listener;
+  }
+
+  public void setTombstoneColliders(List<Tombstone> tombstoneColliders) {
+    this.tombstoneColliders = tombstoneColliders == null ? List.of() : tombstoneColliders;
+  }
+
+  /**
+   * Returns the body {@link Collider} for Arthur, representing his current AABB in world
+   * coordinates. Used by the {@code CollisionManager} to detect contact with enemies.
+   *
+   * @return the body collider (always non-null)
+   */
+  public Collider getBodyCollider() {
+    return bodyCollider;
+  }
+
+  /**
+   * Returns the attack {@link Collider} for Arthur's current punch, or {@code null} when the punch
+   * hit window is not active. The hitbox extends {@code PUNCH_REACH} beyond Arthur's body
+   * horizontally and {@code PUNCH_VERTICAL_REACH} above/below, matching the reach of a punch.
+   *
+   * @return the attack collider, or {@code null} if Arthur is not in a punch hit window
+   */
+  public Collider getAttackCollider() {
+    return isPunchHitWindowPending() ? attackCollider : null;
   }
 
   // ---------------------------------------------------------------------------
@@ -193,6 +322,8 @@ public class Arthur extends Character {
 
   @Override
   protected void updateBehavior(float delta) {
+
+    hitSoundCooldownTimer = Math.max(0f, hitSoundCooldownTimer - delta);
     MovementState previousState = movementState;
     updateMovement(delta);
     updateLighting(delta);
@@ -203,6 +334,7 @@ public class Arthur extends Character {
 
   @Override
   protected TextureRegion getCurrentFrame() {
+
     Animation<TextureRegion> anim =
         switch (movementState) {
           case IDLE -> idleAnimation;
@@ -212,10 +344,12 @@ public class Arthur extends Character {
           case JUMP -> jumpAnimation;
           case PUNCH -> punchAnimation;
         };
+
     boolean looping =
         movementState != MovementState.PUNCH
             && movementState != MovementState.CROUCH
             && movementState != MovementState.CROUCH_UP;
+
     return anim.getKeyFrame(stateTime, looping);
   }
 
@@ -224,11 +358,17 @@ public class Arthur extends Character {
     return DRAW_HEIGHT;
   }
 
+  @Override
+  protected float getReferenceFramePixelHeight() {
+    return 399f;
+  }
+
   // ---------------------------------------------------------------------------
   // Input, physics, state machine, scroll
   // ---------------------------------------------------------------------------
 
   private void updateMovement(float delta) {
+
     boolean leftPressed =
         Gdx.input.isKeyPressed(Input.Keys.LEFT) || Gdx.input.isKeyPressed(Input.Keys.A);
     boolean rightPressed =
@@ -238,22 +378,28 @@ public class Arthur extends Character {
     boolean jumpPressed =
         Gdx.input.isKeyJustPressed(Input.Keys.UP) || Gdx.input.isKeyJustPressed(Input.Keys.W);
     boolean punchPressed = Gdx.input.isKeyJustPressed(Input.Keys.SPACE);
-    boolean isOnGround = y <= GROUND_Y;
+    boolean standingOnTombstone = isStandingOnTombstone();
+    boolean isOnGround = y <= GROUND_Y + GROUND_EPSILON || standingOnTombstone;
 
     int horizontalInput = 0;
     if (leftPressed ^ rightPressed) {
       horizontalInput = rightPressed ? 1 : -1;
     }
     movingHorizontally = horizontalInput != 0 && !downPressed;
-    if (movingHorizontally) {
+    if (movingHorizontally || (downPressed && horizontalInput != 0)) {
       facingRight = horizontalInput > 0;
     }
 
     // --- Punch: one-shot animation, blocks other grounded actions ---
     if (movementState == MovementState.PUNCH) {
       if (punchAnimation.isAnimationFinished(stateTime)) {
+        punchHitWindowPending = false;
         movementState = MovementState.IDLE;
       } else {
+        if (!punchHitWindowPending
+            && stateTime >= punchAnimation.getAnimationDuration() * PUNCH_HIT_WINDOW_RATIO) {
+          punchHitWindowPending = true;
+        }
         velocityX = 0f;
         updateScroll(delta);
         return;
@@ -263,6 +409,8 @@ public class Arthur extends Character {
       movementState = MovementState.PUNCH;
       resetStateTime();
       velocityX = 0f;
+      punchHitWindowPending = false;
+      if (audioListener != null) audioListener.onPunch();
       updateScroll(delta);
       return;
     }
@@ -283,6 +431,7 @@ public class Arthur extends Character {
     if (jumpPressed && isOnGround) {
       velocityY = JUMP_VELOCITY;
       movementState = MovementState.JUMP;
+      if (audioListener != null) audioListener.onJump();
     }
 
     if (!isOnGround || movementState == MovementState.JUMP) {
@@ -300,7 +449,7 @@ public class Arthur extends Character {
       }
     }
 
-    boolean groundedAfterPhysics = y <= GROUND_Y;
+    boolean groundedAfterPhysics = y <= GROUND_Y + GROUND_EPSILON || isStandingOnTombstone();
     if (wasAirborne && groundedAfterPhysics) {
       landingStabilizeTimer = LANDING_STABILIZE_DURATION;
     }
@@ -333,7 +482,10 @@ public class Arthur extends Character {
     }
     landingStabilizeTimer = Math.max(0f, landingStabilizeTimer - delta);
 
-    if (groundedAfterPhysics) {
+    boolean standingOnTombstoneAfterMove = resolveTombstoneCollisions();
+    boolean groundedAfterCollision = y <= GROUND_Y + GROUND_EPSILON || standingOnTombstoneAfterMove;
+
+    if (groundedAfterCollision) {
       if (downPressed) {
         movementState = MovementState.CROUCH;
       } else if (movementState == MovementState.CROUCH) {
@@ -347,11 +499,86 @@ public class Arthur extends Character {
     }
 
     x = Math.max(0f, Math.min(x, worldWidth - drawWidth));
-    if (crouchRequested) {
+    if (crouchRequested && groundedAfterCollision) {
       crouchAnchorX = x;
     }
 
     updateScroll(delta);
+  }
+
+  private boolean resolveTombstoneCollisions() {
+
+    boolean standingOnTombstone = false;
+    float arthurBottom = y;
+    float arthurTop = arthurBottom + DRAW_HEIGHT;
+    float arthurLeft = x;
+    float arthurRight = arthurLeft + drawWidth;
+
+    for (Tombstone tombstone : tombstoneColliders) {
+      if (!tombstone.isVisible()) {
+        continue;
+      }
+      float tombLeft = tombstone.getCollisionX();
+      float tombRight = tombLeft + tombstone.getCollisionWidth();
+      float tombBottom = tombstone.getCollisionY();
+      float tombTop = tombBottom + tombstone.getCollisionHeight();
+
+      if (arthurRight <= tombLeft
+          || arthurLeft >= tombRight
+          || arthurTop <= tombBottom
+          || arthurBottom >= tombTop) {
+        continue;
+      }
+
+      float overlapLeft = arthurRight - tombLeft;
+      float overlapRight = tombRight - arthurLeft;
+      float overlapBottom = arthurTop - tombBottom;
+      float overlapTop = tombTop - arthurBottom;
+      float horizontalPenetration = Math.min(overlapLeft, overlapRight);
+      float verticalPenetration = Math.min(overlapBottom, overlapTop);
+
+      if (verticalPenetration <= horizontalPenetration && overlapTop <= overlapBottom) {
+        y = tombTop;
+        velocityY = 0f;
+        standingOnTombstone = true;
+      } else if (verticalPenetration <= horizontalPenetration) {
+        y = tombBottom - DRAW_HEIGHT - TOMB_CEILING_RESOLVE_MARGIN;
+        velocityY = Math.min(0f, velocityY);
+      } else if (overlapLeft <= overlapRight) {
+        x = tombLeft - drawWidth;
+        velocityX = 0f;
+      } else {
+        x = tombRight;
+        velocityX = 0f;
+      }
+
+      arthurBottom = y;
+      arthurTop = arthurBottom + DRAW_HEIGHT;
+      arthurLeft = x;
+      arthurRight = arthurLeft + drawWidth;
+    }
+    return standingOnTombstone;
+  }
+
+  private boolean isStandingOnTombstone() {
+    float footY = y;
+    float arthurLeft = x + 2f;
+    float arthurRight = x + drawWidth - 2f;
+    for (Tombstone tombstone : tombstoneColliders) {
+      if (!tombstone.isVisible()) {
+        continue;
+      }
+      float tombTop = tombstone.getCollisionY() + tombstone.getCollisionHeight();
+      if (Math.abs(footY - tombTop) > GROUND_EPSILON) {
+        continue;
+      }
+      float tombLeft = tombstone.getCollisionX();
+      float tombRight = tombLeft + tombstone.getCollisionWidth();
+      if (arthurRight > tombLeft && arthurLeft < tombRight) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private void updateScroll(float delta) {
