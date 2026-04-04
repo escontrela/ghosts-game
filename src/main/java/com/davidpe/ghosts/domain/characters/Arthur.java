@@ -10,6 +10,9 @@ import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Rectangle;
+import com.davidpe.ghosts.domain.collision.Collider;
+import com.davidpe.ghosts.domain.collision.CollisionLayer;
 import com.davidpe.ghosts.domain.obstacles.Tombstone;
 import com.davidpe.ghosts.domain.utils.AnimationUtils;
 import java.util.List;
@@ -73,6 +76,10 @@ public class Arthur extends Character {
   private static final float GROUND_EPSILON = 0.1f;
   private static final float TOMB_CEILING_RESOLVE_MARGIN = 0.5f;
 
+  // --- Punch reach (used to build attack collider) ---
+  private static final float PUNCH_REACH = 46f;
+  private static final float PUNCH_VERTICAL_REACH = 22f;
+
   // --- Crouch split: rows 0-4 = crouch down (20 frames), rows 4-end = stand up (13 frames) ---
   private static final int CROUCH_DOWN_END_FRAME = 20;
 
@@ -121,6 +128,48 @@ public class Arthur extends Character {
   private boolean hitSoundEventPending;
   private float hitSoundCooldownTimer;
   private List<Tombstone> tombstoneColliders;
+
+  // --- Collision ---
+  private final Rectangle bodyBounds = new Rectangle();
+  private final Rectangle attackBounds = new Rectangle();
+  private final Collider bodyCollider =
+      new Collider() {
+        @Override
+        public Rectangle getBounds() {
+          return bodyBounds.set(x, y, drawWidth, getDrawHeight());
+        }
+
+        @Override
+        public CollisionLayer getLayer() {
+          return CollisionLayer.PLAYER;
+        }
+
+        @Override
+        public Object getOwner() {
+          return Arthur.this;
+        }
+      };
+  private final Collider attackCollider =
+      new Collider() {
+        @Override
+        public Rectangle getBounds() {
+          return attackBounds.set(
+              x - PUNCH_REACH,
+              y - PUNCH_VERTICAL_REACH,
+              drawWidth + 2 * PUNCH_REACH,
+              getDrawHeight() + 2 * PUNCH_VERTICAL_REACH);
+        }
+
+        @Override
+        public CollisionLayer getLayer() {
+          return CollisionLayer.PLAYER_ATTACK;
+        }
+
+        @Override
+        public Object getOwner() {
+          return Arthur.this;
+        }
+      };
 
   public Arthur(float worldWidth, AnimationUtils animationUtils) {
     super(worldWidth);
@@ -259,6 +308,27 @@ public class Arthur extends Character {
 
   public void setTombstoneColliders(List<Tombstone> tombstoneColliders) {
     this.tombstoneColliders = tombstoneColliders == null ? List.of() : tombstoneColliders;
+  }
+
+  /**
+   * Returns the body {@link Collider} for Arthur, representing his current AABB in world
+   * coordinates. Used by the {@code CollisionManager} to detect contact with enemies.
+   *
+   * @return the body collider (always non-null)
+   */
+  public Collider getBodyCollider() {
+    return bodyCollider;
+  }
+
+  /**
+   * Returns the attack {@link Collider} for Arthur's current punch, or {@code null} when the punch
+   * hit window is not active. The hitbox extends {@code PUNCH_REACH} beyond Arthur's body
+   * horizontally and {@code PUNCH_VERTICAL_REACH} above/below, matching the reach of a punch.
+   *
+   * @return the attack collider, or {@code null} if Arthur is not in a punch hit window
+   */
+  public Collider getAttackCollider() {
+    return isPunchHitWindowPending() ? attackCollider : null;
   }
 
   // ---------------------------------------------------------------------------

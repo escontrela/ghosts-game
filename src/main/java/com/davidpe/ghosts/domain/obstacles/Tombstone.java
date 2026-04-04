@@ -3,11 +3,15 @@ package com.davidpe.ghosts.domain.obstacles;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.Texture.TextureFilter;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.math.Rectangle;
+import com.davidpe.ghosts.domain.characters.Drawable;
+import com.davidpe.ghosts.domain.characters.RenderData;
+import com.davidpe.ghosts.domain.collision.Collider;
+import com.davidpe.ghosts.domain.collision.CollisionLayer;
 import com.davidpe.ghosts.domain.utils.AnimationUtils;
 
-public class Tombstone {
+public class Tombstone implements Drawable {
 
   private static final float DRAW_HEIGHT = 92f;
 
@@ -22,6 +26,26 @@ public class Tombstone {
   private float y;
   private boolean visible;
 
+  // --- Collision ---
+  private final Rectangle colliderBounds = new Rectangle();
+  private final Collider collider =
+      new Collider() {
+        @Override
+        public Rectangle getBounds() {
+          return colliderBounds.set(x, y, collisionWidth, collisionHeight);
+        }
+
+        @Override
+        public CollisionLayer getLayer() {
+          return CollisionLayer.OBSTACLE;
+        }
+
+        @Override
+        public Object getOwner() {
+          return Tombstone.this;
+        }
+      };
+
   public Tombstone(float worldWidth, AnimationUtils animationUtils) {
     this.worldWidth = worldWidth;
     this.texture = new Texture(Gdx.files.internal("tombstone/sprite-sheet-tombstone.png"));
@@ -34,7 +58,8 @@ public class Tombstone {
     }
     this.baseFrame = frames[0];
     this.drawHeight = DRAW_HEIGHT;
-    this.drawWidth = drawHeight * ((float) baseFrame.getRegionWidth() / baseFrame.getRegionHeight());
+    this.drawWidth =
+        drawHeight * ((float) baseFrame.getRegionWidth() / baseFrame.getRegionHeight());
     this.collisionWidth = drawWidth;
     this.collisionHeight = drawHeight;
     this.x = 0f;
@@ -42,11 +67,12 @@ public class Tombstone {
     this.visible = false;
   }
 
-  public void draw(SpriteBatch batch) {
+  @Override
+  public RenderData getRenderData() {
     if (!visible) {
-      return;
+      return null;
     }
-    batch.draw(baseFrame, x, y, drawWidth, drawHeight);
+    return new RenderData(baseFrame, x, y, drawWidth, drawHeight, false);
   }
 
   public void dispose() {
@@ -118,6 +144,17 @@ public class Tombstone {
 
   public void setVisible(boolean visible) {
     this.visible = visible;
+  }
+
+  /**
+   * Returns the obstacle {@link Collider} for this tombstone, or {@code null} when the tombstone is
+   * not visible. Passing the result to {@code CollisionManager.register()} is always safe because
+   * {@code register(null)} is a no-op.
+   *
+   * @return the obstacle collider, or {@code null} if the tombstone is not visible
+   */
+  public Collider getCollider() {
+    return visible ? collider : null;
   }
 
   private float clampX(float candidateX) {

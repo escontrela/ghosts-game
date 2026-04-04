@@ -8,6 +8,7 @@ Main packages:
 
 - `com.davidpe.ghosts.application`: app orchestration (`GhostsGame`) and infra (`GameAudio`, `CharacterFactory`).
 - `com.davidpe.ghosts.domain.characters`: domain entities (`Character`, `Arthur`, `Zombie`, tuning constants).
+- `com.davidpe.ghosts.domain.collision`: generic collision contracts and runtime detector (`Collider`, `CollisionLayer`, `CollisionPair`, `CollisionManager`).
 - `com.davidpe.ghosts.domain.obstacles`: world obstacle domain (`Tombstone`).
 - `com.davidpe.ghosts.domain.utils`: animation loading pipeline (`AnimationUtils`).
 
@@ -24,16 +25,17 @@ Current design rule: keep gameplay behavior mostly in `Arthur`, `Zombie`, and `G
 5. Update tombstone segment spawning.
 6. Update zombie spawner lifecycle.
 7. Feed zombie target (`arthur.getX()`), then update zombie.
-8. Resolve zombie/tombstone collision rules.
-9. Consume zombie one-shot defeat event (score + marker + sound).
-10. Resolve Arthur punch hit vs zombie.
-11. Resolve zombie contact damage to Arthur.
-12. Render in strict draw order.
+8. Register active colliders (Arthur body/attack, zombie, visible tombstones).
+9. Compute generic collision pairs with `collisionManager.computeCollisions()`.
+10. Resolve each pair in `handleCollision(...)` (contact damage flag, punch hit, enemy-obstacle reaction).
+11. Consume zombie one-shot defeat event (score + marker + sound).
+12. Resolve zombie contact damage to Arthur.
+13. Render in strict draw order.
 
 Why this sequence exists:
 
 - Arthur is the scroll driver; background and obstacle movement are derived from Arthur, not camera position.
-- Zombie collision and damage are evaluated after all entity movement for the frame.
+- Collision pairs and damage are evaluated after all entity movement for the frame.
 - One-shot events (`consume...`) are intentionally consumed once per frame to avoid duplication.
 
 ### Render order details
@@ -49,6 +51,8 @@ The draw stack is:
 - HUDs (enemy marker, score, energy, pause)
 
 This guarantees obstacle readability while keeping Arthur visible on top.
+
+Rendering is now decoupled from domain entities: `GhostsGame` pulls `RenderData` from `Drawable` objects and performs the actual `SpriteBatch.draw(...)` itself.
 
 ## 3. Position model and world movement
 
@@ -105,14 +109,15 @@ The helper methods to review in `Arthur`:
 - `isStandingOnTombstone()`
 - `resolveTombstoneCollisions()`
 
-### Combat event window
+### Combat event window and attack hitbox
 
-Punch hit registration is event-based:
+Punch hit registration remains event-based, but now routed through the generic collision layer:
 
-- `Arthur` opens a delayed `punchHitWindowPending` inside `PUNCH`.
-- `GhostsGame.processArthurPunchHit()` consumes that window only on valid range + zombie eligibility.
+- `Arthur` opens delayed `punchHitWindowPending` inside `PUNCH`.
+- While active, `Arthur.getAttackCollider()` returns a transient `PLAYER_ATTACK` hitbox.
+- `GhostsGame.handleCollision(...)` consumes `consumePunchHitWindow()` only when a `PLAYER_ATTACK` ↔ `ENEMY` pair is detected.
 
-This avoids auto-hit on every frame of the punch animation.
+This keeps one-hit-per-window semantics and avoids hit polling logic coupled to concrete entity pairs.
 
 ### Energy and hit sounds
 
@@ -148,7 +153,7 @@ Lifecycle loops through:
 
 ### Tombstone rules for zombie
 
-Implemented runtime guarantees:
+Implemented runtime guarantees (now resolved from collision pairs `ENEMY` ↔ `OBSTACLE`):
 
 - in `WALK`, overlapping tombstone triggers `bounceFromObstacle(...)`:
   - zombie is pushed out of obstacle,
@@ -180,26 +185,28 @@ This produces controlled randomness and avoids per-frame jitter decisions.
 
 ## 8. Code excerpts with practical explanation
 
-### Excerpt A — Arthur punch hit processing
+### Excerpt A — Generic collision pipeline in `GhostsGame`
 
 ```java
-if (!arthur.isPunchHitWindowPending() || !zombie.isWalking()) {
-  return;
+collisionManager.clear();
+collisionManager.register(arthur.getBodyCollider());
+collisionManager.register(arthur.getAttackCollider());
+collisionManager.register(zombie.getCollider());
+for (Tombstone tombstone : tombstones) {
+  collisionManager.register(tombstone.getCollider());
 }
-...
-if (horizontalGap <= ARTHUR_PUNCH_REACH
-    && arthur.consumePunchHitWindow()
-    && zombie.registerValidHit()) {
-  gameAudio.play(GameAudio.Cue.ENEMY_HIT);
+List<CollisionPair> pairs = collisionManager.computeCollisions();
+for (CollisionPair pair : pairs) {
+  handleCollision(pair);
 }
 ```
 
 Line-by-line intent:
 
-- first guard prevents consuming the hit window unless both punch window and zombie state are valid.
-- distance checks enforce horizontal/vertical reach constraints.
-- `consumePunchHitWindow()` ensures single registration per punch window.
-- `registerValidHit()` keeps zombie state rules centralized in domain.
+- the collider registry is reconstructed per frame from currently active objects.
+- optional colliders (attack hitbox, inactive entities) are null-safe and simply skipped.
+- broad-phase overlap checks are centralized in `CollisionManager`.
+- gameplay reactions remain explicit in `handleCollision(...)` and keep domain state transitions localized.
 
 ### Excerpt B — Zombie respawn driver
 

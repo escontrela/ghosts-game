@@ -12,6 +12,24 @@
 
 ## Features implementadas
 
+### 2026-04-04 — Refactor de render desacoplado (`Drawable` + `RenderData`)
+
+- **Render desacoplado de dominio:** `Character` ya no conoce `SpriteBatch`; ahora implementa `Drawable` y expone `getRenderData()`.
+- **Payload inmutable de render:** nuevo `RenderData` como contrato de dibujo (`region`, `x`, `y`, `width`, `height`, `flipX`).
+- **Orquestación centralizada en aplicación:** `GhostsGame` incorpora `drawDrawable(...)` y ejecuta todo el draw de entidades desde el controller.
+- **Compatibilidad de efectos preservada:** `Arthur.drawEffects(SpriteBatch)` se mantiene separado para no mezclar capa de VFX con payload base de sprite.
+- **Obstacles alineados al pipeline:** `Tombstone` también implementa `Drawable` y devuelve `RenderData` solo cuando está visible.
+
+### 2026-04-04 — Sistema general de colisiones (`CollisionManager`)
+
+- **Nuevo paquete de dominio `collision`:** se añaden `Collider`, `CollisionLayer`, `CollisionPair` y `CollisionManager`.
+- **Registro por frame explícito:** `GhostsGame` ahora ejecuta `clear()`, `register(...)`, `computeCollisions()` y resuelve pares con `handleCollision(...)`.
+- **Capas de colisión iniciales:** `PLAYER`, `PLAYER_ATTACK`, `ENEMY`, `OBSTACLE` (y `PICKUP` reservado para extensión futura).
+- **Hitbox de ataque dedicada:** `Arthur` expone `getBodyCollider()` y `getAttackCollider()`; la de ataque solo existe durante ventana válida de punch.
+- **Colisionadores condicionales:** `Zombie.getCollider()` devuelve `null` si está inactivo y `Tombstone.getCollider()` devuelve `null` si no está visible.
+- **Migración de reglas previas sin regresión funcional:** contacto Arthur/Zombie, hit melee de Arthur y rebote/push-out Zombie/Tombstone pasan al nuevo resolver por pares.
+- **Limpieza de lógica acoplada:** se elimina el flujo específico de `processArthurPunchHit()` y la resolución manual dedicada de `resolveZombieTombstoneInteractions()` en favor de la ruta genérica.
+
 ### 2026-04-02 — GHOST-0070 Interacción de Arthur con Tombstone (bloqueo, salto y caída)
 
 - **Bloqueo lateral sólido en caminata:** cuando Arthur colisiona lateralmente con una tombstone en `WALK`, mantiene su estado/animación pero pierde avance horizontal efectivo.

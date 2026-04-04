@@ -4,8 +4,10 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.Texture.TextureFilter;
 import com.badlogic.gdx.graphics.g2d.Animation;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.math.Rectangle;
+import com.davidpe.ghosts.domain.collision.Collider;
+import com.davidpe.ghosts.domain.collision.CollisionLayer;
 import com.davidpe.ghosts.domain.utils.AnimationUtils;
 
 public class Zombie extends Character {
@@ -65,6 +67,26 @@ public class Zombie extends Character {
   private float deathBlinkTimer;
   private boolean obstacleAvoidanceActive;
   private float obstacleAvoidanceTargetX;
+
+  // --- Collision ---
+  private final Rectangle colliderBounds = new Rectangle();
+  private final Collider collider =
+      new Collider() {
+        @Override
+        public Rectangle getBounds() {
+          return colliderBounds.set(x, y, drawWidth, getDrawHeight());
+        }
+
+        @Override
+        public CollisionLayer getLayer() {
+          return CollisionLayer.ENEMY;
+        }
+
+        @Override
+        public Object getOwner() {
+          return Zombie.this;
+        }
+      };
 
   public Zombie(float worldWidth, AnimationUtils animationUtils) {
     this(
@@ -150,7 +172,8 @@ public class Zombie extends Character {
       }
       case WALK -> {
         activeWalkTimer -= delta;
-        if (obstacleAvoidanceActive && Math.abs(obstacleAvoidanceTargetX - x) <= TARGET_REACH_EPSILON) {
+        if (obstacleAvoidanceActive
+            && Math.abs(obstacleAvoidanceTargetX - x) <= TARGET_REACH_EPSILON) {
           obstacleAvoidanceActive = false;
         }
         float activeTargetX = obstacleAvoidanceActive ? obstacleAvoidanceTargetX : targetX;
@@ -227,17 +250,17 @@ public class Zombie extends Character {
   }
 
   @Override
-  public void draw(SpriteBatch batch) {
+  public RenderData getRenderData() {
     if (!active) {
-      return;
+      return null;
     }
     if (deathBlinking) {
       int blinkIndex = (int) (deathBlinkTimer / DEATH_BLINK_INTERVAL);
       if (blinkIndex % 2 != 0) {
-        return;
+        return null;
       }
     }
-    super.draw(batch);
+    return super.getRenderData();
   }
 
   private Texture loadSheet(String path) {
@@ -387,6 +410,17 @@ public class Zombie extends Character {
       return false;
     }
     return super.isInContactWith(otherX, otherY, otherWidth, otherHeight);
+  }
+
+  /**
+   * Returns the body {@link Collider} for this zombie, or {@code null} when the zombie is not
+   * active. Passing the result to {@code CollisionManager.register()} is always safe because {@code
+   * register(null)} is a no-op.
+   *
+   * @return the enemy collider, or {@code null} if the zombie is inactive
+   */
+  public Collider getCollider() {
+    return active ? collider : null;
   }
 
   private float clampX(float candidateX) {

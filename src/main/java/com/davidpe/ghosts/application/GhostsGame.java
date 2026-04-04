@@ -17,8 +17,13 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 import com.davidpe.ghosts.application.audio.GameAudio;
 import com.davidpe.ghosts.application.factories.CharacterFactory;
 import com.davidpe.ghosts.domain.characters.Arthur;
+import com.davidpe.ghosts.domain.characters.Drawable;
+import com.davidpe.ghosts.domain.characters.RenderData;
 import com.davidpe.ghosts.domain.characters.Zombie;
 import com.davidpe.ghosts.domain.characters.ZombieTuning;
+import com.davidpe.ghosts.domain.collision.CollisionLayer;
+import com.davidpe.ghosts.domain.collision.CollisionManager;
+import com.davidpe.ghosts.domain.collision.CollisionPair;
 import com.davidpe.ghosts.domain.obstacles.Tombstone;
 import com.davidpe.ghosts.domain.utils.AnimationUtils;
 import java.util.ArrayList;
@@ -59,8 +64,6 @@ public class GhostsGame extends ApplicationAdapter {
   private static final float ENERGY_HUD_CRITICAL_B = 0.2f;
   private static final float ENERGY_HUD_CRITICAL_A = 0.9f;
   private static final float ENERGY_HUD_BLINK_SPEED = 4f;
-  private static final float ARTHUR_PUNCH_REACH = 46f;
-  private static final float ARTHUR_PUNCH_VERTICAL_REACH = 22f;
   private static final int MAX_VISIBLE_TOMBSTONES = 1;
   private static final float GROUND_Y = 130f;
   private static final float TOMBSTONE_SPAWN_MIN_LEAD = 48f;
@@ -79,6 +82,7 @@ public class GhostsGame extends ApplicationAdapter {
   private GlyphLayout hudLayout;
   private GameAudio gameAudio;
 
+  private CollisionManager collisionManager;
   private Arthur arthur;
   private Zombie zombie;
   private List<Tombstone> tombstones;
@@ -124,6 +128,7 @@ public class GhostsGame extends ApplicationAdapter {
     CharacterFactory characterFactory = new CharacterFactory(AnimationUtils.getInstance());
     arthur = characterFactory.createArthur(WORLD_WIDTH);
     zombie = characterFactory.createZombie(WORLD_WIDTH);
+    collisionManager = new CollisionManager();
     tombstones = new ArrayList<>(MAX_VISIBLE_TOMBSTONES);
     for (int i = 0; i < MAX_VISIBLE_TOMBSTONES; i++) {
       tombstones.add(new Tombstone(WORLD_WIDTH, AnimationUtils.getInstance()));
@@ -179,7 +184,18 @@ public class GhostsGame extends ApplicationAdapter {
       updateZombieSpawner(delta);
       zombie.setTargetX(arthur.getX());
       zombie.update(delta);
-      resolveZombieTombstoneInteractions();
+      collisionManager.clear();
+      collisionManager.register(arthur.getBodyCollider());
+      collisionManager.register(arthur.getAttackCollider());
+      collisionManager.register(zombie.getCollider());
+      for (Tombstone tombstone : tombstones) {
+        collisionManager.register(tombstone.getCollider());
+      }
+      List<CollisionPair> pairs = collisionManager.computeCollisions();
+      zombieArthurContactActive = false;
+      for (CollisionPair pair : pairs) {
+        handleCollision(pair);
+      }
       boolean defeatedByHitEvent = zombie.consumeDefeatByHitEvent();
       if (defeatedByHitEvent) {
         defeatedZombieCount += 1;
@@ -187,10 +203,6 @@ public class GhostsGame extends ApplicationAdapter {
         gameAudio.play(GameAudio.Cue.ENEMY_DEATH);
       }
       zombieDefeatByHitEventPending = zombieDefeatByHitEventPending || defeatedByHitEvent;
-      processArthurPunchHit();
-      zombieArthurContactActive =
-          zombie.isInContactWith(
-              arthur.getX(), arthur.getY(), arthur.getDrawWidth(), arthur.getDrawHeightValue());
       arthur.applyContactEnergyDrain(
           zombieArthurContactActive, delta, ARTHUR_CONTACT_DRAIN_PER_SECOND);
       if (arthur.consumeHitSoundEvent()) {
@@ -209,10 +221,10 @@ public class GhostsGame extends ApplicationAdapter {
 
     drawScrollingBackgrounds();
     drawBackgroundDim();
-    zombie.draw(batch);
+    drawDrawable(zombie);
     drawTombstones();
     arthur.drawEffects(batch);
-    arthur.draw(batch);
+    drawDrawable(arthur);
     drawEnemyKillMarkerHud();
     drawScoreHud();
     drawEnergyHud();
@@ -395,7 +407,7 @@ public class GhostsGame extends ApplicationAdapter {
 
   private void drawTombstones() {
     for (Tombstone tombstone : tombstones) {
-      tombstone.draw(batch);
+      drawDrawable(tombstone);
     }
   }
 
@@ -441,26 +453,6 @@ public class GhostsGame extends ApplicationAdapter {
         lastScrollDirectionSign >= 0 ? WORLD_WIDTH + lead : -lead - spawnCandidate.getDrawWidth();
     spawnCandidate.setPosition(spawnX, GROUND_Y);
     spawnCandidate.setVisible(true);
-  }
-
-  private void resolveZombieTombstoneInteractions() {
-    for (Tombstone tombstone : tombstones) {
-      if (!tombstone.isVisible() || !isZombieOverlappingTombstone(tombstone)) {
-        continue;
-      }
-      float tombLeft = tombstone.getCollisionX();
-      float tombRight = tombLeft + tombstone.getCollisionWidth();
-      if (zombie.isWalking()) {
-        zombie.bounceFromObstacle(tombLeft, tombRight);
-      } else {
-        zombie.pushOutOfObstacle(tombLeft, tombRight);
-      }
-    }
-  }
-
-  private boolean isZombieOverlappingTombstone(Tombstone tombstone) {
-    return tombstone.overlaps(
-        zombie.getX(), zombie.getY(), zombie.getDrawWidth(), zombie.getDrawHeightValue());
   }
 
   private float resolveZombieSpawnX(float preferredSpawnX, Zombie.SpawnSide preferredSide) {
@@ -523,45 +515,38 @@ public class GhostsGame extends ApplicationAdapter {
     return defeatedZombieCount;
   }
 
-  private void processArthurPunchHit() {
+  private void handleCollision(CollisionPair pair) {
+    CollisionLayer la = pair.a().getLayer();
+    CollisionLayer lb = pair.b().getLayer();
 
-    if (!arthur.isPunchHitWindowPending() || !zombie.isWalking()) {
+    if ((la == CollisionLayer.PLAYER && lb == CollisionLayer.ENEMY)
+        || (la == CollisionLayer.ENEMY && lb == CollisionLayer.PLAYER)) {
+      if (zombie.isWalking()) {
+        zombieArthurContactActive = true;
+      }
       return;
     }
 
-    float arthurLeft = arthur.getX();
-    float arthurRight = arthurLeft + arthur.getDrawWidth();
-    float arthurBottom = arthur.getY();
-    float arthurTop = arthurBottom + arthur.getDrawHeightValue();
-
-    float zombieLeft = zombie.getX();
-    float zombieRight = zombieLeft + zombie.getDrawWidth();
-    float zombieBottom = zombie.getY();
-    float zombieTop = zombieBottom + zombie.getDrawHeightValue();
-
-    float verticalGap = distanceBetweenSegments(arthurBottom, arthurTop, zombieBottom, zombieTop);
-    if (verticalGap > ARTHUR_PUNCH_VERTICAL_REACH) {
+    if ((la == CollisionLayer.PLAYER_ATTACK && lb == CollisionLayer.ENEMY)
+        || (la == CollisionLayer.ENEMY && lb == CollisionLayer.PLAYER_ATTACK)) {
+      if (arthur.consumePunchHitWindow() && zombie.registerValidHit()) {
+        gameAudio.play(GameAudio.Cue.ENEMY_HIT);
+      }
       return;
     }
 
-    float horizontalGap = distanceBetweenSegments(arthurLeft, arthurRight, zombieLeft, zombieRight);
-
-    if (horizontalGap <= ARTHUR_PUNCH_REACH
-        && arthur.consumePunchHitWindow()
-        && zombie.registerValidHit()) {
-      gameAudio.play(GameAudio.Cue.ENEMY_HIT);
+    if ((la == CollisionLayer.ENEMY && lb == CollisionLayer.OBSTACLE)
+        || (la == CollisionLayer.OBSTACLE && lb == CollisionLayer.ENEMY)) {
+      Tombstone tombstone =
+          (Tombstone) (la == CollisionLayer.OBSTACLE ? pair.a().getOwner() : pair.b().getOwner());
+      float tombLeft = tombstone.getCollisionX();
+      float tombRight = tombLeft + tombstone.getCollisionWidth();
+      if (zombie.isWalking()) {
+        zombie.bounceFromObstacle(tombLeft, tombRight);
+      } else {
+        zombie.pushOutOfObstacle(tombLeft, tombRight);
+      }
     }
-  }
-
-  private float distanceBetweenSegments(
-      float firstMin, float firstMax, float secondMin, float secondMax) {
-    if (secondMin >= firstMax) {
-      return secondMin - firstMax;
-    }
-    if (firstMin >= secondMax) {
-      return firstMin - secondMax;
-    }
-    return 0f;
   }
 
   private boolean isAnyKeyJustPressed() {
@@ -582,5 +567,33 @@ public class GhostsGame extends ApplicationAdapter {
     return switch (enemyType) {
       case ZOMBIE -> "Zombie";
     };
+  }
+
+  /**
+   * Draws the given {@link Drawable} using its {@link RenderData}. If the drawable has no render
+   * data for the current frame (i.e. {@code getRenderData()} returns {@code null}), nothing is
+   * drawn.
+   *
+   * @param drawable the drawable to render
+   */
+  private void drawDrawable(Drawable drawable) {
+
+    RenderData rd = drawable.getRenderData();
+
+    if (rd == null) {
+
+      return;
+    }
+
+    float dw = rd.width();
+    float dx = rd.x();
+
+    if (rd.flipX()) {
+
+      dx += dw;
+      dw = -dw;
+    }
+
+    batch.draw(rd.region(), dx, rd.y(), dw, rd.height());
   }
 }

@@ -1,7 +1,6 @@
 package com.davidpe.ghosts.domain.characters;
 
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,7 +20,7 @@ import java.util.List;
  * <p>Subclasses register their textures in {@link #ownedTextures} during construction so that
  * {@link #dispose()} releases all GPU resources uniformly.
  */
-public abstract class Character {
+public abstract class Character implements Drawable {
 
   protected float x;
   protected float y;
@@ -58,13 +57,15 @@ public abstract class Character {
   }
 
   /**
-   * Renders the character's current animation frame at its position, handling horizontal flip when
-   * the character faces left. Uses {@link #getCurrentFrame()} and {@link #getDrawHeight()} provided
-   * by the subclass.
+   * Computes the render data for the character's current animation frame at its position. The
+   * returned {@link RenderData} contains the texture region, position, dimensions, and flip flag
+   * needed by the game controller to draw the character.
    *
-   * @param batch the active sprite batch (must be between {@code begin()} and {@code end()})
+   * @return the render data for the current frame, or {@code null} if nothing should be drawn
    */
-  public void draw(SpriteBatch batch) {
+  @Override
+  public RenderData getRenderData() {
+
     TextureRegion frameToDraw = getCurrentFrame();
     renderFrame.setRegion(frameToDraw);
     float refPixelH = getReferenceFramePixelHeight();
@@ -73,12 +74,9 @@ public abstract class Character {
     float visualHeight = Math.round(frameToDraw.getRegionHeight() * scale);
     float centerX = x + drawWidth * 0.5f;
     float drawX = Math.round(centerX - visualWidth * 0.5f);
-    float dw = visualWidth;
-    if (!facingRight) {
-      drawX += dw;
-      dw = -dw;
-    }
-    batch.draw(renderFrame, drawX, Math.round(y), dw, visualHeight);
+
+    return new RenderData(
+        renderFrame, drawX, Math.round(y), visualWidth, visualHeight, !facingRight);
   }
 
   /**
