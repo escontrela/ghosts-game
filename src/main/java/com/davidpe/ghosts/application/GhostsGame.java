@@ -1,5 +1,7 @@
 package com.davidpe.ghosts.application;
 
+import static com.badlogic.gdx.Input.Keys.ESCAPE;
+
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
@@ -17,6 +19,7 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 import com.davidpe.ghosts.application.audio.GameAudio;
 import com.davidpe.ghosts.application.factories.CharacterFactory;
 import com.davidpe.ghosts.domain.characters.Arthur;
+import com.davidpe.ghosts.domain.characters.ArthurAudioListener;
 import com.davidpe.ghosts.domain.characters.Drawable;
 import com.davidpe.ghosts.domain.characters.RenderData;
 import com.davidpe.ghosts.domain.characters.Zombie;
@@ -128,6 +131,23 @@ public class GhostsGame extends ApplicationAdapter {
     CharacterFactory characterFactory = new CharacterFactory(AnimationUtils.getInstance());
     arthur = characterFactory.createArthur(WORLD_WIDTH);
     zombie = characterFactory.createZombie(WORLD_WIDTH);
+    arthur.setAudioListener(
+        new ArthurAudioListener() {
+          @Override
+          public void onJump() {
+            gameAudio.play(GameAudio.Cue.ARTHUR_JUMP);
+          }
+
+          @Override
+          public void onPunch() {
+            gameAudio.play(GameAudio.Cue.ARTHUR_LAND);
+          }
+
+          @Override
+          public void onHit() {
+            gameAudio.play(GameAudio.Cue.ARTHUR_HIT);
+          }
+        });
     collisionManager = new CollisionManager();
     tombstones = new ArrayList<>(MAX_VISIBLE_TOMBSTONES);
     for (int i = 0; i < MAX_VISIBLE_TOMBSTONES; i++) {
@@ -156,63 +176,75 @@ public class GhostsGame extends ApplicationAdapter {
   public void render() {
 
     ScreenUtils.clear(0, 0, 0, 1);
-
     float delta = Gdx.graphics.getDeltaTime();
-    if (gamePaused) {
-      if (isAnyKeyJustPressed()) {
-        gamePaused = false;
-      }
-    } else if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-      gamePaused = true;
-    } else {
-      gameTime += delta;
-      handleZombieDebugInput();
-      float prevWorldOffset = arthur.getWorldOffsetX();
-      arthur.update(delta);
-      if (arthur.consumeJumpSoundEvent()) {
-        gameAudio.play(GameAudio.Cue.ARTHUR_JUMP);
-      }
-      if (arthur.consumePunchSoundEvent()) {
-        gameAudio.play(GameAudio.Cue.ARTHUR_LAND);
-      }
-      float scrollDelta = arthur.getWorldOffsetX() - prevWorldOffset;
-      zombie.applyWorldScroll(scrollDelta);
-      for (Tombstone tombstone : tombstones) {
-        tombstone.applyWorldScroll(scrollDelta);
-      }
-      updateTombstoneSpawning(scrollDelta);
-      updateZombieSpawner(delta);
-      zombie.setTargetX(arthur.getX());
-      zombie.update(delta);
-      collisionManager.clear();
-      collisionManager.register(arthur.getBodyCollider());
-      collisionManager.register(arthur.getAttackCollider());
-      collisionManager.register(zombie.getCollider());
-      for (Tombstone tombstone : tombstones) {
-        collisionManager.register(tombstone.getCollider());
-      }
-      List<CollisionPair> pairs = collisionManager.computeCollisions();
-      zombieArthurContactActive = false;
-      for (CollisionPair pair : pairs) {
-        handleCollision(pair);
-      }
-      boolean defeatedByHitEvent = zombie.consumeDefeatByHitEvent();
-      if (defeatedByHitEvent) {
-        defeatedZombieCount += 1;
-        registerEnemyDefeat(EnemyType.ZOMBIE);
-        gameAudio.play(GameAudio.Cue.ENEMY_DEATH);
-      }
-      zombieDefeatByHitEventPending = zombieDefeatByHitEventPending || defeatedByHitEvent;
-      arthur.applyContactEnergyDrain(
-          zombieArthurContactActive, delta, ARTHUR_CONTACT_DRAIN_PER_SECOND);
-      if (arthur.consumeHitSoundEvent()) {
-        gameAudio.play(GameAudio.Cue.ARTHUR_HIT);
-      }
-      if (arthur.getEnergy() <= 0f && !gameOverSoundPlayed) {
-        gameAudio.play(GameAudio.Cue.GAME_OVER);
-        gameOverSoundPlayed = true;
-      }
+
+    if (gamePaused && isAnyKeyJustPressed()) {
+
+      gamePaused = false;
+      return;
     }
+
+    if (gamePaused) {
+
+      drawFrame();
+      return;
+    }
+
+    if (Gdx.input.isKeyJustPressed(ESCAPE)) {
+
+      gamePaused = true;
+      return;
+    }
+
+    gameTime += delta;
+    handleZombieDebugInput();
+    float prevWorldOffset = arthur.getWorldOffsetX();
+    arthur.update(delta);
+
+    float scrollDelta = arthur.getWorldOffsetX() - prevWorldOffset;
+    zombie.applyWorldScroll(scrollDelta);
+    for (Tombstone tombstone : tombstones) {
+      tombstone.applyWorldScroll(scrollDelta);
+    }
+    updateTombstoneSpawning(scrollDelta);
+    updateZombieSpawner(delta);
+    zombie.setTargetX(arthur.getX());
+    zombie.update(delta);
+    collisionManager.clear();
+    collisionManager.register(arthur.getBodyCollider());
+    collisionManager.register(arthur.getAttackCollider());
+    collisionManager.register(zombie.getCollider());
+    for (Tombstone tombstone : tombstones) {
+      collisionManager.register(tombstone.getCollider());
+    }
+    List<CollisionPair> pairs = collisionManager.computeCollisions();
+    zombieArthurContactActive = false;
+    for (CollisionPair pair : pairs) {
+      handleCollision(pair);
+    }
+    boolean defeatedByHitEvent = zombie.consumeDefeatByHitEvent();
+    if (defeatedByHitEvent) {
+      defeatedZombieCount += 1;
+      registerEnemyDefeat(EnemyType.ZOMBIE);
+      gameAudio.play(GameAudio.Cue.ENEMY_DEATH);
+    }
+    zombieDefeatByHitEventPending = zombieDefeatByHitEventPending || defeatedByHitEvent;
+    arthur.applyContactEnergyDrain(
+        zombieArthurContactActive, delta, ARTHUR_CONTACT_DRAIN_PER_SECOND);
+    if (arthur.getEnergy() <= 0f && !gameOverSoundPlayed) {
+      gameAudio.play(GameAudio.Cue.GAME_OVER);
+      gameOverSoundPlayed = true;
+    }
+
+    drawFrame();
+  }
+
+  /**
+   * Renders the current game state by drawing the scrolling backgrounds, the dim overlay, all
+   * visible domain objects (Arthur, the zombie, and tombstones), and the HUD elements (score,
+   * energy, enemy defeat markers, and pause message). The draw order is backgrounds first,
+   */
+  private void drawFrame() {
 
     camera.update();
     batch.setProjectionMatrix(camera.combined);
@@ -516,6 +548,7 @@ public class GhostsGame extends ApplicationAdapter {
   }
 
   private void handleCollision(CollisionPair pair) {
+
     CollisionLayer la = pair.a().getLayer();
     CollisionLayer lb = pair.b().getLayer();
 

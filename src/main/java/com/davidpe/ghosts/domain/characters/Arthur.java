@@ -123,10 +123,8 @@ public class Arthur extends Character {
   private float currentLightSize;
   private float energy;
   private boolean punchHitWindowPending;
-  private boolean jumpSoundEventPending;
-  private boolean punchSoundEventPending;
-  private boolean hitSoundEventPending;
   private float hitSoundCooldownTimer;
+  private ArthurAudioListener audioListener;
   private List<Tombstone> tombstoneColliders;
 
   // --- Collision ---
@@ -232,9 +230,6 @@ public class Arthur extends Character {
     currentLightSize = LIGHT_SIZE_IDLE;
     energy = INITIAL_ENERGY;
     punchHitWindowPending = false;
-    jumpSoundEventPending = false;
-    punchSoundEventPending = false;
-    hitSoundEventPending = false;
     hitSoundCooldownTimer = 0f;
     tombstoneColliders = List.of();
   }
@@ -244,6 +239,7 @@ public class Arthur extends Character {
   // ---------------------------------------------------------------------------
 
   public void drawEffects(SpriteBatch batch) {
+
     float torsoAnchorX = x + (drawWidth * LIGHT_TORSO_X);
     float torsoAnchorY = y + (DRAW_HEIGHT * getTorsoAnchorY());
     float lightX = torsoAnchorX - (currentLightSize * 0.5f);
@@ -255,15 +251,18 @@ public class Arthur extends Character {
   }
 
   public float getWorldOffsetX() {
+
     return worldOffsetX;
   }
 
   public float getEnergy() {
+
     return energy;
   }
 
   public void applyContactEnergyDrain(
       boolean zombieContactActive, float delta, float drainPerSecond) {
+
     if (!zombieContactActive || drainPerSecond <= 0f || energy <= 0f || delta <= 0f) {
       return;
     }
@@ -271,7 +270,7 @@ public class Arthur extends Character {
     float stableDelta = Math.min(delta, MAX_ENERGY_DRAIN_DELTA_SECONDS);
     energy = Math.max(0f, energy - (drainPerSecond * stableDelta));
     if (energy < previousEnergy && hitSoundCooldownTimer <= 0f) {
-      hitSoundEventPending = true;
+      if (audioListener != null) audioListener.onHit();
       hitSoundCooldownTimer = HIT_SOUND_COOLDOWN_SECONDS;
     }
   }
@@ -288,22 +287,8 @@ public class Arthur extends Character {
     return punchHitWindowPending && movementState == MovementState.PUNCH;
   }
 
-  public boolean consumeJumpSoundEvent() {
-    boolean event = jumpSoundEventPending;
-    jumpSoundEventPending = false;
-    return event;
-  }
-
-  public boolean consumePunchSoundEvent() {
-    boolean event = punchSoundEventPending;
-    punchSoundEventPending = false;
-    return event;
-  }
-
-  public boolean consumeHitSoundEvent() {
-    boolean event = hitSoundEventPending;
-    hitSoundEventPending = false;
-    return event;
+  public void setAudioListener(ArthurAudioListener listener) {
+    this.audioListener = listener;
   }
 
   public void setTombstoneColliders(List<Tombstone> tombstoneColliders) {
@@ -337,6 +322,7 @@ public class Arthur extends Character {
 
   @Override
   protected void updateBehavior(float delta) {
+
     hitSoundCooldownTimer = Math.max(0f, hitSoundCooldownTimer - delta);
     MovementState previousState = movementState;
     updateMovement(delta);
@@ -348,6 +334,7 @@ public class Arthur extends Character {
 
   @Override
   protected TextureRegion getCurrentFrame() {
+
     Animation<TextureRegion> anim =
         switch (movementState) {
           case IDLE -> idleAnimation;
@@ -357,10 +344,12 @@ public class Arthur extends Character {
           case JUMP -> jumpAnimation;
           case PUNCH -> punchAnimation;
         };
+
     boolean looping =
         movementState != MovementState.PUNCH
             && movementState != MovementState.CROUCH
             && movementState != MovementState.CROUCH_UP;
+
     return anim.getKeyFrame(stateTime, looping);
   }
 
@@ -379,6 +368,7 @@ public class Arthur extends Character {
   // ---------------------------------------------------------------------------
 
   private void updateMovement(float delta) {
+
     boolean leftPressed =
         Gdx.input.isKeyPressed(Input.Keys.LEFT) || Gdx.input.isKeyPressed(Input.Keys.A);
     boolean rightPressed =
@@ -420,7 +410,7 @@ public class Arthur extends Character {
       resetStateTime();
       velocityX = 0f;
       punchHitWindowPending = false;
-      punchSoundEventPending = true;
+      if (audioListener != null) audioListener.onPunch();
       updateScroll(delta);
       return;
     }
@@ -441,7 +431,7 @@ public class Arthur extends Character {
     if (jumpPressed && isOnGround) {
       velocityY = JUMP_VELOCITY;
       movementState = MovementState.JUMP;
-      jumpSoundEventPending = true;
+      if (audioListener != null) audioListener.onJump();
     }
 
     if (!isOnGround || movementState == MovementState.JUMP) {
@@ -517,6 +507,7 @@ public class Arthur extends Character {
   }
 
   private boolean resolveTombstoneCollisions() {
+
     boolean standingOnTombstone = false;
     float arthurBottom = y;
     float arthurTop = arthurBottom + DRAW_HEIGHT;
